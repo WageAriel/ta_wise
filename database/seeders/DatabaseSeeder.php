@@ -12,11 +12,36 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // \App\Models\User::factory(10)->create();
+        \App\Models\User::factory()->create([
+            'username' => 'admin',
+            'email' => 'admin@wise.com',
+            'password' => bcrypt('password'),
+            'role' => 'admin',
+            'is_active' => true,
+        ]);
 
-        // \App\Models\User::factory()->create([
-        //     'name' => 'Test User',
-        //     'email' => 'test@example.com',
-        // ]);
+        \App\Models\User::factory()->create([
+            'username' => 'supplier1',
+            'email' => 'supplier1@gmail.com',
+            'password' => bcrypt('password'),
+            'role' => 'supplier',
+            'is_active' => true,
+        ]);
+
+        \App\Models\User::factory()->create([
+            'username' => 'petugas',
+            'email' => 'petugas@wise.com',
+            'password' => bcrypt('password'),
+            'role' => 'petugas_lapangan',
+            'is_active' => true,
+        ]);
+        
+        \App\Models\User::factory()->create([
+            'username' => 'manajer',
+            'email' => 'manajer@wise.com',
+            'password' => bcrypt('password'),
+            'role' => 'manajer',
+            'is_active' => true,
+        ]);
     }
 }
