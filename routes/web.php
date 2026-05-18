@@ -56,12 +56,19 @@ Route::middleware('auth')->group(function () {
     // ADMIN ROUTES
     // ===================================================
     Route::prefix('admin')->name('admin.')->group(function () {
-        // Review Tahap 1
-        Route::get('/supplier/data', [\App\Http\Controllers\DataSupplierController::class, 'adminIndex'])->name('supplier.data');
+        // Rute Utama & Manajemen Data Supplier
+        Route::get('/supplier/data', [\App\Http\Controllers\DataSupplierController::class, 'adminIndex'])->name('supplier.index');
+        Route::delete('/supplier/data/{id}', [\App\Http\Controllers\DataSupplierController::class, 'destroy'])->name('supplier.destroy');
+        
+        // Fungsionalitas Ekstra: Export & Import Excel
+        Route::get('/supplier/export', [\App\Http\Controllers\DataSupplierController::class, 'export'])->name('supplier.export');
+        Route::post('/supplier/import', [\App\Http\Controllers\DataSupplierController::class, 'import'])->name('supplier.import');
+        // Review & Persetujuan Dokumen Supplier
         Route::get('/supplier/data/{supplier}', [\App\Http\Controllers\DataSupplierController::class, 'adminShow'])->name('supplier.show');
         Route::post('/supplier/data/{supplier}/approve', [\App\Http\Controllers\DataSupplierController::class, 'adminApprove'])->name('supplier.approve');
         Route::post('/supplier/data/{supplier}/reject', [\App\Http\Controllers\DataSupplierController::class, 'adminReject'])->name('supplier.reject');
         
+        // Rute-rute admin lainnya...
         Route::get('/supplier/selection', fn() => Inertia::render('Admin/SupplierSelection'))->name('supplier.selection');
         Route::get('/supplier/classification', fn() => Inertia::render('Admin/SupplierClassification'))->name('supplier.classification');
         Route::get('/field-officers', fn() => Inertia::render('Admin/FieldOfficers'))->name('field-officers');

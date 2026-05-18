@@ -104,13 +104,14 @@ class DataSupplierController extends Controller
     // 1. Tampil daftar semua supplier yang sudah submit
     public function adminIndex()
     {
-        $suppliers = Supplier::with('user')
+        $suppliers = Supplier::with(['user', 'documents'])
             ->whereIn('status', ['submitted', 'approved', 'rejected'])
             ->latest()
-            ->paginate(10);
+            ->get();
 
-        return Inertia::render('Admin/SupplierData', [
+        return Inertia::render('Admin/Data Supplier/Index', [
             'suppliers' => $suppliers,
+            'years' => [2024, 2025, 2026] // Mengirimkan data daftar tahun seleksi
         ]);
     }
 
@@ -178,7 +179,7 @@ class DataSupplierController extends Controller
             'reviewed_at' => now(),
         ]);
 
-        return redirect()->route('admin.supplier.data')->with('success', 'Supplier berhasil disetujui (Lolos Tahap 1).');
+        return redirect()->route('admin.supplier.index')->with('success', 'Supplier berhasil disetujui (Lolos Tahap 1).');
     }
 
     // 4. Tolak supplier (Reject)

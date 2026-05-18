@@ -92,7 +92,7 @@ const icons = {
                 <div class="space-y-1">
                     <Link
                         v-for="(val, rName) in {
-                            'admin.supplier.data': {
+                            'admin.supplier.index': {
                                 label: 'Supplier Data',
                                 icon: 'supplierData',
                             },
