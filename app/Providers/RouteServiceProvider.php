@@ -2,6 +2,9 @@
 
 namespace App\Providers;
 
+use App\Models\HeaderSoal;
+use App\Models\Klasifikasi;
+use App\Models\Pertanyaan;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\Support\Providers\RouteServiceProvider as ServiceProvider;
 use Illuminate\Http\Request;
@@ -25,6 +28,11 @@ class RouteServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureRateLimiting();
+
+        // Explicit model binding untuk model dengan custom primary key
+        Route::model('klasifikasi', Klasifikasi::class);
+        Route::model('headerSoal', HeaderSoal::class);
+        Route::model('pertanyaan', Pertanyaan::class);
 
         $this->routes(function () {
             Route::middleware('api')

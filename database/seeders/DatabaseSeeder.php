@@ -43,5 +43,8 @@ class DatabaseSeeder extends Seeder
             'role' => 'manajer',
             'is_active' => true,
         ]);
+
+        // Seed bank soal klasifikasi
+        $this->call(BankSoalKlasifikasiSeeder::class);
     }
 }

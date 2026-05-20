@@ -1,6 +1,9 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\HeaderSoalController;
+use App\Http\Controllers\PertanyaanController;
+use App\Http\Controllers\KlasifikasiController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -42,7 +45,23 @@ Route::middleware('auth')->group(function () {
             ->middleware('supplier.approved')
             ->name('selection');
             
-        Route::get('/classification', fn() => Inertia::render('Supplier/Classification'))->name('classification');
+        // Klasifikasi Supplier
+        Route::get('/classification', fn() => Inertia::render('Supplier/Klasifikasi/KlasifikasiIndex'))->name('classification');
+        Route::get('/classification/data', [KlasifikasiController::class, 'supplierIndex'])->name('classification.data');
+        Route::get('/klasifikasi-form', function() {
+            $pertanyaans = \App\Models\Pertanyaan::where('jenis_soal', 'klasifikasi')
+                ->where('status', 'aktif')
+                ->with('opsis')
+                ->get();
+
+            return Inertia::render('Supplier/KlasifikasiCreate', [
+                'pertanyaans' => $pertanyaans,
+                'supplier'    => null, // null saat testing tanpa login supplier
+            ]);
+        })->name('klasifikasi-form');
+        Route::get('/classification/ajukan', [KlasifikasiController::class, 'create'])->name('classification.create');
+        Route::post('/classification/ajukan', [KlasifikasiController::class, 'store'])->name('classification.store');
+
         Route::get('/timeline', fn() => Inertia::render('Supplier/Timeline'))->name('timeline');
         Route::get('/purchase-orders', fn() => Inertia::render('Supplier/PurchaseOrders'))->name('purchase-orders.index');
     });
@@ -65,7 +84,19 @@ Route::middleware('auth')->group(function () {
         
         // Rute-rute admin lainnya...
         Route::get('/supplier/selection', fn() => Inertia::render('Admin/SupplierSelection'))->name('supplier.selection');
-        Route::get('/supplier/classification', fn() => Inertia::render('Admin/SupplierClassification'))->name('supplier.classification');
+
+        // Klasifikasi - Admin
+        Route::get('/supplier/classification', function() {
+            return Inertia::render('Admin/KlasifikasiView');
+        })->name('supplier.classification');
+        Route::get('/supplier/classification/{klasifikasi}', [KlasifikasiController::class, 'adminShow'])->name('supplier.classification.show');
+        Route::patch('/supplier/classification/{klasifikasi}/status', [KlasifikasiController::class, 'adminUpdateStatus'])->name('supplier.classification.status');
+
+        // Manajemen Soal (Header Soal) - Admin
+        Route::prefix('soal')->name('soal.')->group(function () {
+            Route::resource('header', HeaderSoalController::class)->names('header');
+            Route::resource('pertanyaan', PertanyaanController::class)->names('pertanyaan');
+        });
         Route::get('/field-officers', fn() => Inertia::render('Admin/FieldOfficers'))->name('field-officers');
         Route::get('/purchase-orders', fn() => Inertia::render('Admin/PurchaseOrders'))->name('purchase-orders');
         Route::get('/inbound', fn() => Inertia::render('Admin/Inbound'))->name('inbound');
@@ -79,9 +110,13 @@ Route::middleware('auth')->group(function () {
     // PETUGAS LAPANGAN ROUTES (placeholder)
     // ===================================================
     Route::middleware(['role:petugas_lapangan'])->prefix('petugas')->name('petugas.')->group(function () {
+        Route::get('/dashboard', fn() => Inertia::render('PetugasLapangan/DashboardPetugas'))->name('dashboard');
         Route::get('/classification', fn() => Inertia::render('Petugas/Classification'))->name('classification');
         Route::get('/field-officers', fn() => Inertia::render('Petugas/FieldOfficers'))->name('field-officers');
     });
 });
+
+
+
 
 require __DIR__.'/auth.php';

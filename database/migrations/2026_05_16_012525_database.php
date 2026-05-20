@@ -25,7 +25,7 @@ return new class extends Migration {
 
         Schema::create('pertanyaan', function (Blueprint $table) {
             $table->id('id_pertanyaan');
-            $table->enum('jenis_soal', ['pilihan_ganda', 'essay']); // Sesuaikan isi enum Anda
+            $table->enum('jenis_soal', ['seleksi', 'klasifikasi']); // Sesuaikan isi enum Anda
             $table->text('teks_pertanyaan');
             $table->integer('bobot');
             $table->string('status');
@@ -88,7 +88,7 @@ return new class extends Migration {
             $table->foreignId('id_klasifikasi')->constrained('klasifikasi', 'id_klasifikasi')->onDelete('cascade');
             $table->foreignId('id_pertanyaan')->constrained('pertanyaan', 'id_pertanyaan')->onDelete('cascade');
             $table->foreignId('id_opsi')->constrained('opsi', 'id_opsi')->onDelete('cascade');
-            $table->foreignId('id_verifikasi')->constrained('verifikasi', 'id_verifikasi')->onDelete('cascade');
+            $table->foreignId('id_verifikasi')->nullable()->constrained('verifikasi', 'id_verifikasi')->onDelete('cascade');
             $table->timestamps();
         });
     }
