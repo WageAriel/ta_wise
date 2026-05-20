@@ -1,19 +1,19 @@
 <script setup>
 import { ref, computed } from "vue";
-import { Head, router, useForm } from "@inertiajs/vue3";
-import SidebarAdmin from "../../../Components/SidebarAdmin.vue";
+import { Head } from "@inertiajs/vue3";
+import axios from "axios";
+import AdminLayout from "../../../Layouts/AdminLayout.vue";
 
-// Props yang diterima dari controller Laravel
+// Props dari controller (data awal saat halaman pertama dimuat)
 const props = defineProps({
-    suppliers: {
-        type: Array,
-        default: () => [],
-    },
-    years: {
-        type: Array,
-        default: () => [2024, 2025, 2026],
-    },
+    suppliers: { type: Array, default: () => [] },
+    years: { type: Array, default: () => [2024, 2025, 2026] },
 });
+
+// State reaktif untuk daftar supplier (bisa di-refresh tanpa reload halaman)
+const suppliers = ref(props.suppliers);
+const years = ref(props.years);
+const isLoading = ref(false);
 
 // State untuk Pencarian dan Filter
 const searchQuery = ref("");
@@ -24,7 +24,7 @@ const perPage = ref(10);
 const showDetailModal = ref(false);
 const selectedSupplier = ref(null);
 
-// State untuk Modal Konfirmasi Kelulusan/Penolakan
+// State untuk Modal Konfirmasi Disetujui/Ditolak
 const showConfirmModal = ref(false);
 const confirmAction = ref(""); // 'approve' atau 'reject'
 const catatanAdmin = ref("");
@@ -32,14 +32,75 @@ const isSubmitting = ref(false);
 
 // State untuk Modal Import Excel
 const showImportModal = ref(false);
-const importFile = ref(null);
-const importForm = useForm({
-    file: null,
-});
 
-// Logic Pencarian & Filter Client-Side (Instan & Interaktif)
+// State untuk Modal Notifikasi
+const showNotificationModal = ref(false);
+const notificationType = ref("success"); // 'success' or 'error'
+const notificationMessage = ref("");
+
+const triggerNotification = (type, message) => {
+    notificationType.value = type;
+    notificationMessage.value = message;
+    showNotificationModal.value = true;
+};
+
+const closeNotification = () => {
+    showNotificationModal.value = false;
+};
+
+// State untuk Modal Konfirmasi Hapus Supplier
+const showDeleteConfirmModal = ref(false);
+const supplierIdToDelete = ref(null);
+
+const confirmDeleteSupplier = (id) => {
+    supplierIdToDelete.value = id;
+    showDeleteConfirmModal.value = true;
+};
+
+// Hapus Supplier via Axios
+const executeDeleteSupplier = async () => {
+    showDeleteConfirmModal.value = false;
+    if (!supplierIdToDelete.value) return;
+
+    try {
+        const response = await axios.delete(
+            `/admin/supplier/data/${supplierIdToDelete.value}`,
+        );
+        triggerNotification(
+            "success",
+            response.data.message || "Data supplier berhasil dihapus",
+        );
+        await fetchSuppliers(); // refresh tabel
+    } catch (err) {
+        triggerNotification(
+            "error",
+            err.response?.data?.message ||
+                "Gagal menghapus supplier. Silakan coba lagi.",
+        );
+    } finally {
+        supplierIdToDelete.value = null;
+    }
+};
+
+// Refresh data dari server via Axios (dipanggil setelah setiap aksi CRUD)
+const fetchSuppliers = async () => {
+    try {
+        isLoading.value = true;
+        const response = await axios.get("/admin/supplier/data");
+        if (response.data.status === "success") {
+            suppliers.value = response.data.data.suppliers;
+            years.value = response.data.data.years;
+        }
+    } catch (err) {
+        console.error("Gagal memuat data supplier:", err);
+    } finally {
+        isLoading.value = false;
+    }
+};
+
+// Logic Pencarian & Filter Client-Side
 const filteredSuppliers = computed(() => {
-    return props.suppliers.filter((supplier) => {
+    return suppliers.value.filter((supplier) => {
         const matchesSearch =
             supplier.nama_perusahaan
                 ?.toLowerCase()
@@ -67,52 +128,41 @@ const openDetailModal = (supplier) => {
     showDetailModal.value = true;
 };
 
-// Hapus Supplier
-const deleteSupplier = (id) => {
-    if (
-        confirm(
-            "Apakah Anda yakin ingin menghapus data supplier ini? Tindakan ini tidak dapat dibatalkan.",
-        )
-    ) {
-        router.delete(route("admin.supplier.destroy", id), {
-            preserveScroll: true,
-            onSuccess: () => {
-                alert("Data supplier berhasil dihapus");
-            },
-        });
-    }
-};
-
-// Handle Export Excel
+// Handle Export Excel (tidak perlu Axios, cukup redirect browser)
 const handleExport = () => {
-    window.location.href = route("admin.supplier.export", {
+    const params = new URLSearchParams({
         year: selectedYear.value,
         search: searchQuery.value,
     });
+    window.location.href = `/admin/supplier/export?${params.toString()}`;
 };
 
-// Handle Import Excel
-const triggerFileInput = () => {
+// Handle Import Excel via Axios + FormData
+const triggerFileInput = () =>
     document.getElementById("excel-file-input").click();
-};
 
-const onFileChange = (e) => {
+const onFileChange = async (e) => {
     const file = e.target.files[0];
-    if (file) {
-        importForm.file = file;
-        importForm.post(route("admin.supplier.import"), {
-            preserveScroll: true,
-            onSuccess: () => {
-                showImportModal.value = false;
-                importForm.reset();
-                alert("Data Excel berhasil diimport!");
-            },
-            onError: (err) => {
-                alert(
-                    "Gagal mengimport data. Pastikan format file Excel sudah benar.",
-                );
-            },
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+        const response = await axios.post("/admin/supplier/import", formData, {
+            headers: { "Content-Type": "multipart/form-data" },
         });
+        showImportModal.value = false;
+        triggerNotification(
+            "success",
+            response.data.message || "Data Excel berhasil diimport!",
+        );
+        await fetchSuppliers(); // refresh tabel
+    } catch (err) {
+        triggerNotification(
+            "error",
+            err.response?.data?.message || "Gagal mengimport data.",
+        );
     }
 };
 
@@ -132,65 +182,59 @@ const openConfirm = (action) => {
     showConfirmModal.value = true;
 };
 
-// Submit Keputusan Lolos/Tidak Lolos
-const submitDecision = () => {
+// Submit Keputusan Approve/Reject via Axios
+const submitDecision = async () => {
     if (confirmAction.value === "reject" && !catatanAdmin.value.trim()) {
-        alert("Alasan penolakan wajib diisi!");
+        triggerNotification("error", "Alasan penolakan wajib diisi!");
         return;
     }
 
     isSubmitting.value = true;
 
-    if (confirmAction.value === "approve") {
-        router.post(
-            route("admin.supplier.approve", selectedSupplier.value.id),
-            {
-                skor_kelengkapan_dokumen: 2,
-                skor_nib: 2,
-                skor_npwp: 2,
-                skor_akta_pendirian: 2,
-                skor_izin_usaha: 2,
-                skor_izin_khusus: 2,
-                skor_sk_domisili: 2,
-                skor_laporan_keuangan: 2,
-                catatan: "Disetujui otomatis melalui peninjauan cepat",
-            },
-            {
-                preserveScroll: true,
-                onSuccess: () => {
-                    showConfirmModal.value = false;
-                    showDetailModal.value = false;
-                    isSubmitting.value = false;
-                    alert("Supplier berhasil diloloskan!");
+    try {
+        let response;
+
+        if (confirmAction.value === "approve") {
+            response = await axios.post(
+                `/admin/supplier/data/${selectedSupplier.value.id}/approve`,
+                {
+                    skor_kelengkapan_dokumen: 2,
+                    skor_nib: 2,
+                    skor_npwp: 2,
+                    skor_akta_pendirian: 2,
+                    skor_izin_usaha: 2,
+                    skor_izin_khusus: 2,
+                    skor_sk_domisili: 2,
+                    skor_laporan_keuangan: 2,
+                    catatan: "Disetujui otomatis melalui peninjauan cepat",
                 },
-                onError: (err) => {
-                    isSubmitting.value = false;
-                    console.error(err);
-                    alert("Gagal meloloskan supplier. Silakan coba lagi.");
-                },
-            },
+            );
+            triggerNotification(
+                "success",
+                response.data.message || "Supplier berhasil diloloskan!",
+            );
+        } else {
+            response = await axios.post(
+                `/admin/supplier/data/${selectedSupplier.value.id}/reject`,
+                { catatan_admin: catatanAdmin.value },
+            );
+            triggerNotification(
+                "success",
+                response.data.message || "Supplier berhasil ditolak.",
+            );
+        }
+
+        showConfirmModal.value = false;
+        showDetailModal.value = false;
+        await fetchSuppliers(); // refresh tabel setelah aksi
+    } catch (err) {
+        console.error(err);
+        triggerNotification(
+            "error",
+            err.response?.data?.message || "Gagal menyimpan keputusan.",
         );
-    } else {
-        router.post(
-            route("admin.supplier.reject", selectedSupplier.value.id),
-            {
-                catatan_admin: catatanAdmin.value,
-            },
-            {
-                preserveScroll: true,
-                onSuccess: () => {
-                    showConfirmModal.value = false;
-                    showDetailModal.value = false;
-                    isSubmitting.value = false;
-                    alert("Supplier berhasil ditolak.");
-                },
-                onError: (err) => {
-                    isSubmitting.value = false;
-                    console.error(err);
-                    alert("Gagal menolak supplier. Silakan coba lagi.");
-                },
-            },
-        );
+    } finally {
+        isSubmitting.value = false;
     }
 };
 
@@ -274,380 +318,355 @@ const systemRecommendation = computed(() => {
 <template>
     <Head title="Data Supplier | Admin WISE" />
 
-    <div class="flex h-screen overflow-hidden bg-[#F8FAFC]">
-        <!-- Sidebar Navigation (Fixed) -->
-        <SidebarAdmin
-            class="flex-shrink-0 h-full overflow-y-auto border-r border-slate-200 shadow-sm bg-white"
-        />
+    <AdminLayout>
+        <div class="max-w-7xl mx-auto px-8 py-10">
+            <!-- SECTION 1: Judul Header (Atas) -->
+            <div class="mb-6">
+                <h1 class="text-3xl font-black text-slate-900 tracking-tight">
+                    Data Supplier
+                </h1>
+            </div>
 
-        <!-- Main Content -->
-        <main class="flex-1 h-full overflow-y-auto bg-slate-50/30">
-            <div class="max-w-7xl mx-auto px-8 py-10">
-                <!-- SECTION 1: Judul Header (Atas) -->
-                <div class="mb-6">
+            <!-- SECTION 1.5: Tombol Aksi Import & Export (Bawah) -->
+            <div
+                class="bg-white p-5 rounded-lg shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6"
+            >
+                <div>
                     <h1
                         class="text-3xl font-black text-slate-900 tracking-tight"
                     >
                         Data Supplier
                     </h1>
+                    <p
+                        class="text-sm text-slate-500 mt-1 font-medium font-sans"
+                    >
+                        Kelola dan tinjau seluruh data legalitas perusahaan
+                        supplier terdaftar.
+                    </p>
+                </div>
+                <!-- Action Buttons (Export & Import) -->
+                <div class="flex items-center gap-3">
+                    <button
+                        @click="triggerFileInput"
+                        class="inline-flex items-center gap-2 px-5 py-3 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 active:scale-95 transition-all shadow-sm"
+                    >
+                        <svg
+                            class="w-4 h-4 text-slate-500"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+                            />
+                        </svg>
+                        IMPORT EXCEL
+                    </button>
+                    <input
+                        type="file"
+                        id="excel-file-input"
+                        class="hidden"
+                        accept=".xlsx, .xls"
+                        @change="onFileChange"
+                    />
+                    <button
+                        @click="handleExport"
+                        class="inline-flex items-center gap-2 px-5 py-3 text-xs font-bold text-white bg-emerald-600 rounded-xl hover:bg-emerald-700 active:scale-95 transition-all shadow-md shadow-emerald-100"
+                    >
+                        <svg
+                            class="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                            />
+                        </svg>
+                        EXPORT EXCEL
+                    </button>
+                </div>
+            </div>
+
+            <!-- SECTION 2: Filters & Search Section (Tampilan Bersih Tanpa Bungkus Card Putih) -->
+            <div
+                class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6"
+            >
+                <!-- Search Input -->
+                <div class="relative w-full md:w-96">
+                    <span
+                        class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none"
+                    >
+                        <svg
+                            class="w-5 h-5 text-slate-400"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2.5"
+                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                            />
+                        </svg>
+                    </span>
+                    <input
+                        v-model="searchQuery"
+                        type="text"
+                        placeholder="Cari nama perusahaan, email, atau alamat..."
+                        class="w-full pl-11 pr-4 py-3 text-sm bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-slate-400 shadow-sm"
+                    />
                 </div>
 
-                <!-- SECTION 1.5: Tombol Aksi Import & Export (Bawah) -->
-                <div
-                    class="bg-white p-5 rounded-lg shadow-sm mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-10"
-                >
-                    <div>
-                        <h1
-                            class="text-3xl font-black text-slate-900 tracking-tight"
-                        >
-                            Data Supplier
-                        </h1>
-                        <p
-                            class="text-sm text-slate-500 mt-1 font-medium font-sans"
-                        >
-                            Kelola dan tinjau seluruh data legalitas perusahaan
-                            supplier terdaftar.
-                        </p>
-                    </div>
-                    <!-- Action Buttons (Export & Import) -->
-                    <div class="flex items-center gap-3">
-                        <button
-                            @click="triggerFileInput"
-                            class="inline-flex items-center gap-2 px-5 py-3 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 active:scale-95 transition-all shadow-sm"
-                        >
-                            <svg
-                                class="w-4 h-4 text-slate-500"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    stroke-width="2"
-                                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
-                                />
-                            </svg>
-                            IMPORT EXCEL
-                        </button>
-                        <input
-                            type="file"
-                            id="excel-file-input"
-                            class="hidden"
-                            accept=".xlsx, .xls"
-                            @change="onFileChange"
-                        />
-                        <button
-                            @click="handleExport"
-                            class="inline-flex items-center gap-2 px-5 py-3 text-xs font-bold text-white bg-emerald-600 rounded-xl hover:bg-emerald-700 active:scale-95 transition-all shadow-md shadow-emerald-100"
-                        >
-                            <svg
-                                class="w-4 h-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    stroke-width="2"
-                                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                                />
-                            </svg>
-                            EXPORT EXCEL
-                        </button>
-                    </div>
-                </div>
-
-                <!-- SECTION 2: Filters & Search Section (Tampilan Bersih Tanpa Bungkus Card Putih) -->
-                <div
-                    class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6"
-                >
-                    <!-- Search Input -->
-                    <div class="relative w-full md:w-96">
+                <!-- Right Filters -->
+                <div class="flex flex-wrap items-center gap-3">
+                    <div class="flex items-center gap-2">
                         <span
-                            class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none"
+                            class="text-xs font-bold text-slate-400 uppercase tracking-wider"
+                            >Tampilkan:</span
                         >
-                            <svg
-                                class="w-5 h-5 text-slate-400"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    stroke-width="2.5"
-                                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                                />
-                            </svg>
-                        </span>
-                        <input
-                            v-model="searchQuery"
-                            type="text"
-                            placeholder="Cari nama perusahaan, email, atau alamat..."
-                            class="w-full pl-11 pr-4 py-3 text-sm bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-slate-400 shadow-sm"
-                        />
+                        <select
+                            v-model="perPage"
+                            class="bg-white border border-slate-200 text-slate-700 text-sm rounded-xl py-2.5 px-3 pr-8 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-semibold shadow-sm"
+                        >
+                            <option :value="10">10 Data</option>
+                            <option :value="25">25 Data</option>
+                            <option :value="50">50 Data</option>
+                            <option :value="100">100 Data</option>
+                        </select>
                     </div>
 
-                    <!-- Right Filters -->
-                    <div class="flex flex-wrap items-center gap-3">
-                        <div class="flex items-center gap-2">
-                            <span
-                                class="text-xs font-bold text-slate-400 uppercase tracking-wider"
-                                >Tampilkan:</span
+                    <div class="flex items-center gap-2">
+                        <span
+                            class="text-xs font-bold text-slate-400 uppercase tracking-wider"
+                            >Tahun:</span
+                        >
+                        <select
+                            v-model="selectedYear"
+                            class="bg-white border border-slate-200 text-slate-700 text-sm rounded-xl py-2.5 px-3 pr-8 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-semibold shadow-sm"
+                        >
+                            <option value="">Semua Tahun</option>
+                            <option
+                                v-for="year in years"
+                                :key="year"
+                                :value="year"
                             >
-                            <select
-                                v-model="perPage"
-                                class="bg-white border border-slate-200 text-slate-700 text-sm rounded-xl py-2.5 px-3 pr-8 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-semibold shadow-sm"
-                            >
-                                <option :value="10">10 Data</option>
-                                <option :value="25">25 Data</option>
-                                <option :value="50">50 Data</option>
-                                <option :value="100">100 Data</option>
-                            </select>
-                        </div>
-
-                        <div class="flex items-center gap-2">
-                            <span
-                                class="text-xs font-bold text-slate-400 uppercase tracking-wider"
-                                >Tahun:</span
-                            >
-                            <select
-                                v-model="selectedYear"
-                                class="bg-white border border-slate-200 text-slate-700 text-sm rounded-xl py-2.5 px-3 pr-8 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-semibold shadow-sm"
-                            >
-                                <option value="">Semua Tahun</option>
-                                <option
-                                    v-for="year in years"
-                                    :key="year"
-                                    :value="year"
-                                >
-                                    {{ year }}
-                                </option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- SECTION 3: Tabel Supplier di Bawahnya -->
-                <div
-                    class="bg-white rounded-lg border border-slate-100 shadow-sm overflow-hidden"
-                >
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse">
-                            <thead>
-                                <tr
-                                    class="bg-slate-50/70 border-b border-slate-100 text-slate-400 text-[10px] font-black uppercase tracking-widest"
-                                >
-                                    <th class="py-5 px-6 w-16 text-center">
-                                        No
-                                    </th>
-                                    <th class="py-5 px-6">Nama Perusahaan</th>
-                                    <th class="py-5 px-6">Email Perusahaan</th>
-                                    <th class="py-5 px-6">Alamat Kantor</th>
-                                    <th class="py-5 px-6 w-48 text-center">
-                                        Status
-                                    </th>
-                                    <th class="py-5 px-6 w-28 text-center">
-                                        Aksi
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-slate-100">
-                                <tr
-                                    v-for="(
-                                        supplier, idx
-                                    ) in filteredSuppliers.slice(0, perPage)"
-                                    :key="supplier.id"
-                                    class="hover:bg-slate-50/50 transition-colors group"
-                                >
-                                    <!-- No -->
-                                    <td
-                                        class="py-4 px-6 text-center text-sm font-bold text-slate-500"
-                                    >
-                                        {{ idx + 1 }}
-                                    </td>
-                                    <!-- Nama Perusahaan -->
-                                    <td class="py-4 px-6">
-                                        <div
-                                            class="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors"
-                                        >
-                                            {{
-                                                supplier.nama_perusahaan ||
-                                                "N/A"
-                                            }}
-                                        </div>
-                                        <div
-                                            class="text-xs text-slate-400 mt-0.5"
-                                        >
-                                            Telp:
-                                            {{
-                                                supplier.no_telp_perusahaan ||
-                                                "-"
-                                            }}
-                                        </div>
-                                    </td>
-                                    <!-- Email -->
-                                    <td
-                                        class="py-4 px-6 text-sm font-semibold text-slate-600"
-                                    >
-                                        {{ supplier.email_perusahaan || "-" }}
-                                    </td>
-                                    <!-- Alamat -->
-                                    <td
-                                        class="py-4 px-6 text-sm text-slate-500 max-w-xs truncate"
-                                    >
-                                        {{ supplier.alamat_perusahaan || "-" }}
-                                    </td>
-                                    <!-- Status Badge -->
-                                    <td class="py-4 px-6 text-center">
-                                        <span
-                                            v-if="
-                                                supplier.status === 'approved'
-                                            "
-                                            class="inline-flex items-center gap-1.5 px-5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-100 whitespace-nowrap"
-                                        >
-                                            <span
-                                                class="h-1.5 w-1.5 rounded-full bg-emerald-500"
-                                            ></span>
-                                            Disetujui
-                                        </span>
-                                        <span
-                                            v-else-if="
-                                                supplier.status === 'submitted'
-                                            "
-                                            class="inline-flex items-center gap-1.5 px-5 py-1 rounded-lg text-xs font-bold bg-blue-50 text-blue-700 border border-blue-100 whitespace-nowrap"
-                                        >
-                                            <span
-                                                class="h-1.5 w-1.5 rounded-full bg-blue-500"
-                                            ></span>
-                                            Menunggu Review
-                                        </span>
-                                        <span
-                                            v-else-if="
-                                                supplier.status === 'rejected'
-                                            "
-                                            class="inline-flex items-center gap-1.5 px-5 py-1 rounded-lg text-xs font-bold bg-rose-50 text-rose-700 border border-rose-100 whitespace-nowrap"
-                                        >
-                                            <span
-                                                class="h-1.5 w-1.5 rounded-full bg-rose-500"
-                                            ></span>
-                                            Ditolak
-                                        </span>
-                                        <span
-                                            v-else
-                                            class="inline-flex items-center gap-1.5 px-5 py-0.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200 whitespace-nowrap"
-                                        >
-                                            <span
-                                                class="h-1.5 w-1.5 rounded-full bg-slate-400"
-                                            ></span>
-                                            Draft
-                                        </span>
-                                    </td>
-                                    <!-- Actions -->
-                                    <td class="py-4 px-6 text-center">
-                                        <div
-                                            class="flex items-center justify-center gap-2"
-                                        >
-                                            <button
-                                                @click="
-                                                    openDetailModal(supplier)
-                                                "
-                                                class="p-2 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 active:scale-95 transition-all"
-                                                title="Lihat Detail Profil"
-                                            >
-                                                <svg
-                                                    class="w-5 h-5"
-                                                    fill="none"
-                                                    stroke="currentColor"
-                                                    viewBox="0 0 24 24"
-                                                >
-                                                    <path
-                                                        stroke-linecap="round"
-                                                        stroke-linejoin="round"
-                                                        stroke-width="2"
-                                                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                                                    />
-                                                    <path
-                                                        stroke-linecap="round"
-                                                        stroke-linejoin="round"
-                                                        stroke-width="2"
-                                                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                                                    />
-                                                </svg>
-                                            </button>
-                                            <button
-                                                @click="
-                                                    deleteSupplier(supplier.id)
-                                                "
-                                                class="p-2 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 active:scale-95 transition-all"
-                                                title="Hapus Supplier"
-                                            >
-                                                <svg
-                                                    class="w-5 h-5"
-                                                    fill="none"
-                                                    stroke="currentColor"
-                                                    viewBox="0 0 24 24"
-                                                >
-                                                    <path
-                                                        stroke-linecap="round"
-                                                        stroke-linejoin="round"
-                                                        stroke-width="2"
-                                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                                                    />
-                                                </svg>
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-
-                                <!-- Empty State -->
-                                <tr v-if="filteredSuppliers.length === 0">
-                                    <td colspan="6" class="py-16 text-center">
-                                        <div
-                                            class="flex flex-col items-center justify-center"
-                                        >
-                                            <div
-                                                class="h-16 w-16 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 border border-slate-100 mb-4"
-                                            >
-                                                <svg
-                                                    class="w-8 h-8"
-                                                    fill="none"
-                                                    stroke="currentColor"
-                                                    viewBox="0 0 24 24"
-                                                >
-                                                    <path
-                                                        stroke-linecap="round"
-                                                        stroke-linejoin="round"
-                                                        stroke-width="1.5"
-                                                        d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0a2 2 0 01-2 2H6a2 2 0 01-2-2m16 0V9a2 2 0 00-2-2H6a2 2 0 00-2 2v4.5m15 3.5v3a2 2 0 01-2 2H6a2 2 0 01-2-2v-3m15 0H4"
-                                                    />
-                                                </svg>
-                                            </div>
-                                            <h3
-                                                class="text-sm font-bold text-slate-700"
-                                            >
-                                                Tidak ada data supplier
-                                                ditemukan
-                                            </h3>
-                                            <p
-                                                class="text-xs text-slate-400 mt-1 max-w-xs leading-relaxed"
-                                            >
-                                                Coba ganti filter pencarian atau
-                                                pastikan supplier sudah
-                                                memproses berkas mereka.
-                                            </p>
-                                        </div>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                                {{ year }}
+                            </option>
+                        </select>
                     </div>
                 </div>
             </div>
-        </main>
-    </div>
+
+            <!-- SECTION 3: Tabel Supplier di Bawahnya -->
+            <div
+                class="bg-white rounded-lg border border-slate-100 shadow-sm overflow-hidden"
+            >
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr
+                                class="bg-slate-50/70 border-b border-slate-100 text-slate-400 text-[10px] font-black uppercase tracking-widest"
+                            >
+                                <th class="py-5 px-6 w-16 text-center">No</th>
+                                <th class="py-5 px-6">Nama Perusahaan</th>
+                                <th class="py-5 px-6">Email Perusahaan</th>
+                                <th class="py-5 px-6">Alamat Kantor</th>
+                                <th class="py-5 px-6 w-48 text-center">
+                                    Status
+                                </th>
+                                <th class="py-5 px-6 w-28 text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            <tr
+                                v-for="(
+                                    supplier, idx
+                                ) in filteredSuppliers.slice(0, perPage)"
+                                :key="supplier.id"
+                                class="hover:bg-slate-50/50 transition-colors group"
+                            >
+                                <!-- No -->
+                                <td
+                                    class="py-4 px-6 text-center text-sm font-bold text-slate-500"
+                                >
+                                    {{ idx + 1 }}
+                                </td>
+                                <!-- Nama Perusahaan -->
+                                <td class="py-4 px-6">
+                                    <div
+                                        class="text-sm font-semibold text-slate-900"
+                                    >
+                                        {{ supplier.nama_perusahaan || "N/A" }}
+                                    </div>
+                                    <div class="text-xs text-slate-400 mt-0.5">
+                                        Telp:
+                                        {{ supplier.no_telp_perusahaan || "-" }}
+                                    </div>
+                                </td>
+                                <!-- Email -->
+                                <td
+                                    class="py-4 px-6 text-sm font-semibold text-slate-600"
+                                >
+                                    {{ supplier.email_perusahaan || "-" }}
+                                </td>
+                                <!-- Alamat -->
+                                <td
+                                    class="py-4 px-6 text-sm text-slate-500 max-w-xs truncate"
+                                >
+                                    {{ supplier.alamat_perusahaan || "-" }}
+                                </td>
+                                <!-- Status Badge -->
+                                <td class="py-4 px-6 text-center">
+                                    <span
+                                        v-if="supplier.status === 'approved'"
+                                        class="inline-flex items-center gap-1.5 px-5 py-1 rounded-3xl text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-100 whitespace-nowrap"
+                                    >
+                                        <span
+                                            class="h-1.5 w-1.5 rounded-full bg-emerald-500"
+                                        ></span>
+                                        Disetujui
+                                    </span>
+                                    <span
+                                        v-else-if="
+                                            supplier.status === 'submitted'
+                                        "
+                                        class="inline-flex items-center gap-1.5 px-5 py-1 rounded-3xl text-xs font-bold bg-blue-50 text-blue-700 border border-blue-100 whitespace-nowrap"
+                                    >
+                                        <span
+                                            class="h-1.5 w-1.5 rounded-full bg-blue-500"
+                                        ></span>
+                                        Menunggu Review
+                                    </span>
+                                    <span
+                                        v-else-if="
+                                            supplier.status === 'rejected'
+                                        "
+                                        class="inline-flex items-center gap-1.5 px-5 py-1 rounded-3xl text-xs font-bold bg-rose-50 text-rose-700 border border-rose-100 whitespace-nowrap"
+                                    >
+                                        <span
+                                            class="h-1.5 w-1.5 rounded-full bg-rose-500"
+                                        ></span>
+                                        Ditolak
+                                    </span>
+                                    <span
+                                        v-else
+                                        class="inline-flex items-center gap-1.5 px-5 py-0.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200 whitespace-nowrap"
+                                    >
+                                        <span
+                                            class="h-1.5 w-1.5 rounded-full bg-slate-400"
+                                        ></span>
+                                        Draft
+                                    </span>
+                                </td>
+                                <!-- Actions -->
+                                <td class="py-4 px-6 text-center">
+                                    <div
+                                        class="flex items-center justify-center gap-2"
+                                    >
+                                        <button
+                                            @click="openDetailModal(supplier)"
+                                            class="p-2 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 active:scale-95 transition-all"
+                                            title="Lihat Detail Profil"
+                                        >
+                                            <svg
+                                                class="w-5 h-5"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                viewBox="0 0 24 24"
+                                            >
+                                                <path
+                                                    stroke-linecap="round"
+                                                    stroke-linejoin="round"
+                                                    stroke-width="2"
+                                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                                                />
+                                                <path
+                                                    stroke-linecap="round"
+                                                    stroke-linejoin="round"
+                                                    stroke-width="2"
+                                                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                                                />
+                                            </svg>
+                                        </button>
+                                        <button
+                                            @click="
+                                                confirmDeleteSupplier(
+                                                    supplier.id,
+                                                )
+                                            "
+                                            class="p-2 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 active:scale-95 transition-all"
+                                            title="Hapus Supplier"
+                                        >
+                                            <svg
+                                                class="w-5 h-5"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                viewBox="0 0 24 24"
+                                            >
+                                                <path
+                                                    stroke-linecap="round"
+                                                    stroke-linejoin="round"
+                                                    stroke-width="2"
+                                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                                />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+
+                            <!-- Empty State -->
+                            <tr v-if="filteredSuppliers.length === 0">
+                                <td colspan="6" class="py-16 text-center">
+                                    <div
+                                        class="flex flex-col items-center justify-center"
+                                    >
+                                        <div
+                                            class="h-16 w-16 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 border border-slate-100 mb-4"
+                                        >
+                                            <svg
+                                                class="w-8 h-8"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                viewBox="0 0 24 24"
+                                            >
+                                                <path
+                                                    stroke-linecap="round"
+                                                    stroke-linejoin="round"
+                                                    stroke-width="1.5"
+                                                    d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0a2 2 0 01-2 2H6a2 2 0 01-2-2m16 0V9a2 2 0 00-2-2H6a2 2 0 00-2 2v4.5m15 3.5v3a2 2 0 01-2 2H6a2 2 0 01-2-2v-3m15 0H4"
+                                                />
+                                            </svg>
+                                        </div>
+                                        <h3
+                                            class="text-sm font-bold text-slate-700"
+                                        >
+                                            Tidak ada data supplier ditemukan
+                                        </h3>
+                                        <p
+                                            class="text-xs text-slate-400 mt-1 max-w-xs leading-relaxed"
+                                        >
+                                            Coba ganti filter pencarian atau
+                                            pastikan supplier sudah memproses
+                                            berkas mereka.
+                                        </p>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </AdminLayout>
 
     <!-- SECTION 4: Detail Modal (Supplier Info) -->
     <Transition
@@ -1415,6 +1434,219 @@ const systemRecommendation = computed(() => {
                     </button>
                 </div>
             </div>
+        </div>
+    </Transition>
+
+    <!-- Modal Konfirmasi Hapus Supplier -->
+    <Transition
+        enter-active-class="transition duration-300 ease-out"
+        enter-from-class="opacity-0"
+        enter-to-class="opacity-100"
+        leave-active-class="transition duration-200 ease-in"
+        leave-from-class="opacity-100"
+        leave-to-class="opacity-0"
+    >
+        <div
+            v-if="showDeleteConfirmModal"
+            class="fixed inset-0 z-[100] flex items-center justify-center p-4"
+            role="dialog"
+            aria-modal="true"
+        >
+            <!-- Background Overlay -->
+            <div
+                class="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] transition-opacity"
+                @click="showDeleteConfirmModal = false"
+            ></div>
+
+            <!-- Modal Content -->
+            <Transition
+                enter-active-class="transition duration-300 ease-out"
+                enter-from-class="opacity-0 scale-95"
+                enter-to-class="opacity-100 scale-100"
+                leave-active-class="transition duration-200 ease-in"
+                leave-from-class="opacity-100 scale-100"
+                leave-to-class="opacity-0 scale-95"
+            >
+                <div
+                    class="relative w-full max-w-[400px] transform overflow-hidden rounded-[24px] bg-white shadow-2xl transition-all border border-slate-100 p-6"
+                >
+                    <!-- Header: Icon + Title -->
+                    <div class="flex items-start gap-4 mb-5">
+                        <div
+                            class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-rose-100 text-rose-600 shadow-lg shadow-rose-50"
+                        >
+                            <svg
+                                class="h-6 w-6"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                                stroke-width="2.5"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                />
+                            </svg>
+                        </div>
+                        <div class="pt-0.5">
+                            <h3
+                                class="text-lg font-bold text-slate-900 leading-tight"
+                            >
+                                Hapus Supplier
+                            </h3>
+                            <p class="text-[13px] text-slate-500 mt-1">
+                                Tindakan ini tidak dapat dibatalkan.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Warning Text -->
+                    <div
+                        class="mb-6 p-4 rounded-xl bg-slate-50 border border-slate-100/50"
+                    >
+                        <p
+                            class="text-[13px] text-slate-600 leading-relaxed font-medium"
+                        >
+                            Apakah Anda yakin ingin menghapus data supplier ini
+                            dari sistem? Seluruh data legalitas dan dokumen
+                            terkait juga akan dihapus.
+                        </p>
+                    </div>
+
+                    <!-- Action Buttons: Side-by-Side -->
+                    <div class="flex gap-3">
+                        <button
+                            type="button"
+                            @click="showDeleteConfirmModal = false"
+                            class="flex-1 px-4 py-2.5 text-[13px] font-bold text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-xl transition-all border border-slate-200"
+                        >
+                            Batal
+                        </button>
+                        <button
+                            type="button"
+                            @click="executeDeleteSupplier"
+                            class="flex-1 inline-flex items-center justify-center rounded-xl bg-rose-600 px-4 py-2.5 text-[13px] font-bold text-white shadow-lg shadow-rose-100 hover:bg-rose-700 transition-all active:scale-95"
+                        >
+                            Ya, Hapus
+                        </button>
+                    </div>
+                </div>
+            </Transition>
+        </div>
+    </Transition>
+
+    <!-- Modal Notifikasi (Sukses / Gagal) -->
+    <Transition
+        enter-active-class="transition duration-300 ease-out"
+        enter-from-class="opacity-0"
+        enter-to-class="opacity-100"
+        leave-active-class="transition duration-200 ease-in"
+        leave-from-class="opacity-100"
+        leave-to-class="opacity-0"
+    >
+        <div
+            v-if="showNotificationModal"
+            class="fixed inset-0 z-[110] flex items-center justify-center p-4"
+            role="dialog"
+            aria-modal="true"
+        >
+            <!-- Background Overlay -->
+            <div
+                class="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] transition-opacity"
+                @click="closeNotification"
+            ></div>
+
+            <!-- Modal Content -->
+            <Transition
+                enter-active-class="transition duration-300 ease-out"
+                enter-from-class="opacity-0 scale-95"
+                enter-to-class="opacity-100 scale-100"
+                leave-active-class="transition duration-200 ease-in"
+                leave-from-class="opacity-100 scale-100"
+                leave-to-class="opacity-0 scale-95"
+            >
+                <div
+                    class="relative w-full max-w-[380px] transform overflow-hidden rounded-[24px] bg-white shadow-2xl transition-all border border-slate-100 p-6"
+                >
+                    <div class="text-center">
+                        <!-- Icon -->
+                        <div
+                            class="mx-auto flex h-14 w-14 items-center justify-center rounded-full mb-4"
+                            :class="{
+                                'bg-emerald-100 text-emerald-600':
+                                    notificationType === 'success',
+                                'bg-rose-100 text-rose-600':
+                                    notificationType === 'error',
+                            }"
+                        >
+                            <!-- Success Checkmark Icon -->
+                            <svg
+                                v-if="notificationType === 'success'"
+                                class="h-8 w-8"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                                stroke-width="2.5"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    d="M5 13l4 4L19 7"
+                                />
+                            </svg>
+                            <!-- Error X Icon -->
+                            <svg
+                                v-else
+                                class="h-8 w-8"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                                stroke-width="2.5"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    d="M6 18L18 6M6 6l12 12"
+                                />
+                            </svg>
+                        </div>
+
+                        <!-- Title -->
+                        <h3
+                            class="text-lg font-bold text-slate-900 leading-tight"
+                        >
+                            {{
+                                notificationType === "success"
+                                    ? "Berhasil!"
+                                    : "Gagal!"
+                            }}
+                        </h3>
+
+                        <!-- Message -->
+                        <p class="text-sm text-slate-500 mt-2 leading-relaxed">
+                            {{ notificationMessage }}
+                        </p>
+
+                        <!-- Close Button -->
+                        <div class="mt-6">
+                            <button
+                                type="button"
+                                @click="closeNotification"
+                                class="w-full inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-bold text-white shadow-md transition-all active:scale-95"
+                                :class="{
+                                    'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-100':
+                                        notificationType === 'success',
+                                    'bg-rose-600 hover:bg-rose-700 shadow-rose-100':
+                                        notificationType === 'error',
+                                }"
+                            >
+                                Tutup
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </Transition>
         </div>
     </Transition>
 </template>

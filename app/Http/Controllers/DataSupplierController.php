@@ -61,7 +61,11 @@ class DataSupplierController extends Controller
         // Panggil fungsi handle dokumen
         $this->handleDocuments($request, $supplier);
 
-        return redirect()->route('supplier.data')->with('success', 'Data berhasil diajukan ke Admin. Silakan tunggu proses verifikasi.');
+        return response()->json([
+            'status'   => 'success',
+            'message'  => 'Data berhasil diajukan ke Admin. Silakan tunggu proses verifikasi.',
+            'supplier' => $supplier->load('documents'),
+        ], 200);
     }
 
     // Fungsi private untuk upload dan simpan record dokumen
@@ -101,17 +105,31 @@ class DataSupplierController extends Controller
     // 🔐 SISI ADMIN
     // =========================================================================
 
-    // 1. Tampil daftar semua supplier yang sudah submit
-    public function adminIndex()
+    // 1. Tampil daftar semua supplier (render UI atau JSON untuk Axios refresh)
+    public function adminIndex(Request $request)
     {
         $suppliers = Supplier::with(['user', 'documents'])
             ->whereIn('status', ['submitted', 'approved', 'rejected'])
             ->latest()
             ->get();
 
+        $years = [2024, 2025, 2026];
+
+        // Jika dipanggil oleh Axios (Accept: application/json) → kembalikan JSON
+        if ($request->wantsJson()) {
+            return response()->json([
+                'status' => 'success',
+                'data'   => [
+                    'suppliers' => $suppliers,
+                    'years'     => $years,
+                ]
+            ], 200);
+        }
+
+        // Jika akses pertama dari browser → render halaman via Inertia dengan props
         return Inertia::render('Admin/Data Supplier/Index', [
             'suppliers' => $suppliers,
-            'years' => [2024, 2025, 2026] // Mengirimkan data daftar tahun seleksi
+            'years'     => $years,
         ]);
     }
 
@@ -179,7 +197,10 @@ class DataSupplierController extends Controller
             'reviewed_at' => now(),
         ]);
 
-        return redirect()->route('admin.supplier.index')->with('success', 'Supplier berhasil disetujui (Lolos Tahap 1).');
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Supplier berhasil disetujui (Lolos Tahap 1).'
+        ], 200);
     }
 
     // 4. Tolak supplier (Reject)
@@ -195,6 +216,21 @@ class DataSupplierController extends Controller
             'reviewed_at' => now(),
         ]);
 
-        return back()->with('success', 'Supplier telah ditolak.');
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Data supplier ditolak.'
+        ], 200);
+    }
+
+    // 5. Menghapus data supplier
+    public function destroy($id)
+    {
+        $supplier = Supplier::findOrFail($id);
+        $supplier->delete();
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Data supplier berhasil dihapus.'
+        ], 200);
     }
 }

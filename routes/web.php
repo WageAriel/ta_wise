@@ -17,12 +17,7 @@ use Inertia\Inertia;
 */
 
 Route::get('/', function () {
-    return Inertia::render('Welcome', [
-        'canLogin' => Route::has('login'),
-        'canRegister' => Route::has('register'),
-        'laravelVersion' => Application::VERSION,
-        'phpVersion' => PHP_VERSION,
-    ]);
+    return redirect()->route('login');
 });
 
 Route::get('/dashboard', function () {
@@ -37,7 +32,7 @@ Route::middleware('auth')->group(function () {
     // ===================================================
     // SUPPLIER ROUTES
     // ===================================================
-    Route::prefix('supplier')->name('supplier.')->group(function () {
+    Route::middleware(['role:supplier'])->prefix('supplier')->name('supplier.')->group(function () {
         // Tahap 1: Data Perusahaan
         Route::get('/data', [\App\Http\Controllers\DataSupplierController::class, 'index'])->name('data');
         Route::post('/data', [\App\Http\Controllers\DataSupplierController::class, 'store'])->name('data.store');
@@ -55,7 +50,7 @@ Route::middleware('auth')->group(function () {
     // ===================================================
     // ADMIN ROUTES
     // ===================================================
-    Route::prefix('admin')->name('admin.')->group(function () {
+    Route::middleware(['role:admin'])->prefix('admin')->name('admin.')->group(function () {
         // Rute Utama & Manajemen Data Supplier
         Route::get('/supplier/data', [\App\Http\Controllers\DataSupplierController::class, 'adminIndex'])->name('supplier.index');
         Route::delete('/supplier/data/{id}', [\App\Http\Controllers\DataSupplierController::class, 'destroy'])->name('supplier.destroy');
@@ -83,8 +78,10 @@ Route::middleware('auth')->group(function () {
     // ===================================================
     // PETUGAS LAPANGAN ROUTES (placeholder)
     // ===================================================
-    Route::get('/petugas/classification', fn() => Inertia::render('Petugas/Classification'))->name('petugas.classification');
-    Route::get('/petugas/field-officers', fn() => Inertia::render('Petugas/FieldOfficers'))->name('petugas.field-officers');
+    Route::middleware(['role:petugas_lapangan'])->prefix('petugas')->name('petugas.')->group(function () {
+        Route::get('/classification', fn() => Inertia::render('Petugas/Classification'))->name('classification');
+        Route::get('/field-officers', fn() => Inertia::render('Petugas/FieldOfficers'))->name('field-officers');
+    });
 });
 
 require __DIR__.'/auth.php';
