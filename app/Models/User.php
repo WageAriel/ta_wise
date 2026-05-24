@@ -48,4 +48,14 @@ class User extends Authenticatable
     {
         return $this->hasOne(Supplier::class);
     }
+
+    public function profilPetugas()
+    {
+        return $this->hasOne(ProfilPetugas::class, 'user_id', 'id');
+    }
+
+    public function jadwalKunjungan()
+    {
+        return $this->hasMany(JadwalKunjungan::class, 'id_user_petugas', 'id');
+    }
 }

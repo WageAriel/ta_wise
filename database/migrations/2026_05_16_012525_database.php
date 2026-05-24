@@ -25,7 +25,7 @@ return new class extends Migration {
 
         Schema::create('pertanyaan', function (Blueprint $table) {
             $table->id('id_pertanyaan');
-            $table->enum('jenis_soal', ['pilihan_ganda', 'essay']); // Sesuaikan isi enum Anda
+            $table->enum('jenis_soal', ['seleksi', 'klasifikasi']); // Sesuaikan isi enum Anda
             $table->text('teks_pertanyaan');
             $table->integer('bobot');
             $table->string('status');
@@ -64,6 +64,7 @@ return new class extends Migration {
             $table->integer('total_nilai');
             $table->foreignId('id_user')->constrained('users', 'id')->onDelete('cascade'); // Asumsi ada tabel users bawaan laravel
             $table->foreignId('id_supplier')->constrained('suppliers', 'id')->onDelete('cascade');
+            $table->foreignId('id_soal')->constrained('header_soal', 'id_soal')->onDelete('cascade');
             $table->timestamps();
         });
 
@@ -71,12 +72,12 @@ return new class extends Migration {
         Schema::create('verifikasi', function (Blueprint $table) {
             $table->id('id_verifikasi');
             $table->integer('total_nilai');
-            $table->enum('status', ['lulus', 'tidak_lulus']); // Sesuaikan isi enum Anda
+            $table->string('status')->default('menunggu_admin');
             $table->date('tanggal');
             $table->string('rekomendasi_sistem');
-            $table->string('keputusan_admin');
+            $table->string('keputusan_admin')->nullable();
             $table->foreignId('id_klasifikasi')->unique()->constrained('klasifikasi', 'id_klasifikasi')->onDelete('cascade');
-            $table->foreignId('id_user_admin')->constrained('users', 'id')->onDelete('cascade');
+            $table->foreignId('id_user_admin')->nullable()->constrained('users', 'id')->onDelete('cascade');
             $table->foreignId('id_user_petugas')->constrained('users', 'id')->onDelete('cascade');
             $table->timestamps();
         });
@@ -84,11 +85,33 @@ return new class extends Migration {
         // 4. Tabel Jawaban Klasifikasi (Butuh opsi, pertanyaan, klasifikasi, & verifikasi)
         Schema::create('jawaban_klasifikasi', function (Blueprint $table) {
             $table->id('id_jawaban');
-            $table->enum('jawaban_verifikasi', ['valid', 'invalid']); // Sesuaikan isi enum Anda
+            $table->string('jawaban_verifikasi', 20)->nullable();
             $table->foreignId('id_klasifikasi')->constrained('klasifikasi', 'id_klasifikasi')->onDelete('cascade');
             $table->foreignId('id_pertanyaan')->constrained('pertanyaan', 'id_pertanyaan')->onDelete('cascade');
             $table->foreignId('id_opsi')->constrained('opsi', 'id_opsi')->onDelete('cascade');
-            $table->foreignId('id_verifikasi')->constrained('verifikasi', 'id_verifikasi')->onDelete('cascade');
+            $table->unsignedBigInteger('id_opsi_verifikasi')->nullable();
+            $table->foreign('id_opsi_verifikasi')->references('id_opsi')->on('opsi')->onDelete('set null');
+            $table->text('catatan_verifikasi')->nullable();
+            $table->foreignId('id_verifikasi')->nullable()->constrained('verifikasi', 'id_verifikasi')->onDelete('cascade');
+            $table->timestamps();
+        });
+
+        // 5. Tabel Profil Petugas dan Jadwal Kunjungan
+        Schema::create('profil_petugas', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->constrained('users', 'id')->onDelete('cascade');
+            $table->string('posisi')->nullable();
+            $table->string('kontak')->nullable();
+            $table->timestamps();
+        });
+
+        Schema::create('jadwal_kunjungan', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('id_klasifikasi')->constrained('klasifikasi', 'id_klasifikasi')->onDelete('cascade');
+            $table->foreignId('id_user_petugas')->constrained('users', 'id')->onDelete('cascade');
+            $table->date('tanggal_kunjungan');
+            $table->time('waktu_kunjungan');
+            $table->enum('status', ['menunggu', 'berlangsung', 'selesai', 'dibatalkan'])->default('menunggu');
             $table->timestamps();
         });
     }
@@ -99,6 +122,8 @@ return new class extends Migration {
     public function down(): void
     {
         // Urutan drop dibalik dari bawah ke atas agar tidak melanggar foreign key constraint
+        Schema::dropIfExists('jadwal_kunjungan');
+        Schema::dropIfExists('profil_petugas');
         Schema::dropIfExists('jawaban_klasifikasi');
         Schema::dropIfExists('verifikasi');
         Schema::dropIfExists('klasifikasi');
