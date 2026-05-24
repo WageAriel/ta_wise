@@ -482,9 +482,9 @@ function hitungPoinJawaban(jawaban) {
                                     <td class="px-6 py-4">
                                         <span v-if="row.verifikasi?.petugas || row.jadwal_kunjungan?.petugas" class="inline-flex items-center gap-1.5 text-sm text-slate-700 font-medium">
                                             <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold flex-shrink-0">
-                                                {{ (row.verifikasi?.petugas?.username || row.jadwal_kunjungan?.petugas?.username || 'P').charAt(0).toUpperCase() }}
+                                                {{ (row.verifikasi?.petugas?.profil_petugas?.nama_petugas || row.verifikasi?.petugas?.username || row.jadwal_kunjungan?.petugas?.profil_petugas?.nama_petugas || row.jadwal_kunjungan?.petugas?.username || 'P').charAt(0).toUpperCase() }}
                                             </span>
-                                            {{ row.verifikasi?.petugas?.username || row.jadwal_kunjungan?.petugas?.username || 'Petugas' }}
+                                            {{ row.verifikasi?.petugas?.profil_petugas?.nama_petugas || row.verifikasi?.petugas?.username || row.jadwal_kunjungan?.petugas?.profil_petugas?.nama_petugas || row.jadwal_kunjungan?.petugas?.username || 'Petugas' }}
                                         </span>
                                         <span v-else class="text-xs text-slate-400 italic">Belum dijadwalkan</span>
                                     </td>
@@ -644,11 +644,11 @@ function hitungPoinJawaban(jawaban) {
                         <div class="flex items-center gap-3 p-4 rounded-xl bg-slate-50 border border-slate-200">
                             <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
                                 <span class="text-blue-700 text-sm font-bold">
-                                    {{ (selectedRow.verifikasi?.petugas?.username || 'P').charAt(0).toUpperCase() }}
+                                    {{ (selectedRow.verifikasi?.petugas?.profil_petugas?.nama_petugas || selectedRow.verifikasi?.petugas?.username || 'P').charAt(0).toUpperCase() }}
                                 </span>
                             </div>
                             <div>
-                                <p class="text-slate-700 text-sm font-semibold">{{ selectedRow.verifikasi?.petugas?.username || 'Petugas' }}</p>
+                                <p class="text-slate-700 text-sm font-semibold">{{ selectedRow.verifikasi?.petugas?.profil_petugas?.nama_petugas || selectedRow.verifikasi?.petugas?.username || 'Petugas' }}</p>
                                 <p class="text-slate-500 text-xs">Petugas Lapangan • {{ selectedRow.verifikasi?.tanggal }}</p>
                             </div>
                         </div>

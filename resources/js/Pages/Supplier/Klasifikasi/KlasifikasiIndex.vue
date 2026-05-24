@@ -88,8 +88,9 @@ const paginationLinks = computed(() => {
 });
 
 function getPetugas(row) {
-    // if (row.verifikasi?.admin?.username) return row.verifikasi.admin.username;
+    if (row.verifikasi?.petugas?.profil_petugas?.nama_petugas) return row.verifikasi.petugas.profil_petugas.nama_petugas;
     if (row.verifikasi?.petugas?.username) return row.verifikasi.petugas.username;
+    if (row.jadwal_kunjungan?.petugas?.profil_petugas?.nama_petugas) return row.jadwal_kunjungan.petugas.profil_petugas.nama_petugas;
     if (row.jadwal_kunjungan?.petugas?.username) return row.jadwal_kunjungan.petugas.username;
     return '-';
 }

@@ -27,9 +27,8 @@ const icons = {
 
 // Pastikan untuk mendaftarkan nama-nama route ini di web.php nantinya
 const menus = [
-    { name: 'petugas.dashboard', label: 'Dashboard', icon: 'dashboard', href: route().has('petugas.dashboard') ? route('petugas.dashboard') : '#' },
+    { name: 'petugas.dashboard.petugas', label: 'Dashboard', icon: 'dashboard', href: route().has('petugas.dashboard.petugas') ? route('petugas.dashboard.petugas') : '#' },
     { name: 'petugas.jadwal', label: 'Jadwal Verifikasi', icon: 'jadwal', href: route().has('petugas.jadwal') ? route('petugas.jadwal') : '#' },
-    { name: 'petugas.verifikasi.aktif', label: 'Verifikasi Aktif', icon: 'verifikasiAktif', href: route().has('petugas.verifikasi.aktif') ? route('petugas.verifikasi.aktif') : '#' },
     { name: 'petugas.verifikasi.riwayat', label: 'Riwayat Verifikasi', icon: 'riwayat', href: route().has('petugas.verifikasi.riwayat') ? route('petugas.verifikasi.riwayat') : '#' },
     { name: 'petugas.laporan', label: 'Laporan Kinerja', icon: 'laporan', href: route().has('petugas.laporan') ? route('petugas.laporan') : '#' },
 ];

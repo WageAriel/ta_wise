@@ -1,7 +1,9 @@
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { Head, Link } from "@inertiajs/vue3";
 import AdminLayout from "../../../Layouts/AdminLayout.vue";
+import axios from "axios";
+import Swal from "sweetalert2";
 
 const props = defineProps({
     inboundData: { type: Array, default: () => [] },
@@ -51,6 +53,77 @@ const icons = {
     package: `<path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`,
     view: `<path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`
 };
+
+// --- LOGIKA MODAL & FORM ADDITIONS ---
+const showLayoutModal = ref(false);
+const showLocationModal = ref(false);
+const showInventoryModal = ref(false);
+
+const layouts = ref([]);
+const barangs = ref([]);
+
+const layoutForm = ref({ nama_layout: "" });
+const locationForm = ref({ kode_location: "", kapasitas: 1, id_layout: "" });
+const inventoryForm = ref({ qty: 1, id_barang: "", id_layout_temp: "", id_location: "" });
+
+const fetchDropdownData = async () => {
+    try {
+        const response = await axios.get(route('admin.inbound.data'));
+        layouts.value = response.data.layouts;
+        barangs.value = response.data.barangs;
+    } catch (error) {
+        console.error("Failed to fetch dropdown data", error);
+    }
+};
+
+onMounted(() => {
+    fetchDropdownData();
+});
+
+const submitLayout = async () => {
+    try {
+        await axios.post(route('admin.inbound.layout.store'), layoutForm.value);
+        Swal.fire("Berhasil", "Layout berhasil ditambahkan", "success");
+        showLayoutModal.value = false;
+        layoutForm.value.nama_layout = "";
+        fetchDropdownData();
+    } catch (error) {
+        Swal.fire("Error", "Gagal menambahkan layout", "error");
+    }
+};
+
+const submitLocation = async () => {
+    try {
+        await axios.post(route('admin.inbound.location.store'), locationForm.value);
+        Swal.fire("Berhasil", "Location berhasil ditambahkan", "success");
+        showLocationModal.value = false;
+        locationForm.value = { kode_location: "", kapasitas: 1, id_layout: "" };
+        fetchDropdownData();
+    } catch (error) {
+        Swal.fire("Error", "Gagal menambahkan location", "error");
+    }
+};
+
+const submitInventory = async () => {
+    try {
+        await axios.post(route('admin.inbound.inventory.store'), {
+            qty: inventoryForm.value.qty,
+            id_barang: inventoryForm.value.id_barang,
+            id_location: inventoryForm.value.id_location
+        });
+        Swal.fire("Berhasil", "Inventory berhasil ditambahkan", "success");
+        showInventoryModal.value = false;
+        inventoryForm.value = { qty: 1, id_barang: "", id_layout_temp: "", id_location: "" };
+    } catch (error) {
+        Swal.fire("Error", "Gagal menambahkan inventory", "error");
+    }
+};
+
+const availableLocations = computed(() => {
+    const layout = layouts.value.find(l => l.id_layout === inventoryForm.value.id_layout_temp);
+    return layout ? layout.locations : [];
+});
+
 </script>
 
 <template>
@@ -70,11 +143,17 @@ const icons = {
             </div>
 
             <div class="flex items-center gap-3">
-                <button class="inline-flex items-center px-4 py-2 bg-indigo-50 text-indigo-700 rounded-lg font-medium hover:bg-indigo-100 transition-all">
+                <button @click="showLayoutModal = true" class="inline-flex items-center px-4 py-2 bg-indigo-50 text-indigo-700 rounded-lg font-medium hover:bg-indigo-100 transition-all">
                     <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" v-html="icons.layout"></svg>
                     Add Layout
                 </button>
-                <button class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 shadow-sm transition-all">
+                <button @click="showLocationModal = true" class="inline-flex items-center px-4 py-2 bg-blue-50 text-blue-700 rounded-lg font-medium hover:bg-blue-100 transition-all">
+                    <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.242-4.243a8 8 0 1111.314 0z"></path><path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                    Add Location
+                </button>
+                <button @click="showInventoryModal = true" class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 shadow-sm transition-all">
                     <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" v-html="icons.package"></svg>
                     Add Inventory
                 </button>
@@ -195,6 +274,105 @@ const icons = {
                 </span>
             </div>
         </div>
+
+        <!-- MODAL ADD LAYOUT -->
+        <div v-if="showLayoutModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div class="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                    <h3 class="font-bold text-gray-800">Add Layout</h3>
+                    <button @click="showLayoutModal = false" class="text-gray-400 hover:text-red-500">&times;</button>
+                </div>
+                <div class="p-6">
+                    <form @submit.prevent="submitLayout">
+                        <div class="mb-4">
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Nama Layout</label>
+                            <input v-model="layoutForm.nama_layout" type="text" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500" required placeholder="Gudang A, Area B..." />
+                        </div>
+                        <div class="flex justify-end gap-3">
+                            <button type="button" @click="showLayoutModal = false" class="px-4 py-2 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg">Batal</button>
+                            <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">Simpan Layout</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL ADD LOCATION -->
+        <div v-if="showLocationModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div class="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                    <h3 class="font-bold text-gray-800">Add Location</h3>
+                    <button @click="showLocationModal = false" class="text-gray-400 hover:text-red-500">&times;</button>
+                </div>
+                <div class="p-6">
+                    <form @submit.prevent="submitLocation">
+                        <div class="mb-4">
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Layout</label>
+                            <select v-model="locationForm.id_layout" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500" required>
+                                <option value="" disabled>-- Pilih Layout --</option>
+                                <option v-for="l in layouts" :key="l.id_layout" :value="l.id_layout">{{ l.nama_layout }}</option>
+                            </select>
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Kode Location</label>
+                            <input v-model="locationForm.kode_location" type="text" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500" required placeholder="A1, B2..." />
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Kapasitas</label>
+                            <input v-model="locationForm.kapasitas" type="number" min="1" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500" required />
+                        </div>
+                        <div class="flex justify-end gap-3">
+                            <button type="button" @click="showLocationModal = false" class="px-4 py-2 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg">Batal</button>
+                            <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Simpan Location</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL ADD INVENTORY -->
+        <div v-if="showInventoryModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div class="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                    <h3 class="font-bold text-gray-800">Add Inventory</h3>
+                    <button @click="showInventoryModal = false" class="text-gray-400 hover:text-red-500">&times;</button>
+                </div>
+                <div class="p-6">
+                    <form @submit.prevent="submitInventory">
+                        <div class="mb-4">
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Pilih Barang</label>
+                            <select v-model="inventoryForm.id_barang" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-green-500 focus:border-green-500" required>
+                                <option value="" disabled>-- Pilih Barang --</option>
+                                <option v-for="b in barangs" :key="b.id_barang" :value="b.id_barang">{{ b.nama_barang }}</option>
+                            </select>
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Quantity (Qty)</label>
+                            <input v-model="inventoryForm.qty" type="number" min="1" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-green-500 focus:border-green-500" required />
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Pilih Layout</label>
+                            <select v-model="inventoryForm.id_layout_temp" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-green-500 focus:border-green-500" required>
+                                <option value="" disabled>-- Pilih Layout --</option>
+                                <option v-for="l in layouts" :key="l.id_layout" :value="l.id_layout">{{ l.nama_layout }}</option>
+                            </select>
+                        </div>
+                        <div class="mb-4" v-if="inventoryForm.id_layout_temp">
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Pilih Location</label>
+                            <select v-model="inventoryForm.id_location" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-green-500 focus:border-green-500" required>
+                                <option value="" disabled>-- Pilih Location --</option>
+                                <option v-for="loc in availableLocations" :key="loc.id_location" :value="loc.id_location">{{ loc.kode_location }} (Kap: {{ loc.kapasitas }})</option>
+                            </select>
+                        </div>
+                        <div class="flex justify-end gap-3">
+                            <button type="button" @click="showInventoryModal = false" class="px-4 py-2 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg">Batal</button>
+                            <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">Simpan Inventory</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
     </AdminLayout>
 </template>
 
