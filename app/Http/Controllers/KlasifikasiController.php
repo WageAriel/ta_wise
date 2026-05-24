@@ -44,12 +44,26 @@ class KlasifikasiController extends Controller
             }
         }
 
-        $pertanyaans = Pertanyaan::where('jenis_soal', 'klasifikasi')
-            ->where('status', 'aktif')
+        // Cari header soal yang aktif. Untuk saat ini ambil yang terbaru.
+        $headerSoal = \App\Models\HeaderSoal::latest('id_soal')->first();
+
+        if (!$headerSoal) {
+            return response()->json([
+                'id_soal' => null,
+                'pertanyaans' => []
+            ]);
+        }
+
+        $pertanyaans = $headerSoal->pertanyaans()
+            ->where('pertanyaan.jenis_soal', 'klasifikasi')
+            ->where('pertanyaan.status', 'aktif')
             ->with('opsis')
             ->get();
 
-        return response()->json($pertanyaans);
+        return response()->json([
+            'id_soal' => $headerSoal->id_soal,
+            'pertanyaans' => $pertanyaans
+        ]);
     }
 
     /**
@@ -81,6 +95,7 @@ class KlasifikasiController extends Controller
         }
 
         $validated = $request->validate([
+            'id_soal'                 => 'required|exists:header_soal,id_soal',
             'jawaban'                 => 'required|array|min:1',
             'jawaban.*.id_pertanyaan' => 'required|exists:pertanyaan,id_pertanyaan',
             'jawaban.*.id_opsi'       => 'required|exists:opsi,id_opsi',
@@ -105,6 +120,7 @@ class KlasifikasiController extends Controller
                 'total_nilai'        => $totalNilai,
                 'id_user'            => Auth::id(),
                 'id_supplier'        => $supplier->id,
+                'id_soal'            => $validated['id_soal'],
             ]);
 
             foreach ($validated['jawaban'] as $jwb) {
@@ -151,6 +167,7 @@ class KlasifikasiController extends Controller
                 'jawabanKlasifikasis.opsi',
                 'verifikasi.admin',
                 'verifikasi.petugas',
+                'jadwalKunjungan.petugas',
             ])
             ->latest()
             ->paginate($request->get('per_page', 10));
@@ -177,10 +194,14 @@ class KlasifikasiController extends Controller
      */
     public function adminIndex(Request $request)
     {
-        $query = Klasifikasi::with(['supplier', 'user', 'verifikasi'])->latest();
+        $query = Klasifikasi::with(['supplier', 'user', 'verifikasi.petugas', 'verifikasi.admin', 'jadwalKunjungan.petugas'])->latest();
 
         if ($request->filled('status')) {
-            $query->where('status_klasifikasi', $request->status);
+            if ($request->status === 'pending_diproses') {
+                $query->whereIn('status_klasifikasi', ['pending', 'diproses']);
+            } else {
+                $query->where('status_klasifikasi', $request->status);
+            }
         }
 
         if ($request->filled('search')) {
@@ -193,8 +214,7 @@ class KlasifikasiController extends Controller
 
         $stats = [
             'total_pengajuan'     => Klasifikasi::count(),
-            'menunggu_validasi'   => Klasifikasi::where('status_klasifikasi', 'pending')->count(),
-            'diproses'            => Klasifikasi::where('status_klasifikasi', 'diproses')->count(),
+            'menunggu_validasi'   => Klasifikasi::whereIn('status_klasifikasi', ['pending', 'diproses'])->count(),
             'selesai'             => Klasifikasi::where('status_klasifikasi', 'selesai')->count(),
             'pengajuan_bulan_ini' => Klasifikasi::whereMonth('created_at', now()->month)
                 ->whereYear('created_at', now()->year)->count(),
@@ -217,6 +237,7 @@ class KlasifikasiController extends Controller
             'user',
             'jawabanKlasifikasis.pertanyaan',
             'jawabanKlasifikasis.opsi',
+            'jawabanKlasifikasis.opsiVerifikasi',
             'verifikasi.admin',
             'verifikasi.petugas',
         ]);
@@ -242,6 +263,52 @@ class KlasifikasiController extends Controller
         return response()->json([
             'message'     => 'Status klasifikasi berhasil diperbarui.',
             'klasifikasi' => $klasifikasi,
+        ]);
+    }
+
+    /**
+     * POST /api/admin/klasifikasi/{id}/validasi
+     * Simpan keputusan akhir admin terhadap kelas supplier.
+     *
+     * Body:
+     * { "keputusan_admin": "Class A" }
+     */
+    public function adminValidasi(Request $request, Klasifikasi $klasifikasi)
+    {
+        $validated = $request->validate([
+            'keputusan_admin' => 'required|in:Class A,Class B,Class C',
+        ]);
+
+        // Pastikan sudah ada record verifikasi lapangan
+        if (!$klasifikasi->verifikasi) {
+            return response()->json([
+                'message' => 'Belum ada hasil verifikasi lapangan untuk pengajuan ini.',
+            ], 422);
+        }
+
+        // Pastikan belum pernah divalidasi (status selesai)
+        if ($klasifikasi->status_klasifikasi === 'selesai') {
+            return response()->json([
+                'message' => 'Pengajuan ini sudah divalidasi dan tidak dapat diubah kembali.',
+            ], 422);
+        }
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($klasifikasi, $validated) {
+            // Simpan keputusan admin di tabel verifikasi
+            $klasifikasi->verifikasi->update([
+                'keputusan_admin' => $validated['keputusan_admin'],
+                'id_user_admin'   => \Illuminate\Support\Facades\Auth::id(),
+                'status'          => 'selesai',
+            ]);
+
+            // Update status klasifikasi menjadi selesai
+            $klasifikasi->update([
+                'status_klasifikasi' => 'selesai',
+            ]);
+        });
+
+        return response()->json([
+            'message' => 'Keputusan validasi akhir berhasil disimpan.',
         ]);
     }
 }

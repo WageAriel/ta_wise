@@ -3,12 +3,14 @@ import { ref, computed, onMounted } from 'vue';
 import { Head } from '@inertiajs/vue3';
 import SidebarSupplier from '@/Components/SidebarSupplier.vue';
 import axios from 'axios';
+import Swal from 'sweetalert2';
 
 axios.defaults.withCredentials = true;
 axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
 // ── State ─────────────────────────────────────────────────────────────────────
 const pertanyaans    = ref([]);
+const idSoal         = ref(null);
 const isLoading      = ref(true);
 const errorMsg       = ref('');
 const jawabanLokal   = ref({});
@@ -19,7 +21,8 @@ const showSuccess    = ref(false);
 onMounted(async () => {
     try {
         const res = await axios.get('/api/klasifikasi/pertanyaan');
-        pertanyaans.value = res.data;
+        pertanyaans.value = res.data.pertanyaans;
+        idSoal.value = res.data.id_soal;
     } catch (err) {
         errorMsg.value = err.response?.status === 409
             ? err.response.data.message
@@ -50,11 +53,7 @@ const totalSkor = computed(() =>
 );
 
 const prediksiKelas = computed(() => {
-    const s = totalSkor.value;
-    if (s >= 85) return { kelas: 'Class A', warna: '#16a34a', bg: '#f0fdf4', desc: 'Premium — Fasilitas sangat memadai' };
-    if (s >= 60) return { kelas: 'Class B', warna: '#ea580c', bg: '#fff7ed', desc: 'Standard — Fasilitas memadai' };
-    if (s >= 30) return { kelas: 'Class C', warna: '#2563eb', bg: '#eff6ff', desc: 'Basic — Fasilitas minimal' };
-    return { kelas: 'Belum Memenuhi', warna: '#64748b', bg: '#f8fafc', desc: 'Perlu peningkatan fasilitas' };
+    return { kelas: 'Belum Ditetapkan', warna: '#64748b', bg: '#f8fafc', desc: 'Kelas akan ditentukan setelah verifikasi lapangan dan validasi admin' };
 });
 
 const semuaDijawab = computed(() =>
@@ -70,6 +69,20 @@ const sudahDijawabCount = computed(() =>
 async function submitPengajuan(e) {
     e.preventDefault();
     if (!semuaDijawab.value) return;
+
+    const result = await Swal.fire({
+        title: 'Konfirmasi Pengajuan',
+        text: 'Apakah Anda yakin ingin mengirim pengajuan klasifikasi ini? Data yang sudah dikirim tidak dapat diubah.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ea580c',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'Ya, Kirim!',
+        cancelButtonText: 'Batal'
+    });
+
+    if (!result.isConfirmed) return;
+
     isSubmitting.value = true;
     errorMsg.value = '';
     try {
@@ -77,10 +90,32 @@ async function submitPengajuan(e) {
             id_pertanyaan: parseInt(id),
             id_opsi: idOpsi,
         }));
-        await axios.post('/supplier/classification/ajukan', { jawaban });
+        await axios.post('/supplier/classification/ajukan', { 
+            id_soal: idSoal.value,
+            jawaban 
+        });
+        
         showSuccess.value = true;
+        
+        Swal.fire({
+            title: 'Berhasil!',
+            text: 'Data klasifikasi berhasil disimpan. Anda akan dialihkan...',
+            icon: 'success',
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true
+        }).then(() => {
+            window.location.href = '/supplier/classification';
+        });
+
     } catch (err) {
         errorMsg.value = err.response?.data?.message ?? 'Gagal mengirim pengajuan. Coba lagi.';
+        Swal.fire({
+            title: 'Gagal!',
+            text: errorMsg.value,
+            icon: 'error',
+            confirmButtonColor: '#ea580c'
+        });
     } finally {
         isSubmitting.value = false;
     }

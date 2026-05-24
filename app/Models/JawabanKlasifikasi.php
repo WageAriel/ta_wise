@@ -14,9 +14,11 @@ class JawabanKlasifikasi extends Model
 
     protected $fillable = [
         'jawaban_verifikasi',
+        'catatan_verifikasi',
         'id_klasifikasi',
         'id_pertanyaan',
         'id_opsi',
+        'id_opsi_verifikasi',
         'id_verifikasi',
     ];
 
@@ -33,6 +35,12 @@ class JawabanKlasifikasi extends Model
     public function opsi()
     {
         return $this->belongsTo(Opsi::class, 'id_opsi', 'id_opsi');
+    }
+
+    // Opsi yang dipilih petugas saat verifikasi
+    public function opsiVerifikasi()
+    {
+        return $this->belongsTo(Opsi::class, 'id_opsi_verifikasi', 'id_opsi');
     }
 
     public function verifikasi()

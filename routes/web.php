@@ -4,6 +4,8 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\HeaderSoalController;
 use App\Http\Controllers\PertanyaanController;
 use App\Http\Controllers\KlasifikasiController;
+use App\Http\Controllers\Petugas\JadwalController;
+use App\Http\Controllers\Petugas\VerifikasiController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -54,7 +56,7 @@ Route::middleware('auth')->group(function () {
                 ->with('opsis')
                 ->get();
 
-            return Inertia::render('Supplier/KlasifikasiCreate', [
+            return Inertia::render('Supplier/Klasifikasi/KlasifikasiCreate', [
                 'pertanyaans' => $pertanyaans,
                 'supplier'    => null, // null saat testing tanpa login supplier
             ]);
@@ -97,7 +99,9 @@ Route::middleware('auth')->group(function () {
             Route::resource('header', HeaderSoalController::class)->names('header');
             Route::resource('pertanyaan', PertanyaanController::class)->names('pertanyaan');
         });
-        Route::get('/field-officers', fn() => Inertia::render('Admin/FieldOfficers'))->name('field-officers');
+        Route::get('/field-officers', [\App\Http\Controllers\Admin\FieldOfficerController::class, 'index'])->name('field-officers');
+        Route::post('/field-officers/petugas', [\App\Http\Controllers\Admin\FieldOfficerController::class, 'storePetugas'])->name('field-officers.petugas.store');
+        Route::post('/field-officers/jadwal', [\App\Http\Controllers\Admin\FieldOfficerController::class, 'storeJadwal'])->name('field-officers.jadwal.store');
         Route::get('/purchase-orders', fn() => Inertia::render('Admin/PurchaseOrders'))->name('purchase-orders');
         Route::get('/inbound', fn() => Inertia::render('Admin/Inbound'))->name('inbound');
         Route::get('/inventory', fn() => Inertia::render('Admin/Inventory'))->name('inventory');
@@ -111,6 +115,9 @@ Route::middleware('auth')->group(function () {
     // ===================================================
     Route::middleware(['role:petugas_lapangan'])->prefix('petugas')->name('petugas.')->group(function () {
         Route::get('/dashboard', fn() => Inertia::render('PetugasLapangan/DashboardPetugas'))->name('dashboard');
+        Route::get('/jadwal', [JadwalController::class, 'index'])->name('jadwal');
+        Route::get('/verifikasi/{jadwal}', [VerifikasiController::class, 'show'])->name('verifikasi.form');
+        Route::post('/verifikasi/{jadwal}', [VerifikasiController::class, 'store'])->name('verifikasi.store');
         Route::get('/classification', fn() => Inertia::render('Petugas/Classification'))->name('classification');
         Route::get('/field-officers', fn() => Inertia::render('Petugas/FieldOfficers'))->name('field-officers');
     });

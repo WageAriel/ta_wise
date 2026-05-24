@@ -18,6 +18,7 @@ class Klasifikasi extends Model
         'total_nilai',
         'id_user',
         'id_supplier',
+        'id_soal',
     ];
 
     protected $casts = [
@@ -54,5 +55,21 @@ class Klasifikasi extends Model
     public function verifikasi()
     {
         return $this->hasOne(Verifikasi::class, 'id_klasifikasi', 'id_klasifikasi');
+    }
+
+    /**
+     * Relasi ke header soal
+     */
+    public function headerSoal()
+    {
+        return $this->belongsTo(HeaderSoal::class, 'id_soal', 'id_soal');
+    }
+
+    /**
+     * Relasi ke jadwal kunjungan
+     */
+    public function jadwalKunjungan()
+    {
+        return $this->hasOne(JadwalKunjungan::class, 'id_klasifikasi', 'id_klasifikasi');
     }
 }

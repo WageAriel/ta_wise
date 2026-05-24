@@ -62,10 +62,19 @@ function getKategori(score) {
     return 'C';
 }
 
+function getKelasName(row) {
+    if (row.status_klasifikasi === 'selesai' && row.verifikasi?.keputusan_admin) {
+        return row.verifikasi.keputusan_admin;
+    }
+    return '-';
+}
+
 function kategoriClass(k) {
-    if (!k) return "bg-slate-100 text-slate-400";
-    const map = { A: "bg-blue-100 text-blue-700", B: "bg-indigo-100 text-indigo-700", C: "bg-orange-100 text-orange-700" };
-    return map[k] ?? "bg-slate-100 text-slate-500";
+    if (!k || k === '-') return "bg-slate-100 text-slate-400";
+    if (k.includes('A')) return "bg-green-100 text-green-700";
+    if (k.includes('B')) return "bg-indigo-100 text-indigo-700";
+    if (k.includes('C')) return "bg-orange-100 text-orange-700";
+    return "bg-slate-100 text-slate-500";
 }
 
 const paginationLinks = computed(() => {
@@ -79,13 +88,16 @@ const paginationLinks = computed(() => {
 });
 
 function getPetugas(row) {
-    if (row.verifikasi?.admin) return row.verifikasi.admin.name;
-    if (row.verifikasi?.petugas) return row.verifikasi.petugas.name;
+    // if (row.verifikasi?.admin?.username) return row.verifikasi.admin.username;
+    if (row.verifikasi?.petugas?.username) return row.verifikasi.petugas.username;
+    if (row.jadwal_kunjungan?.petugas?.username) return row.jadwal_kunjungan.petugas.username;
     return '-';
 }
 
-function getCatatan(row) {
-    return row.verifikasi?.catatan || '-';
+function formatDate(dateStr) {
+    if (!dateStr) return '-';
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 </script>
 
@@ -172,12 +184,10 @@ function getCatatan(row) {
                                 <tr class="bg-slate-50 text-left">
                                     <th class="px-6 py-3 text-xs font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">No</th>
                                     <th class="px-6 py-3 text-xs font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">Tanggal Pengajuan</th>
-                                    <!-- <th class="px-6 py-3 text-xs font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">Nilai Pengajuan</th> -->
                                     <th class="px-6 py-3 text-xs font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">Hasil Verifikasi</th>
                                     <th class="px-6 py-3 text-xs font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">Kelas Final</th>
                                     <th class="px-6 py-3 text-xs font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">Status Pengajuan</th>
                                     <th class="px-6 py-3 text-xs font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">Petugas</th>
-                                    <th class="px-6 py-3 text-xs font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">Catatan</th>
                                     <th class="px-6 py-3 text-xs font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap text-center">Aksi</th>
                                 </tr>
                             </thead>
@@ -188,26 +198,20 @@ function getCatatan(row) {
                                     class="hover:bg-slate-50/60 transition-colors"
                                 >
                                     <td class="px-6 py-4 text-slate-400 text-xs">{{ (currentPage - 1) * perPage + index + 1 }}</td>
-                                    <td class="px-6 py-4 text-slate-700 whitespace-nowrap">{{ row.tanggal }}</td>
-                                    <!-- <td class="px-6 py-4 text-slate-700">
-                                        <span v-if="row.total_nilai !== null" class="font-mono font-bold">{{ row.total_nilai }}</span>
-                                        <span v-else class="text-slate-300">—</span>
-                                    </td> -->
+                                    <td class="px-6 py-4 text-slate-700 whitespace-nowrap">{{ formatDate(row.tanggal) }}</td>
                                     <td class="px-6 py-4 text-slate-700">
-                                        <span v-if="row.verifikasi?.nilai_akhir !== undefined && row.verifikasi?.nilai_akhir !== null" class="font-mono font-bold text-emerald-600">
-                                            {{ row.verifikasi.nilai_akhir }}
+                                        <span v-if="row.verifikasi?.total_nilai !== undefined && row.verifikasi?.total_nilai !== null" class="font-mono font-bold text-emerald-600">
+                                            {{ row.verifikasi.total_nilai }}
                                         </span>
                                         <span v-else class="text-slate-300">—</span>
                                     </td>
                                     <td class="px-6 py-4">
                                         <span
-                                            v-if="getKategori(row.verifikasi?.nilai_akhir || row.total_nilai)"
                                             class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold"
-                                            :class="kategoriClass(getKategori(row.verifikasi?.nilai_akhir || row.total_nilai))"
+                                            :class="kategoriClass(getKelasName(row))"
                                         >
-                                            Kategori {{ getKategori(row.verifikasi?.nilai_akhir || row.total_nilai) }}
+                                            {{ getKelasName(row) }}
                                         </span>
-                                        <span v-else class="text-slate-300 text-xs">—</span>
                                     </td>
                                     <td class="px-6 py-4">
                                         <span
@@ -224,10 +228,7 @@ function getCatatan(row) {
                                             </span>
                                             <span class="text-sm font-medium">{{ getPetugas(row) }}</span>
                                         </div>
-                                        <span v-else class="text-slate-300">—</span>
-                                    </td>
-                                    <td class="px-6 py-4 text-slate-500 max-w-xs truncate" :title="getCatatan(row)">
-                                        {{ getCatatan(row) }}
+                                        <span v-else class="text-xs text-slate-400 italic">Belum dijadwalkan</span>
                                     </td>
                                     <td class="px-6 py-4 text-center">
                                         <button
