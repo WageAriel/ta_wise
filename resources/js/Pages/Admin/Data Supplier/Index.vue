@@ -19,6 +19,8 @@ const isLoading = ref(false);
 const searchQuery = ref("");
 const selectedYear = ref("");
 const perPage = ref(10);
+const sortKey = ref("nama_perusahaan"); 
+const sortOrder = ref("asc");
 
 // State untuk Modal Detail Supplier
 const showDetailModal = ref(false);
@@ -98,9 +100,18 @@ const fetchSuppliers = async () => {
     }
 };
 
+const toggleSort = (key) => {
+    if (sortKey.value === key) {
+        sortOrder.value = sortOrder.value === "asc" ? "desc" : "asc";
+    } else {
+        sortKey.value = key;
+        sortOrder.value = "asc";
+    }
+};
+
 // Logic Pencarian & Filter Client-Side
 const filteredSuppliers = computed(() => {
-    return suppliers.value.filter((supplier) => {
+    let result = suppliers.value.filter((supplier) => {
         const matchesSearch =
             supplier.nama_perusahaan
                 ?.toLowerCase()
@@ -120,7 +131,21 @@ const filteredSuppliers = computed(() => {
 
         return matchesSearch && matchesYear;
     });
+
+    return result.sort((a, b) => {
+        let valA = a[sortKey.value];
+        let valB = b[sortKey.value];
+
+        // Normalisasi untuk string agar tidak case-sensitive
+        if (typeof valA === "string") valA = valA.toLowerCase();
+        if (typeof valB === "string") valB = valB.toLowerCase();
+
+        if (valA < valB) return sortOrder.value === "asc" ? -1 : 1;
+        if (valA > valB) return sortOrder.value === "asc" ? 1 : -1;
+        return 0;
+    });
 });
+
 
 // Buka Modal Detail Supplier
 const openDetailModal = (supplier) => {
@@ -319,27 +344,21 @@ const systemRecommendation = computed(() => {
     <Head title="Data Supplier | Admin WISE" />
 
     <AdminLayout>
-        <div class="max-w-7xl mx-auto px-8 py-10">
-            <!-- SECTION 1: Judul Header (Atas) -->
-            <div class="mb-6">
-                <h1 class="text-3xl font-black text-slate-900 tracking-tight">
+        <!-- SECTION 1: Judul Header (Atas) -->
+            <div class="mb-8">
+                <h1 class="text-2xl font-bold text-gray-800">
                     Data Supplier
                 </h1>
             </div>
-
             <!-- SECTION 1.5: Tombol Aksi Import & Export (Bawah) -->
             <div
                 class="bg-white p-5 rounded-lg shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6"
             >
                 <div>
-                    <h1
-                        class="text-3xl font-black text-slate-900 tracking-tight"
-                    >
+                    <h1 class="text-lg font-semibold text-gray-700">
                         Data Supplier
                     </h1>
-                    <p
-                        class="text-sm text-slate-500 mt-1 font-medium font-sans"
-                    >
+                    <p class="text-sm text-gray-500">
                         Kelola dan tinjau seluruh data legalitas perusahaan
                         supplier terdaftar.
                     </p>
@@ -399,7 +418,7 @@ const systemRecommendation = computed(() => {
                 class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6"
             >
                 <!-- Search Input -->
-                <div class="relative w-full md:w-96">
+                <div class="relative w-full md:flex-1">
                     <span
                         class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none"
                     >
@@ -429,12 +448,12 @@ const systemRecommendation = computed(() => {
                 <div class="flex flex-wrap items-center gap-3">
                     <div class="flex items-center gap-2">
                         <span
-                            class="text-xs font-bold text-slate-400 uppercase tracking-wider"
-                            >Tampilkan:</span
+                            class="text-sm font-medium text-slate-400"
+                            >Tampilkan</span
                         >
                         <select
                             v-model="perPage"
-                            class="bg-white border border-slate-200 text-slate-700 text-sm rounded-xl py-2.5 px-3 pr-8 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-semibold shadow-sm"
+                            class="bg-white border border-slate-200 text-slate-700 text-sm rounded-xl py-2.5 px-3 pr-8 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium shadow-sm"
                         >
                             <option :value="10">10 Data</option>
                             <option :value="25">25 Data</option>
@@ -444,13 +463,9 @@ const systemRecommendation = computed(() => {
                     </div>
 
                     <div class="flex items-center gap-2">
-                        <span
-                            class="text-xs font-bold text-slate-400 uppercase tracking-wider"
-                            >Tahun:</span
-                        >
                         <select
                             v-model="selectedYear"
-                            class="bg-white border border-slate-200 text-slate-700 text-sm rounded-xl py-2.5 px-3 pr-8 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-semibold shadow-sm"
+                            class="bg-white border border-slate-200 text-slate-700 text-sm rounded-xl py-2.5 px-3 pr-8 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium shadow-sm"
                         >
                             <option value="">Semua Tahun</option>
                             <option
@@ -472,16 +487,48 @@ const systemRecommendation = computed(() => {
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse">
                         <thead>
-                            <tr
-                                class="bg-slate-50/70 border-b border-slate-100 text-slate-400 text-[10px] font-black uppercase tracking-widest"
-                            >
-                                <th class="py-5 px-6 w-16 text-center">No</th>
-                                <th class="py-5 px-6">Nama Perusahaan</th>
-                                <th class="py-5 px-6">Email Perusahaan</th>
-                                <th class="py-5 px-6">Alamat Kantor</th>
-                                <th class="py-5 px-6 w-48 text-center">
-                                    Status
+                            <tr class="bg-slate-50/70 border-b border-slate-100 text-slate-400 text-[10px] font-black uppercase tracking-widest">
+                                <!-- Kolom No (Sort by ID) -->
+                                <th @click="toggleSort('id')" class="py-5 px-6 w-16 text-center cursor-pointer hover:bg-slate-100 transition-colors">
+                                    <div class="flex items-center justify-center gap-1.5">
+                                        No
+                                        <svg v-if="sortKey === 'id'" :class="sortOrder === 'asc' ? 'rotate-180' : ''" class="w-3 h-3 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"></path></svg>
+                                    </div>
                                 </th>
+                                
+                                <!-- Kolom Nama Perusahaan -->
+                                <th @click="toggleSort('nama_perusahaan')" class="py-5 px-6 cursor-pointer hover:bg-slate-100 transition-colors">
+                                    <div class="flex items-center gap-1.5">
+                                        Nama Perusahaan
+                                        <svg v-if="sortKey === 'nama_perusahaan'" :class="sortOrder === 'asc' ? 'rotate-180' : ''" class="w-3 h-3 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"></path></svg>
+                                    </div>
+                                </th>
+
+                                <!-- Kolom Email -->
+                                <th @click="toggleSort('email_perusahaan')" class="py-5 px-6 cursor-pointer hover:bg-slate-100 transition-colors">
+                                    <div class="flex items-center gap-1.5">
+                                        Email Perusahaan
+                                        <svg v-if="sortKey === 'email_perusahaan'" :class="sortOrder === 'asc' ? 'rotate-180' : ''" class="w-3 h-3 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"></path></svg>
+                                    </div>
+                                </th>
+
+                                <!-- Kolom Alamat -->
+                                <th @click="toggleSort('alamat_perusahaan')" class="py-5 px-6 cursor-pointer hover:bg-slate-100 transition-colors">
+                                    <div class="flex items-center gap-1.5">
+                                        Alamat Kantor
+                                        <svg v-if="sortKey === 'alamat_perusahaan'" :class="sortOrder === 'asc' ? 'rotate-180' : ''" class="w-3 h-3 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"></path></svg>
+                                    </div>
+                                </th>
+
+                                <!-- Kolom Status -->
+                                <th @click="toggleSort('status')" class="py-5 px-6 w-48 text-center cursor-pointer hover:bg-slate-100 transition-colors">
+                                    <div class="flex items-center justify-center gap-1.5">
+                                        Status
+                                        <svg v-if="sortKey === 'status'" :class="sortOrder === 'asc' ? 'rotate-180' : ''" class="w-3 h-3 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"></path></svg>
+                                    </div>
+                                </th>
+
+                                <!-- Kolom Aksi (Tanpa Sorting) -->
                                 <th class="py-5 px-6 w-28 text-center">Aksi</th>
                             </tr>
                         </thead>
@@ -665,7 +712,6 @@ const systemRecommendation = computed(() => {
                     </table>
                 </div>
             </div>
-        </div>
     </AdminLayout>
 
     <!-- SECTION 4: Detail Modal (Supplier Info) -->
