@@ -4,6 +4,7 @@ import { Head, Link } from "@inertiajs/vue3";
 
 const props = defineProps({
     is_approved: Boolean,
+    has_submitted_this_year: Boolean,
     stats: {
         type: Object,
         default: () => ({
@@ -20,16 +21,11 @@ const props = defineProps({
 });
 
 const getStatusBadgeClass = (status) => {
-    switch (status?.toLowerCase()) {
-        case "lolos":
-            return "bg-green-100 text-green-800";
-        case "menunggu review":
-            return "bg-blue-100 text-blue-800";
-        case "tidak lolos":
-            return "bg-red-100 text-red-800";
-        default:
-            return "bg-gray-100 text-gray-800";
-    }
+  const s = status?.toLowerCase();
+  if (s === 'lolos') return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+  if (s === 'tidak lolos') return 'bg-rose-100 text-rose-700 border-rose-200';
+  if (s === 'menunggu validasi') return 'bg-amber-100 text-amber-700 border-amber-200'; // Tambahkan ini
+  return 'bg-gray-100 text-gray-700 border-gray-200';
 };
 </script>
 
@@ -50,7 +46,9 @@ const getStatusBadgeClass = (status) => {
                     <p class="text-gray-500 text-sm mt-1">Kelola dan pantau status pengajuan seleksi Anda</p>
                 </div>
                 <div v-if="props.is_approved">
+                    <!-- BUTTON TAMBAH (JIKA BELUM SUBMIT) -->
                     <Link
+                        v-if="!props.has_submitted_this_year"
                         :href="route('supplier.selection.create')"
                         class="inline-flex items-center px-4 py-2.5 bg-indigo-600 border border-transparent rounded-lg font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700 active:bg-indigo-900 transition shadow-md"
                     >
@@ -59,6 +57,17 @@ const getStatusBadgeClass = (status) => {
                         </svg>
                         Tambah Pengajuan Seleksi
                     </Link>
+
+                    <!-- BUTTON TERKUNCI (JIKA SUDAH SUBMIT) -->
+                    <div
+                        v-else
+                        class="inline-flex items-center px-4 py-2.5 bg-gray-100 border border-gray-200 rounded-lg font-semibold text-[10px] text-gray-400 uppercase tracking-widest cursor-not-allowed"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                        Anda sudah melakukan pengajuan
+                    </div>
                 </div>
                 <!-- PESAN JIKA BELUM APPROVED -->
                 <div v-else class="flex items-center space-x-2 bg-amber-50 border border-amber-200 text-amber-700 px-4 py-2.5 rounded-lg">

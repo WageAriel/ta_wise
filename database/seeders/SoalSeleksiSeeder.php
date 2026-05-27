@@ -2,377 +2,413 @@
 
 namespace Database\Seeders;
 
+use App\Models\HeaderSoal;
+use App\Models\Pertanyaan;
+use App\Models\Opsi;
+use App\Models\DetailSoal;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
 
 class SoalSeleksiSeeder extends Seeder
 {
+    /**
+     * Bank soal untuk Tahap Seleksi Supplier.
+     * Menggunakan model Eloquent dengan referensi gaya BankSoalKlasifikasiSeeder.
+     */
     public function run(): void
     {
-        DB::transaction(function () {
-            // 1. Buat Header Paket Soal
-            $id_soal = DB::table('header_soal')->insertGetId([
-                'nama_soal' => 'Bank Soal Tahap Seleksi - Versi Ketat',
-                'created_at' => Carbon::now(),
-                'updated_at' => Carbon::now(),
-            ]);
-
-            $sections = [
-                // SECTION 1: Operasional Dasar (10 Soal)
+        // ── 2. Definisi Pertanyaan & Opsi ───────────────────────────────────
+        $bankSoal = [
+            // SECTION 1: Operasional Dasar
+            [
+                'teks_pertanyaan' => 'Apakah perusahaan Anda memiliki gudang atau fasilitas penyimpanan sendiri?',
+                'bobot'           => 1,
+                'opsis' => [
+                    ['teks_opsi' => 'Ya, milik sendiri dan memadai', 'nilai' => 100],
+                    ['teks_opsi' => 'Ya, sewa jangka panjang', 'nilai' => 75],
+                    ['teks_opsi' => 'Menggunakan pihak ketiga', 'nilai' => 50],
+                    ['teks_opsi' => 'Tidak memiliki / tidak tetap', 'nilai' => 0],
+                ]
+            ],
                 [
-                    'per' => 'Apakah perusahaan Anda memiliki gudang atau fasilitas penyimpanan sendiri?',
-                    'opsi' => [
-                        ['t' => 'Ya, milik sendiri dan memadai', 'n' => 100],
-                        ['t' => 'Ya, sewa jangka panjang', 'n' => 75],
-                        ['t' => 'Menggunakan pihak ketiga', 'n' => 50],
-                        ['t' => 'Tidak memiliki / tidak tetap', 'n' => 0],
+                    'teks_pertanyaan' => 'Berapa lama lead time rata-rata dari PO sampai barang siap kirim?',
+                    'bobot'           => 1,
+                    'opsis' => [
+                        ['teks_opsi' => 'Maksimal 5 hari', 'nilai' => 100],
+                        ['teks_opsi' => '6 – 10 hari', 'nilai' => 75],
+                        ['teks_opsi' => '11 – 20 hari', 'nilai' => 50],
+                        ['teks_opsi' => 'Lebih dari 20 hari', 'nilai' => 25],
                     ]
                 ],
                 [
-                    'per' => 'Berapa lama lead time rata-rata dari PO sampai barang siap kirim?',
-                    'opsi' => [
-                        ['t' => 'Maksimal 5 hari', 'n' => 100],
-                        ['t' => '6 – 10 hari', 'n' => 75],
-                        ['t' => '11 – 20 hari', 'n' => 50],
-                        ['t' => 'Lebih dari 20 hari', 'n' => 25],
+                    'teks_pertanyaan' => 'Seberapa konsisten Anda memenuhi pesanan rutin setiap bulan?',
+                    'bobot'           => 1,
+                    'opsis' => [
+                        ['teks_opsi' => 'Sangat konsisten', 'nilai' => 100],
+                        ['teks_opsi' => 'Cukup konsisten', 'nilai' => 75],
+                        ['teks_opsi' => 'Kadang tidak terpenuhi', 'nilai' => 25],
+                        ['teks_opsi' => 'Tidak konsisten', 'nilai' => 0],
                     ]
                 ],
                 [
-                    'per' => 'Seberapa konsisten Anda memenuhi pesanan rutin setiap bulan?',
-                    'opsi' => [
-                        ['t' => 'Sangat konsisten', 'n' => 100],
-                        ['t' => 'Cukup konsisten', 'n' => 75],
-                        ['t' => 'Kadang tidak terpenuhi', 'n' => 25],
-                        ['t' => 'Tidak konsisten', 'n' => 0],
+                    'teks_pertanyaan' => 'Status rekening bank perusahaan?',
+                    'bobot'           => 1,
+                    'opsis' => [
+                        ['teks_opsi' => 'Atas nama perusahaan & aktif', 'nilai' => 100],
+                        ['teks_opsi' => 'Atas nama perusahaan tapi jarang digunakan', 'nilai' => 50],
+                        ['teks_opsi' => 'Atas nama pribadi', 'nilai' => 25],
+                        ['teks_opsi' => 'Tidak memiliki', 'nilai' => 0],
                     ]
                 ],
                 [
-                    'per' => 'Status rekening bank perusahaan?',
-                    'opsi' => [
-                        ['t' => 'Atas nama perusahaan & aktif', 'n' => 100],
-                        ['t' => 'Atas nama perusahaan tapi jarang digunakan', 'n' => 50],
-                        ['t' => 'Atas nama pribadi', 'n' => 25],
-                        ['t' => 'Tidak memiliki', 'n' => 0],
+                    'teks_pertanyaan' => 'Apakah Anda siap melayani repeat order dalam jumlah besar secara rutin?',
+                    'bobot'           => 1,
+                    'opsis' => [
+                        ['teks_opsi' => 'Ya, sangat siap', 'nilai' => 100],
+                        ['teks_opsi' => 'Ya, dengan kapasitas terbatas', 'nilai' => 75],
+                        ['teks_opsi' => 'Belum siap sepenuhnya', 'nilai' => 50],
+                        ['teks_opsi' => 'Tidak siap', 'nilai' => 0],
                     ]
                 ],
                 [
-                    'per' => 'Apakah Anda siap melayani repeat order dalam jumlah besar secara rutin?',
-                    'opsi' => [
-                        ['t' => 'Ya, sangat siap', 'n' => 100],
-                        ['t' => 'Ya, dengan kapasitas terbatas', 'n' => 75],
-                        ['t' => 'Belum siap sepenuhnya', 'n' => 50],
-                        ['t' => 'Tidak siap', 'n' => 0],
+                    'teks_pertanyaan' => 'Sistem pencatatan stok barang yang digunakan?',
+                    'bobot'           => 1,
+                    'opsis' => [
+                        ['teks_opsi' => 'Digital / ERP / Software', 'nilai' => 100],
+                        ['teks_opsi' => 'Manual yang terstruktur', 'nilai' => 75],
+                        ['teks_opsi' => 'Manual sederhana', 'nilai' => 50],
+                        ['teks_opsi' => 'Tidak ada sistem', 'nilai' => 0],
                     ]
                 ],
                 [
-                    'per' => 'Sistem pencatatan stok barang yang digunakan?',
-                    'opsi' => [
-                        ['t' => 'Digital / ERP / Software', 'n' => 100],
-                        ['t' => 'Manual yang terstruktur', 'n' => 75],
-                        ['t' => 'Manual sederhana', 'n' => 50],
-                        ['t' => 'Tidak ada sistem', 'n' => 0],
+                    'teks_pertanyaan' => 'Berapa jumlah karyawan tetap saat ini?',
+                    'bobot'           => 1,
+                    'opsis' => [
+                        ['teks_opsi' => 'Lebih dari 30 orang', 'nilai' => 100],
+                        ['teks_opsi' => '10 – 30 orang', 'nilai' => 75],
+                        ['teks_opsi' => '1 – 9 orang', 'nilai' => 50],
+                        ['teks_opsi' => 'Tidak memiliki karyawan tetap', 'nilai' => 0],
                     ]
                 ],
                 [
-                    'per' => 'Berapa jumlah karyawan tetap saat ini?',
-                    'opsi' => [
-                        ['t' => 'Lebih dari 30 orang', 'n' => 100],
-                        ['t' => '10 – 30 orang', 'n' => 75],
-                        ['t' => '1 – 9 orang', 'n' => 50],
-                        ['t' => 'Tidak memiliki karyawan tetap', 'n' => 0],
+                    'teks_pertanyaan' => 'Kondisi alamat kantor & gudang?',
+                    'bobot'           => 1,
+                    'opsis' => [
+                        ['teks_opsi' => 'Tetap, jelas, dan dapat dikunjungi', 'nilai' => 100],
+                        ['teks_opsi' => 'Tetap tapi sulit dijangkau', 'nilai' => 50],
+                        ['teks_opsi' => 'Sering berpindah', 'nilai' => 25],
+                        ['teks_opsi' => 'Tidak jelas / virtual', 'nilai' => 0],
                     ]
                 ],
                 [
-                    'per' => 'Kondisi alamat kantor & gudang?',
-                    'opsi' => [
-                        ['t' => 'Tetap, jelas, dan dapat dikunjungi', 'n' => 100],
-                        ['t' => 'Tetap tapi sulit dijangkau', 'n' => 50],
-                        ['t' => 'Sering berpindah', 'n' => 25],
-                        ['t' => 'Tidak jelas / virtual', 'n' => 0],
+                    'teks_pertanyaan' => 'Kemampuan menangani kenaikan order mendadak?',
+                    'bobot'           => 1,
+                    'opsis' => [
+                        ['teks_opsi' => 'Mampu hingga 50% atau lebih', 'nilai' => 100],
+                        ['teks_opsi' => 'Mampu hingga 30%', 'nilai' => 75],
+                        ['teks_opsi' => 'Hanya hingga 10%', 'nilai' => 50],
+                        ['teks_opsi' => 'Tidak mampu', 'nilai' => 0],
                     ]
                 ],
                 [
-                    'per' => 'Kemampuan menangani kenaikan order mendadak?',
-                    'opsi' => [
-                        ['t' => 'Mampu hingga 50% atau lebih', 'n' => 100],
-                        ['t' => 'Mampu hingga 30%', 'n' => 75],
-                        ['t' => 'Hanya hingga 10%', 'n' => 50],
-                        ['t' => 'Tidak mampu', 'n' => 0],
-                    ]
-                ],
-                [
-                    'per' => 'Kesediaan bekerja sama jangka panjang (minimal 1 tahun)?',
-                    'opsi' => [
-                        ['t' => 'Ya, sangat siap', 'n' => 100],
-                        ['t' => 'Ya, bersedia', 'n' => 75],
-                        ['t' => 'Belum yakin', 'n' => 25],
-                        ['t' => 'Tidak siap', 'n' => 0],
-                    ]
-                ],
-
-                // SECTION 2: Kualitas Dasar (8 Soal)
-                [
-                    'per' => 'Sertifikasi yang dimiliki barang yang disupply?',
-                    'opsi' => [
-                        ['t' => 'Lengkap & masih berlaku', 'n' => 100],
-                        ['t' => 'Sebagian & masih berlaku', 'n' => 75],
-                        ['t' => 'Sedang proses', 'n' => 50],
-                        ['t' => 'Tidak memiliki', 'n' => 0],
-                    ]
-                ],
-                [
-                    'per' => 'Kebijakan penggantian barang cacat / tidak sesuai?',
-                    'opsi' => [
-                        ['t' => 'Ya, cepat & tanpa biaya tambahan', 'n' => 100],
-                        ['t' => 'Ya, tapi ada syarat', 'n' => 75],
-                        ['t' => 'Tergantung negosiasi', 'n' => 50],
-                        ['t' => 'Tidak bersedia', 'n' => 0],
-                    ]
-                ],
-                [
-                    'per' => 'Frekuensi pemeriksaan kualitas sebelum pengiriman?',
-                    'opsi' => [
-                        ['t' => 'Selalu dilakukan & terdokumentasi', 'n' => 100],
-                        ['t' => 'Dilakukan tapi tidak selalu', 'n' => 60],
-                        ['t' => 'Jarang dilakukan', 'n' => 30],
-                        ['t' => 'Tidak dilakukan', 'n' => 0],
-                    ]
-                ],
-                [
-                    'per' => 'Prosedur penanganan komplain?',
-                    'opsi' => [
-                        ['t' => 'Ada SOP tertulis & cepat', 'n' => 100],
-                        ['t' => 'Ada tapi tidak tertulis', 'n' => 60],
-                        ['t' => 'Tidak ada prosedur', 'n' => 20],
-                        ['t' => 'Tidak menangani komplain', 'n' => 0],
-                    ]
-                ],
-                [
-                    'per' => 'Kesediaan memberikan sampel untuk uji coba?',
-                    'opsi' => [
-                        ['t' => 'Ya, gratis & dalam jumlah memadai', 'n' => 100],
-                        ['t' => 'Ya, dengan biaya', 'n' => 50],
-                        ['t' => 'Hanya jika order besar', 'n' => 25],
-                        ['t' => 'Tidak bersedia', 'n' => 0],
-                    ]
-                ],
-                [
-                    'per' => 'Kualitas kemasan barang untuk pengiriman?',
-                    'opsi' => [
-                        ['t' => 'Sangat baik & aman', 'n' => 100],
-                        ['t' => 'Standar biasa', 'n' => 60],
-                        ['t' => 'Perlu perbaikan', 'n' => 30],
-                        ['t' => 'Tidak memadai', 'n' => 0],
-                    ]
-                ],
-                [
-                    'per' => 'Frekuensi komplain kualitas dalam 1 tahun terakhir?',
-                    'opsi' => [
-                        ['t' => 'Tidak pernah', 'n' => 100],
-                        ['t' => 'Sangat jarang', 'n' => 75],
-                        ['t' => 'Cukup sering', 'n' => 25],
-                        ['t' => 'Sering', 'n' => 0],
-                    ]
-                ],
-                [
-                    'per' => 'Standar kontrol kualitas yang diterapkan?',
-                    'opsi' => [
-                        ['t' => 'Ketat & terdokumentasi', 'n' => 100],
-                        ['t' => 'Standar dasar', 'n' => 60],
-                        ['t' => 'Minim', 'n' => 30],
-                        ['t' => 'Tidak ada', 'n' => 0],
+                    'teks_pertanyaan' => 'Kesediaan bekerja sama jangka panjang (minimal 1 tahun)?',
+                    'bobot'           => 1,
+                    'opsis' => [
+                        ['teks_opsi' => 'Ya, sangat siap', 'nilai' => 100],
+                        ['teks_opsi' => 'Ya, bersedia', 'nilai' => 75],
+                        ['teks_opsi' => 'Belum yakin', 'nilai' => 25],
+                        ['teks_opsi' => 'Tidak siap', 'nilai' => 0],
                     ]
                 ],
 
-                // SECTION 3: Logistik Dasar (5 Soal)
+                // SECTION 2: Kualitas Dasar
                 [
-                    'per' => 'Kemampuan pengiriman ke Jabodetabek?',
-                    'opsi' => [
-                        ['t' => 'Ya, rutin & lancar', 'n' => 100],
-                        ['t' => 'Ya, tapi terbatas', 'n' => 60],
-                        ['t' => 'Hanya volume besar', 'n' => 40],
-                        ['t' => 'Tidak mampu', 'n' => 0],
+                    'teks_pertanyaan' => 'Sertifikasi yang dimiliki barang yang disupply?',
+                    'bobot'           => 1,
+                    'opsis' => [
+                        ['teks_opsi' => 'Lengkap & masih berlaku', 'nilai' => 100],
+                        ['teks_opsi' => 'Sebagian & masih berlaku', 'nilai' => 75],
+                        ['teks_opsi' => 'Sedang proses', 'nilai' => 50],
+                        ['teks_opsi' => 'Tidak memiliki', 'nilai' => 0],
                     ]
                 ],
                 [
-                    'per' => 'Kerjasama dengan ekspedisi?',
-                    'opsi' => [
-                        ['t' => 'Memiliki beberapa mitra resmi', 'n' => 100],
-                        ['t' => 'Hanya satu mitra', 'n' => 60],
-                        ['t' => 'Sedang proses', 'n' => 30],
-                        ['t' => 'Tidak ada kerjasama', 'n' => 0],
+                    'teks_pertanyaan' => 'Kebijakan penggantian barang cacat / tidak sesuai?',
+                    'bobot'           => 1,
+                    'opsis' => [
+                        ['teks_opsi' => 'Ya, cepat & tanpa biaya tambahan', 'nilai' => 100],
+                        ['teks_opsi' => 'Ya, tapi ada syarat', 'nilai' => 75],
+                        ['teks_opsi' => 'Tergantung negosiasi', 'nilai' => 50],
+                        ['teks_opsi' => 'Tidak bersedia', 'nilai' => 0],
                     ]
                 ],
                 [
-                    'per' => 'Tingkat kepatuhan terhadap jadwal pengiriman?',
-                    'opsi' => [
-                        ['t' => 'Sangat patuh (>95%)', 'n' => 100],
-                        ['t' => 'Cukup patuh', 'n' => 70],
-                        ['t' => 'Sering terlambat', 'n' => 30],
-                        ['t' => 'Tidak dapat menjamin', 'n' => 0],
+                    'teks_pertanyaan' => 'Frekuensi pemeriksaan kualitas sebelum pengiriman?',
+                    'bobot'           => 1,
+                    'opsis' => [
+                        ['teks_opsi' => 'Selalu dilakukan & terdokumentasi', 'nilai' => 100],
+                        ['teks_opsi' => 'Dilakukan tapi tidak selalu', 'nilai' => 60],
+                        ['teks_opsi' => 'Jarang dilakukan', 'nilai' => 30],
+                        ['teks_opsi' => 'Tidak dilakukan', 'nilai' => 0],
                     ]
                 ],
                 [
-                    'per' => 'Pengalaman pengiriman volume besar?',
-                    'opsi' => [
-                        ['t' => 'Sangat berpengalaman', 'n' => 100],
-                        ['t' => 'Pernah beberapa kali', 'n' => 70],
-                        ['t' => 'Baru mulai', 'n' => 40],
-                        ['t' => 'Tidak berpengalaman', 'n' => 0],
+                    'teks_pertanyaan' => 'Prosedur penanganan komplain?',
+                    'bobot'           => 1,
+                    'opsis' => [
+                        ['teks_opsi' => 'Ada SOP tertulis & cepat', 'nilai' => 100],
+                        ['teks_opsi' => 'Ada tapi tidak tertulis', 'nilai' => 60],
+                        ['teks_opsi' => 'Tidak ada prosedur', 'nilai' => 20],
+                        ['teks_opsi' => 'Tidak menangani komplain', 'nilai' => 0],
                     ]
                 ],
                 [
-                    'per' => 'Kesediaan pengiriman di hari libur / luar jam kerja?',
-                    'opsi' => [
-                        ['t' => 'Ya, siap', 'n' => 100],
-                        ['t' => 'Ya, dengan biaya tambahan', 'n' => 60],
-                        ['t' => 'Tidak siap', 'n' => 20],
-                        ['t' => 'Tidak bisa', 'n' => 0],
+                    'teks_pertanyaan' => 'Kesediaan memberikan sampel untuk uji coba?',
+                    'bobot'           => 1,
+                    'opsis' => [
+                        ['teks_opsi' => 'Ya, gratis & dalam jumlah memadai', 'nilai' => 100],
+                        ['teks_opsi' => 'Ya, dengan biaya', 'nilai' => 50],
+                        ['teks_opsi' => 'Hanya jika order besar', 'nilai' => 25],
+                        ['teks_opsi' => 'Tidak bersedia', 'nilai' => 0],
+                    ]
+                ],
+                [
+                    'teks_pertanyaan' => 'Kualitas kemasan barang untuk pengiriman?',
+                    'bobot'           => 1,
+                    'opsis' => [
+                        ['teks_opsi' => 'Sangat baik & aman', 'nilai' => 100],
+                        ['teks_opsi' => 'Standar biasa', 'nilai' => 60],
+                        ['teks_opsi' => 'Perlu perbaikan', 'nilai' => 30],
+                        ['teks_opsi' => 'Tidak memadai', 'nilai' => 0],
+                    ]
+                ],
+                [
+                    'teks_pertanyaan' => 'Frekuensi komplain kualitas dalam 1 tahun terakhir?',
+                    'bobot'           => 1,
+                    'opsis' => [
+                        ['teks_opsi' => 'Tidak pernah', 'nilai' => 100],
+                        ['teks_opsi' => 'Sangat jarang', 'nilai' => 75],
+                        ['teks_opsi' => 'Cukup sering', 'nilai' => 25],
+                        ['teks_opsi' => 'Sering', 'nilai' => 0],
+                    ]
+                ],
+                [
+                    'teks_pertanyaan' => 'Standar kontrol kualitas yang diterapkan?',
+                    'bobot'           => 1,
+                    'opsis' => [
+                        ['teks_opsi' => 'Ketat & terdokumentasi', 'nilai' => 100],
+                        ['teks_opsi' => 'Standar dasar', 'nilai' => 60],
+                        ['teks_opsi' => 'Minim', 'nilai' => 30],
+                        ['teks_opsi' => 'Tidak ada', 'nilai' => 0],
                     ]
                 ],
 
-                // SECTION 4: Red Flag & Compliance (12 Soal)
+                // SECTION 3: Logistik Dasar
                 [
-                    'per' => 'Kasus barang ditolak massal dalam 2 tahun terakhir?',
-                    'opsi' => [
-                        ['t' => 'Tidak pernah', 'n' => 100],
-                        ['t' => 'Pernah 1 kali', 'n' => 50],
-                        ['t' => 'Pernah lebih dari 1 kali', 'n' => 25],
-                        ['t' => 'Sering terjadi', 'n' => 0],
+                    'teks_pertanyaan' => 'Kemampuan pengiriman ke Jabodetabek?',
+                    'bobot'           => 1,
+                    'opsis' => [
+                        ['teks_opsi' => 'Ya, rutin & lancar', 'nilai' => 100],
+                        ['teks_opsi' => 'Ya, tapi terbatas', 'nilai' => 60],
+                        ['teks_opsi' => 'Hanya volume besar', 'nilai' => 40],
+                        ['teks_opsi' => 'Tidak mampu', 'nilai' => 0],
                     ]
                 ],
                 [
-                    'per' => 'Status masalah hukum perusahaan / pengurus?',
-                    'opsi' => [
-                        ['t' => 'Tidak ada sama sekali', 'n' => 100],
-                        ['t' => 'Ada kasus ringan', 'n' => 50],
-                        ['t' => 'Ada kasus sedang/berat', 'n' => 0],
-                        ['t' => 'Tidak ingin menjawab', 'n' => 0],
+                    'teks_pertanyaan' => 'Kerjasama dengan ekspedisi?',
+                    'bobot'           => 1,
+                    'opsis' => [
+                        ['teks_opsi' => 'Memiliki beberapa mitra resmi', 'nilai' => 100],
+                        ['teks_opsi' => 'Hanya satu mitra', 'nilai' => 60],
+                        ['teks_opsi' => 'Sedang proses', 'nilai' => 30],
+                        ['teks_opsi' => 'Tidak ada kerjasama', 'nilai' => 0],
                     ]
                 ],
                 [
-                    'per' => 'Kesediaan dilakukan audit/verifikasi oleh kami?',
-                    'opsi' => [
-                        ['t' => 'Ya, sewaktu-waktu', 'n' => 100],
-                        ['t' => 'Ya, dengan pemberitahuan sebelumnya', 'n' => 75],
-                        ['t' => 'Hanya di lokasi tertentu', 'n' => 40],
-                        ['t' => 'Tidak bersedia', 'n' => 0],
+                    'teks_pertanyaan' => 'Tingkat kepatuhan terhadap jadwal pengiriman?',
+                    'bobot'           => 1,
+                    'opsis' => [
+                        ['teks_opsi' => 'Sangat patuh (>95%)', 'nilai' => 100],
+                        ['teks_opsi' => 'Cukup patuh', 'nilai' => 70],
+                        ['teks_opsi' => 'Sering terlambat', 'nilai' => 30],
+                        ['teks_opsi' => 'Tidak dapat menjamin', 'nilai' => 0],
                     ]
                 ],
                 [
-                    'per' => 'Status NPWP Badan?',
-                    'opsi' => [
-                        ['t' => 'Aktif & patuh pajak', 'n' => 100],
-                        ['t' => 'Aktif tapi belum patuh', 'n' => 60],
-                        ['t' => 'Sedang proses', 'n' => 30],
-                        ['t' => 'Tidak memiliki', 'n' => 0],
+                    'teks_pertanyaan' => 'Pengalaman pengiriman volume besar?',
+                    'bobot'           => 1,
+                    'opsis' => [
+                        ['teks_opsi' => 'Sangat berpengalaman', 'nilai' => 100],
+                        ['teks_opsi' => 'Pernah beberapa kali', 'nilai' => 70],
+                        ['teks_opsi' => 'Baru mulai', 'nilai' => 40],
+                        ['teks_opsi' => 'Tidak berpengalaman', 'nilai' => 0],
                     ]
                 ],
                 [
-                    'per' => 'Kesediaan mengikuti syarat pembayaran kami?',
-                    'opsi' => [
-                        ['t' => 'Ya, sangat fleksibel', 'n' => 100],
-                        ['t' => 'Ya, dengan catatan', 'n' => 70],
-                        ['t' => 'Belum tahu', 'n' => 40],
-                        ['t' => 'Tidak siap', 'n' => 0],
+                    'teks_pertanyaan' => 'Kesediaan pengiriman di hari libur / luar jam kerja?',
+                    'bobot'           => 1,
+                    'opsis' => [
+                        ['teks_opsi' => 'Ya, siap', 'nilai' => 100],
+                        ['teks_opsi' => 'Ya, dengan biaya tambahan', 'nilai' => 60],
+                        ['teks_opsi' => 'Tidak siap', 'nilai' => 20],
+                        ['teks_opsi' => 'Tidak bisa', 'nilai' => 0],
+                    ]
+                ],
+
+                // SECTION 4: Red Flag & Compliance
+                [
+                    'teks_pertanyaan' => 'Kasus barang ditolak massal dalam 2 tahun terakhir?',
+                    'bobot'           => 1,
+                    'opsis' => [
+                        ['teks_opsi' => 'Tidak pernah', 'nilai' => 100],
+                        ['teks_opsi' => 'Pernah 1 kali', 'nilai' => 50],
+                        ['teks_opsi' => 'Pernah lebih dari 1 kali', 'nilai' => 25],
+                        ['teks_opsi' => 'Sering terjadi', 'nilai' => 0],
                     ]
                 ],
                 [
-                    'per' => 'Apakah ada tuntutan dari pihak ketiga saat ini?',
-                    'opsi' => [
-                        ['t' => 'Tidak ada', 'n' => 100],
-                        ['t' => 'Ada tapi kecil', 'n' => 50],
-                        ['t' => 'Ada & sedang berjalan', 'n' => 20],
-                        ['t' => 'Tidak ingin menjawab', 'n' => 0],
+                    'teks_pertanyaan' => 'Status masalah hukum perusahaan / pengurus?',
+                    'bobot'           => 1,
+                    'opsis' => [
+                        ['teks_opsi' => 'Tidak ada sama sekali', 'nilai' => 100],
+                        ['teks_opsi' => 'Ada kasus ringan', 'nilai' => 50],
+                        ['teks_opsi' => 'Ada kasus sedang/berat', 'nilai' => 0],
+                        ['teks_opsi' => 'Tidak ingin menjawab', 'nilai' => 0],
                     ]
                 ],
                 [
-                    'per' => 'Kondisi keuangan perusahaan?',
-                    'opsi' => [
-                        ['t' => 'Sehat & stabil', 'n' => 100],
-                        ['t' => 'Cukup stabil', 'n' => 70],
-                        ['t' => 'Ada masalah keuangan', 'n' => 30],
-                        ['t' => 'Tidak ingin menjawab', 'n' => 0],
+                    'teks_pertanyaan' => 'Kesediaan dilakukan audit/verifikasi oleh kami?',
+                    'bobot'           => 1,
+                    'opsis' => [
+                        ['teks_opsi' => 'Ya, sewaktu-waktu', 'nilai' => 100],
+                        ['teks_opsi' => 'Ya, dengan pemberitahuan sebelumnya', 'nilai' => 75],
+                        ['teks_opsi' => 'Hanya di lokasi tertentu', 'nilai' => 40],
+                        ['teks_opsi' => 'Tidak bersedia', 'nilai' => 0],
                     ]
                 ],
                 [
-                    'per' => 'Kesediaan menandatangani perjanjian kerjasama resmi?',
-                    'opsi' => [
-                        ['t' => 'Ya', 'n' => 100],
-                        ['t' => 'Ya, dengan banyak syarat', 'n' => 50],
-                        ['t' => 'Belum tentu', 'n' => 25],
-                        ['t' => 'Tidak', 'n' => 0],
+                    'teks_pertanyaan' => 'Status NPWP Badan?',
+                    'bobot'           => 1,
+                    'opsis' => [
+                        ['teks_opsi' => 'Aktif & patuh pajak', 'nilai' => 100],
+                        ['teks_opsi' => 'Aktif tapi belum patuh', 'nilai' => 60],
+                        ['teks_opsi' => 'Sedang proses', 'nilai' => 30],
+                        ['teks_opsi' => 'Tidak memiliki', 'nilai' => 0],
                     ]
                 ],
                 [
-                    'per' => 'Pernah ada blacklist atau masalah dengan buyer sebelumnya?',
-                    'opsi' => [
-                        ['t' => 'Tidak pernah', 'n' => 100],
-                        ['t' => 'Pernah', 'n' => 40],
-                        ['t' => 'Masih ada masalah', 'n' => 0],
-                        ['t' => 'Tidak tahu', 'n' => 0],
+                    'teks_pertanyaan' => 'Kesediaan mengikuti syarat pembayaran kami?',
+                    'bobot'           => 1,
+                    'opsis' => [
+                        ['teks_opsi' => 'Ya, sangat fleksibel', 'nilai' => 100],
+                        ['teks_opsi' => 'Ya, dengan catatan', 'nilai' => 70],
+                        ['teks_opsi' => 'Belum tahu', 'nilai' => 40],
+                        ['teks_opsi' => 'Tidak siap', 'nilai' => 0],
                     ]
                 ],
                 [
-                    'per' => 'Kejujuran data yang diberikan?',
-                    'opsi' => [
-                        ['t' => 'Semua data benar & valid', 'n' => 100],
-                        ['t' => 'Ada sedikit ketidaksesuaian', 'n' => 50],
-                        ['t' => 'Ada ketidaksesuaian', 'n' => 0],
-                        ['t' => 'Tidak ingin menjawab', 'n' => 0],
+                    'teks_pertanyaan' => 'Apakah ada tuntutan dari pihak ketiga saat ini?',
+                    'bobot'           => 1,
+                    'opsis' => [
+                        ['teks_opsi' => 'Tidak ada', 'nilai' => 100],
+                        ['teks_opsi' => 'Ada tapi kecil', 'nilai' => 50],
+                        ['teks_opsi' => 'Ada & sedang berjalan', 'nilai' => 20],
+                        ['teks_opsi' => 'Tidak ingin menjawab', 'nilai' => 0],
                     ]
                 ],
                 [
-                    'per' => 'Apakah Anda siap memenuhi standar supplier kami?',
-                    'opsi' => [
-                        ['t' => 'Ya, siap', 'n' => 100],
-                        ['t' => 'Ya, sebagian', 'n' => 60],
-                        ['t' => 'Belum yakin', 'n' => 30],
-                        ['t' => 'Tidak siap', 'n' => 0],
+                    'teks_pertanyaan' => 'Kondisi keuangan perusahaan?',
+                    'bobot'           => 1,
+                    'opsis' => [
+                        ['teks_opsi' => 'Sehat & stabil', 'nilai' => 100],
+                        ['teks_opsi' => 'Cukup stabil', 'nilai' => 70],
+                        ['teks_opsi' => 'Ada masalah keuangan', 'nilai' => 30],
+                        ['teks_opsi' => 'Tidak ingin menjawab', 'nilai' => 0],
                     ]
                 ],
                 [
-                    'per' => 'Kesediaan untuk evaluasi berkala sebagai supplier?',
-                    'opsi' => [
-                        ['t' => 'Ya, sangat siap', 'n' => 100],
-                        ['t' => 'Ya, bersedia', 'n' => 70],
-                        ['t' => 'Tergantung', 'n' => 40],
-                        ['t' => 'Tidak bersedia', 'n' => 0],
+                    'teks_pertanyaan' => 'Kesediaan menandatangani perjanjian kerjasama resmi?',
+                    'bobot'           => 1,
+                    'opsis' => [
+                        ['teks_opsi' => 'Ya', 'nilai' => 100],
+                        ['teks_opsi' => 'Ya, dengan banyak syarat', 'nilai' => 50],
+                        ['teks_opsi' => 'Belum tentu', 'nilai' => 25],
+                        ['teks_opsi' => 'Tidak', 'nilai' => 0],
+                    ]
+                ],
+                [
+                    'teks_pertanyaan' => 'Pernah ada blacklist atau masalah dengan buyer sebelumnya?',
+                    'bobot'           => 1,
+                    'opsis' => [
+                        ['teks_opsi' => 'Tidak pernah', 'nilai' => 100],
+                        ['teks_opsi' => 'Pernah', 'nilai' => 40],
+                        ['teks_opsi' => 'Masih ada masalah', 'nilai' => 0],
+                        ['teks_opsi' => 'Tidak tahu', 'nilai' => 0],
+                    ]
+                ],
+                [
+                    'teks_pertanyaan' => 'Kejujuran data yang diberikan?',
+                    'bobot'           => 1,
+                    'opsis' => [
+                        ['teks_opsi' => 'Semua data benar & valid', 'nilai' => 100],
+                        ['teks_opsi' => 'Ada sedikit ketidaksesuaian', 'nilai' => 50],
+                        ['teks_opsi' => 'Ada ketidaksesuaian', 'nilai' => 0],
+                        ['teks_opsi' => 'Tidak ingin menjawab', 'nilai' => 0],
+                    ]
+                ],
+                [
+                    'teks_pertanyaan' => 'Apakah Anda siap memenuhi standar supplier kami?',
+                    'bobot'           => 1,
+                    'opsis' => [
+                        ['teks_opsi' => 'Ya, siap', 'nilai' => 100],
+                        ['teks_opsi' => 'Ya, sebagian', 'nilai' => 60],
+                        ['teks_opsi' => 'Belum yakin', 'nilai' => 30],
+                        ['teks_opsi' => 'Tidak siap', 'nilai' => 0],
+                    ]
+                ],
+                [
+                    'teks_pertanyaan' => 'Kesediaan untuk evaluasi berkala sebagai supplier?',
+                    'bobot'           => 1,
+                    'opsis' => [
+                        ['teks_opsi' => 'Ya, sangat siap', 'nilai' => 100],
+                        ['teks_opsi' => 'Ya, bersedia', 'nilai' => 70],
+                        ['teks_opsi' => 'Tergantung', 'nilai' => 40],
+                        ['teks_opsi' => 'Tidak bersedia', 'nilai' => 0],
                     ]
                 ],
             ];
 
-            foreach ($sections as $index => $item) {
-                // Insert Pertanyaan
-                $id_pertanyaan = DB::table('pertanyaan')->insertGetId([
-                    'jenis_soal' => 'pilihan_ganda',
-                    'teks_pertanyaan' => $item['per'],
-                    'bobot' => 1, // Kita beri bobot 1 untuk semua agar rata
-                    'status' => 'aktif',
-                    'created_at' => Carbon::now(),
-                    'updated_at' => Carbon::now(),
+            DB::transaction(function () use ($bankSoal) {
+                // ── 1. Buat Header Soal ─────────────────────────────────────────────
+                $header = HeaderSoal::create([
+                    'nama_soal' => 'Bank Soal Seleksi Supplier ' . now()->year,
                 ]);
 
-                // Hubungkan ke Header (Detail Soal)
-                DB::table('detail_soal')->insert([
-                    'id_soal' => $id_soal,
-                    'id_pertanyaan' => $id_pertanyaan,
-                    'created_at' => Carbon::now(),
-                    'updated_at' => Carbon::now(),
-                ]);
+                // ── 3. Simpan pertanyaan, opsi, dan detail_soal ─────────────────────
+                foreach ($bankSoal as $soalData) {
+                    $pertanyaan = Pertanyaan::create([
+                        'jenis_soal'      => 'seleksi',
+                        'teks_pertanyaan' => $soalData['teks_pertanyaan'],
+                        'bobot'           => $soalData['bobot'],
+                        'status'          => 'aktif',
+                    ]);
 
-                // Insert Opsi
-                foreach ($item['opsi'] as $o) {
-                    DB::table('opsi')->insert([
-                        'id_pertanyaan' => $id_pertanyaan,
-                        'teks_opsi' => $o['t'],
-                        'nilai' => $o['n'],
-                        'created_at' => Carbon::now(),
-                        'updated_at' => Carbon::now(),
+                    foreach ($soalData['opsis'] as $opsiData) {
+                        Opsi::create([
+                            'id_pertanyaan' => $pertanyaan->id_pertanyaan,
+                            'teks_opsi'     => $opsiData['teks_opsi'],
+                            'nilai'         => $opsiData['nilai'],
+                        ]);
+                    }
+
+                    // Hubungkan ke header soal via detail_soal
+                    DetailSoal::create([
+                        'id_soal'       => $header->id_soal,
+                        'id_pertanyaan' => $pertanyaan->id_pertanyaan,
                     ]);
                 }
-            }
-        });
+            });
+
+            $this->command->info('✅ Bank soal seleksi berhasil di-seed! (' . count($bankSoal) . ' pertanyaan)');
+        }
     }
-}

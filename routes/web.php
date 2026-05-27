@@ -86,6 +86,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/', [\App\Http\Controllers\SeleksiController::class, 'adminIndex']); // Menampilkan tabel
         Route::get('/export', [\App\Http\Controllers\SeleksiController::class, 'adminExport'])->name('.export');
         Route::get('/{id}', [\App\Http\Controllers\SeleksiController::class, 'adminShow'])->name('.show');
+        Route::post('/{id}/status', [\App\Http\Controllers\SeleksiController::class, 'adminUpdateStatus'])->name('.update-status');
         Route::delete('/{id}', [\App\Http\Controllers\SeleksiController::class, 'adminDestroy'])->name('.destroy');
     });
 
@@ -107,10 +108,12 @@ Route::middleware('auth')->group(function () {
         Route::post('/field-officers/petugas', [\App\Http\Controllers\Admin\FieldOfficerController::class, 'storePetugas'])->name('field-officers.petugas.store');
         Route::post('/field-officers/jadwal', [\App\Http\Controllers\Admin\FieldOfficerController::class, 'storeJadwal'])->name('field-officers.jadwal.store');
         Route::get('/purchase-orders', fn() => Inertia::render('Admin/PurchaseOrders'))->name('purchase-orders');
-        Route::get('/inbound', fn() => Inertia::render('Admin/Inbound/Index'))->name('inbound');        Route::get('/inventory', fn() => Inertia::render('Admin/Inventory'))->name('inventory');
-        Route::get('/return-management', fn() => Inertia::render('Admin/ReturnManagement'))->name('return-management');
+        Route::get('/inbound', fn() => Inertia::render('Admin/Inbound/Index'))->name('inbound');
+        Route::get('/inventory', fn() => Inertia::render('Admin/Inventory'))->name('inventory');
+        Route::get('/return-management', fn() => Inertia::render('Admin/Return Management/Index'))->name('return-management');
         Route::get('/outbound', fn() => Inertia::render('Admin/Outbound'))->name('outbound');
-        Route::get('/user-management', fn() => Inertia::render('Admin/UserManagement'))->name('user-management');
+        Route::get('/user-management', [\App\Http\Controllers\Admin\UserController::class, 'index'])->name('user-management');
+        Route::delete('/user-management/{id}', [\App\Http\Controllers\Admin\UserController::class, 'destroy'])->name('user-management.destroy');
     });
 
     // ===================================================

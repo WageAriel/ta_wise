@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('seleksi', function (Blueprint $table) {
             $table->id('id_seleksi');
-            $table->enum('status_seleksi', ['lolos', 'tidak_lolos']);
+            $table->enum('status_seleksi', ['Menunggu Validasi', 'Lolos', 'Tidak Lolos'])->default('Menunggu Validasi');
             $table->date('tanggal');
             $table->integer('total_nilai');
             $table->foreignId('id_user')->constrained('users', 'id')->onDelete('cascade');

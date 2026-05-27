@@ -20,4 +20,16 @@ class JawabanSeleksi extends Model
     {
         return $this->belongsTo(Seleksi::class, 'id_seleksi');
     }
+
+    public function pertanyaan()
+    {
+        // Pastikan FK id_pertanyaan merujuk ke tabel pertanyaan
+        return $this->belongsTo(Pertanyaan::class, 'id_pertanyaan');
+    }
+
+    public function opsi()
+    {
+        // Relasi ke opsi berdasarkan jawaban yang dipilih
+        return $this->belongsTo(Opsi::class, 'jawaban', 'id_opsi');
+    }
 }
