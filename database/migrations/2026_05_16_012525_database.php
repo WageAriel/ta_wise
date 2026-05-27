@@ -100,6 +100,7 @@ return new class extends Migration {
         Schema::create('profil_petugas', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained('users', 'id')->onDelete('cascade');
+            $table->string('nama_petugas')->nullable();
             $table->string('posisi')->nullable();
             $table->string('kontak')->nullable();
             $table->timestamps();

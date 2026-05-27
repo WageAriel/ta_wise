@@ -34,6 +34,10 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
+        if ($request->user()->role === 'petugas_lapangan') {
+            return redirect()->intended(route('petugas.dashboard.petugas'));
+        }
+
         return redirect()->intended(RouteServiceProvider::HOME);
     }
 

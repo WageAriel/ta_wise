@@ -166,8 +166,8 @@ class KlasifikasiController extends Controller
                 'jawabanKlasifikasis.pertanyaan',
                 'jawabanKlasifikasis.opsi',
                 'verifikasi.admin',
-                'verifikasi.petugas',
-                'jadwalKunjungan.petugas',
+                'verifikasi.petugas.profilPetugas',
+                'jadwalKunjungan.petugas.profilPetugas',
             ])
             ->latest()
             ->paginate($request->get('per_page', 10));
@@ -194,7 +194,7 @@ class KlasifikasiController extends Controller
      */
     public function adminIndex(Request $request)
     {
-        $query = Klasifikasi::with(['supplier', 'user', 'verifikasi.petugas', 'verifikasi.admin', 'jadwalKunjungan.petugas'])->latest();
+        $query = Klasifikasi::with(['supplier', 'user', 'verifikasi.petugas.profilPetugas', 'verifikasi.admin', 'jadwalKunjungan.petugas.profilPetugas'])->latest();
 
         if ($request->filled('status')) {
             if ($request->status === 'pending_diproses') {
@@ -239,7 +239,7 @@ class KlasifikasiController extends Controller
             'jawabanKlasifikasis.opsi',
             'jawabanKlasifikasis.opsiVerifikasi',
             'verifikasi.admin',
-            'verifikasi.petugas',
+            'verifikasi.petugas.profilPetugas',
         ]);
 
         return response()->json($klasifikasi);

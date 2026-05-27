@@ -34,7 +34,7 @@ const props = defineProps({
 
 // ─── Tanggal & User ───────────────────────────────────────────────────────
 const user = computed(() => usePage().props.auth.user);
-const namaPetugas = computed(() => user.value?.name || 'Petugas');
+const namaPetugas = computed(() => user.value?.profil_petugas?.nama_petugas || user.value?.name || user.value?.username || 'Petugas');
 
 const tanggalHariIni = computed(() => {
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
@@ -163,8 +163,8 @@ const tanggalHariIni = computed(() => {
                                 <div v-for="item in props.verifikasiTerbaru.slice(0,3)" :key="item.id" class="flex items-center justify-between p-4 rounded-xl border border-slate-100 hover:bg-slate-50 transition-colors">
                                     <div class="flex items-center gap-3">
                                         <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm border"
-                                            :class="item.hasil === 'Lulus' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-red-50 text-red-600 border-red-200'">
-                                            {{ item.supplier.charAt(0) }}
+                                            :class="(item.hasil === 'Class A' || item.hasil === 'Class B' || item.hasil === 'Lulus') ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-red-50 text-red-600 border-red-200'">
+                                            {{ item.supplier ? item.supplier.charAt(0) : '-' }}
                                         </div>
                                         <div>
                                             <h3 class="text-sm font-bold text-slate-800">{{ item.supplier }}</h3>
@@ -174,7 +174,7 @@ const tanggalHariIni = computed(() => {
                                     <div class="text-right">
                                         <div class="text-lg font-black text-slate-800">{{ item.nilai }}</div>
                                         <div class="text-[10px] font-bold uppercase tracking-wider mt-0.5"
-                                            :class="item.hasil === 'Lulus' ? 'text-emerald-600' : 'text-red-600'">
+                                            :class="(item.hasil === 'Class A' || item.hasil === 'Class B' || item.hasil === 'Lulus') ? 'text-emerald-600' : 'text-red-600'">
                                             {{ item.hasil }}
                                         </div>
                                     </div>
