@@ -6,6 +6,7 @@ use App\Http\Controllers\PertanyaanController;
 use App\Http\Controllers\KlasifikasiController;
 use App\Http\Controllers\Petugas\JadwalController;
 use App\Http\Controllers\Petugas\VerifikasiController;
+use App\Http\Controllers\Admin\ReturnController; 
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -109,16 +110,9 @@ Route::middleware('auth')->group(function () {
         Route::post('/field-officers/jadwal', [\App\Http\Controllers\Admin\FieldOfficerController::class, 'storeJadwal'])->name('field-officers.jadwal.store');
         Route::get('/purchase-orders', fn() => Inertia::render('Admin/PurchaseOrders'))->name('purchase-orders');
         Route::get('/inbound', fn() => Inertia::render('Admin/Inbound/Index'))->name('inbound');
-        
-        // Inbound Add Features API Routes
-        Route::get('/inbound/data', [\App\Http\Controllers\Admin\InboundController::class, 'getLayoutLocations'])->name('inbound.data');
-        Route::post('/inbound/layout', [\App\Http\Controllers\Admin\InboundController::class, 'storeLayout'])->name('inbound.layout.store');
-        Route::post('/inbound/location', [\App\Http\Controllers\Admin\InboundController::class, 'storeLocation'])->name('inbound.location.store');
-        Route::post('/inbound/inventory', [\App\Http\Controllers\Admin\InboundController::class, 'storeInventory'])->name('inbound.inventory.store');
-        
-
         Route::get('/inventory', fn() => Inertia::render('Admin/Inventory'))->name('inventory');
-        Route::get('/return-management', fn() => Inertia::render('Admin/Return Management/Index'))->name('return-management');
+        Route::get('/return-management', [ReturnController::class, 'index'])->name('return-management');
+        Route::post('/return-management', [ReturnController::class, 'store'])->name('return-management.store');
         Route::get('/outbound', fn() => Inertia::render('Admin/Outbound'))->name('outbound');
         Route::get('/user-management', [\App\Http\Controllers\Admin\UserController::class, 'index'])->name('user-management');
         Route::delete('/user-management/{id}', [\App\Http\Controllers\Admin\UserController::class, 'destroy'])->name('user-management.destroy');
@@ -128,7 +122,7 @@ Route::middleware('auth')->group(function () {
     // PETUGAS LAPANGAN ROUTES (placeholder)
     // ===================================================
     Route::middleware(['role:petugas_lapangan'])->prefix('petugas')->name('petugas.')->group(function () {
-        Route::get('/dashboard', [\App\Http\Controllers\Petugas\DashboardController::class, 'index'])->name('dashboard.petugas');
+        Route::get('/dashboard', fn() => Inertia::render('PetugasLapangan/DashboardPetugas'))->name('dashboard');
         Route::get('/jadwal', [JadwalController::class, 'index'])->name('jadwal');
         Route::get('/verifikasi/{jadwal}', [VerifikasiController::class, 'show'])->name('verifikasi.form');
         Route::post('/verifikasi/{jadwal}', [VerifikasiController::class, 'store'])->name('verifikasi.store');

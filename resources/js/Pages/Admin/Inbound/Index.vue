@@ -64,7 +64,34 @@ const barangs = ref([]);
 
 const layoutForm = ref({ nama_layout: "" });
 const locationForm = ref({ kode_location: "", kapasitas: 1, id_layout: "" });
-const inventoryForm = ref({ qty: 1, id_barang: "", id_layout_temp: "", id_location: "" });
+const inventoryForm = ref({ 
+    id_inbound: "", 
+    items: [] // { id_barang, nama_barang, qty, id_location }
+});
+
+const handleInboundChange = async () => {
+    if (!inventoryForm.value.id_inbound) return;
+    
+    try {
+        // Asumsi endpoint untuk mengambil detail item berdasarkan ID Inbound
+        // Jika belum ada, kita bisa menggunakan data dummy atau menunggu integrasi
+        const response = await axios.get(route('admin.inbound.items', inventoryForm.value.id_inbound));
+        inventoryForm.value.items = response.data.map(item => ({
+            id_barang: item.id_barang,
+            nama_barang: item.nama_barang,
+            qty: item.qty,
+            max_qty: item.qty, // Simpan batas maksimum asli
+            id_location: ""
+        }));
+    } catch (error) {
+        console.error("Gagal mengambil detail item inbound", error);
+        // Fallback dummy data jika API belum tersedia
+        inventoryForm.value.items = [
+            { id_barang: 1, nama_barang: "Barang A", qty: 10, max_qty: 10, id_location: "" },
+            { id_barang: 2, nama_barang: "Barang B", qty: 25, max_qty: 25, id_location: "" }
+        ];
+    }
+};
 
 const fetchDropdownData = async () => {
     try {
@@ -107,17 +134,33 @@ const submitLocation = async () => {
 const submitInventory = async () => {
     try {
         await axios.post(route('admin.inbound.inventory.store'), {
-            qty: inventoryForm.value.qty,
-            id_barang: inventoryForm.value.id_barang,
-            id_location: inventoryForm.value.id_location
+            id_inbound: inventoryForm.value.id_inbound,
+            items: inventoryForm.value.items
         });
         Swal.fire("Berhasil", "Inventory berhasil ditambahkan", "success");
         showInventoryModal.value = false;
-        inventoryForm.value = { qty: 1, id_barang: "", id_layout_temp: "", id_location: "" };
+        inventoryForm.value = { id_inbound: "", items: [] };
     } catch (error) {
         Swal.fire("Error", "Gagal menambahkan inventory", "error");
     }
 };
+
+const isInventoryFormValid = computed(() => {
+    if (!inventoryForm.value.id_inbound || inventoryForm.value.items.length === 0) return false;
+    
+    return inventoryForm.value.items.every(item => {
+        const hasLocation = !!item.id_location;
+        const validQty = item.qty > 0 && item.qty <= item.max_qty;
+        return hasLocation && validQty;
+    });
+});
+
+const allLocations = computed(() => {
+    return layouts.value.flatMap(l => l.locations.map(loc => ({
+        ...loc,
+        nama_layout: l.nama_layout
+    })));
+});
 
 const availableLocations = computed(() => {
     const layout = layouts.value.find(l => l.id_layout === inventoryForm.value.id_layout_temp);
@@ -332,41 +375,100 @@ const availableLocations = computed(() => {
 
         <!-- MODAL ADD INVENTORY -->
         <div v-if="showInventoryModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <div class="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-                    <h3 class="font-bold text-gray-800">Add Inventory</h3>
-                    <button @click="showInventoryModal = false" class="text-gray-400 hover:text-red-500">&times;</button>
+            <div class="bg-white rounded-lg shadow-2xl w-full max-w-4xl overflow-hidden border border-slate-100">
+                <!-- Header -->
+                <div class="px-4 py-2 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
+                    <div>
+                        <h3 class="text-center text-xl font-semibold text-slate-800">Add Inventory</h3>
+                    </div>
                 </div>
-                <div class="p-6">
-                    <form @submit.prevent="submitInventory">
-                        <div class="mb-4">
-                            <label class="block text-sm font-semibold text-gray-700 mb-1">Pilih Barang</label>
-                            <select v-model="inventoryForm.id_barang" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-green-500 focus:border-green-500" required>
-                                <option value="" disabled>-- Pilih Barang --</option>
-                                <option v-for="b in barangs" :key="b.id_barang" :value="b.id_barang">{{ b.nama_barang }}</option>
+
+                <div class="p-8">
+                    <form @submit.prevent="submitInventory" class="space-y-6">
+                        <!-- ID Inbound Dropdown -->
+                        <div class="max-w-xs">
+                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">ID Inbound</label>
+                            <select 
+                                v-model="inventoryForm.id_inbound" 
+                                @change="handleInboundChange"
+                                class="w-full bg-white border border-slate-200 text-slate-700 text-sm rounded-2xl py-3 px-4 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-bold shadow-sm"
+                                required
+                            >
+                                <option value="" disabled>-- Pilih ID Inbound --</option>
+                                <option v-for="item in inbounds" :key="item.id_inbound" :value="item.id_inbound">
+                                    {{ item.id_inbound }} ({{ item.id_po }})
+                                </option>
                             </select>
                         </div>
-                        <div class="mb-4">
-                            <label class="block text-sm font-semibold text-gray-700 mb-1">Quantity (Qty)</label>
-                            <input v-model="inventoryForm.qty" type="number" min="1" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-green-500 focus:border-green-500" required />
+
+                        <!-- Detail Barang Table -->
+                        <div v-if="inventoryForm.id_inbound" class="space-y-4">
+                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Detail Barang Inbound</label>
+                            <div class="border border-slate-100 rounded-[24px] overflow-hidden shadow-sm">
+                                <table class="w-full text-left text-xs border-collapse">
+                                    <thead class="bg-slate-50/50 border-b border-slate-100">
+                                        <tr>
+                                            <th class="py-4 px-6 font-black text-slate-400 uppercase tracking-widest w-16 text-center">No</th>
+                                            <th class="py-4 px-6 font-black text-slate-400 uppercase tracking-widest">Nama Barang</th>
+                                            <th class="py-4 px-6 font-black text-slate-400 uppercase tracking-widest text-center">Quantity</th>
+                                            <th class="py-4 px-6 font-black text-slate-400 uppercase tracking-widest">Lokasi Barang</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-50 bg-white">
+                                        <tr v-for="(item, idx) in inventoryForm.items" :key="idx" class="hover:bg-slate-50/50 transition-colors">
+                                            <td class="py-4 px-6 text-center font-semibold text-slate-400">{{ idx + 1 }}</td>
+                                            <td class="py-4 px-6 font-black text-slate-900">{{ item.nama_barang }}</td>
+                                            <td class="py-4 px-6 text-center">
+                                                <div class="space-y-1">
+                                                    <input 
+                                                        type="number" 
+                                                        v-model="item.qty"
+                                                        :max="item.max_qty"
+                                                        min="1"
+                                                        class="w-20 text-center py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-bold text-xs"
+                                                        :class="item.qty > item.max_qty ? 'border-rose-300 text-rose-600 focus:border-rose-500 focus:ring-rose-500/20' : ''"
+                                                        required
+                                                    />
+                                                    <p v-if="item.qty > item.max_qty" class="text-[9px] font-bold text-rose-500 uppercase tracking-tighter">Maks: {{ item.max_qty }}</p>
+                                                    <p v-else class="text-[9px] font-bold text-slate-400 uppercase tracking-tighter italic">Batas: {{ item.max_qty }}</p>
+                                                </div>
+                                            </td>
+                                            <td class="py-4 px-6">
+                                                <select 
+                                                    v-model="item.id_location"
+                                                    class="w-full bg-slate-50 border border-slate-200 text-slate-700 text-[11px] rounded-xl py-2 px-3 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-semibold"
+                                                    required
+                                                >
+                                                    <option value="" disabled>-- Pilih Lokasi --</option>
+                                                    <option v-for="loc in allLocations" :key="loc.id_location" :value="loc.id_location">
+                                                        {{ loc.nama_layout }} - {{ loc.kode_location }}
+                                                    </option>
+                                                </select>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
-                        <div class="mb-4">
-                            <label class="block text-sm font-semibold text-gray-700 mb-1">Pilih Layout</label>
-                            <select v-model="inventoryForm.id_layout_temp" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-green-500 focus:border-green-500" required>
-                                <option value="" disabled>-- Pilih Layout --</option>
-                                <option v-for="l in layouts" :key="l.id_layout" :value="l.id_layout">{{ l.nama_layout }}</option>
-                            </select>
+
+                        <!-- Empty Placeholder -->
+                        <div v-if="!inventoryForm.id_inbound" class="py-12 border-2 border-dashed border-slate-100 rounded-[32px] flex flex-col items-center justify-center text-slate-300 bg-slate-50/30">
+                            <svg class="w-12 h-12 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" v-html="icons.package"></svg>
+                            <p class="text-xs font-bold uppercase tracking-widest">Pilih ID Inbound untuk melihat detail barang</p>
                         </div>
-                        <div class="mb-4" v-if="inventoryForm.id_layout_temp">
-                            <label class="block text-sm font-semibold text-gray-700 mb-1">Pilih Location</label>
-                            <select v-model="inventoryForm.id_location" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-green-500 focus:border-green-500" required>
-                                <option value="" disabled>-- Pilih Location --</option>
-                                <option v-for="loc in availableLocations" :key="loc.id_location" :value="loc.id_location">{{ loc.kode_location }} (Kap: {{ loc.kapasitas }})</option>
-                            </select>
-                        </div>
-                        <div class="flex justify-end gap-3">
-                            <button type="button" @click="showInventoryModal = false" class="px-4 py-2 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg">Batal</button>
-                            <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">Simpan Inventory</button>
+
+                        <!-- Footer Actions -->
+                        <div class="pt-6 border-t border-slate-100 flex justify-end gap-3">
+                            <button type="button" @click="showInventoryModal = false" class="px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all active:scale-95">
+                                Batal
+                            </button>
+                            <button 
+                                type="submit" 
+                                :disabled="!isInventoryFormValid"
+                                class="px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest bg-green-600 text-white hover:bg-green-700 shadow-lg shadow-green-100 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                Simpan Inventory
+                            </button>
                         </div>
                     </form>
                 </div>

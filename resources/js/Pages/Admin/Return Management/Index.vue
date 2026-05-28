@@ -55,9 +55,50 @@ const displayReturns = computed(() => {
     return filteredReturns.value.slice(0, perPage.value);
 });
 
+// --- MODAL & FORM LOGIC ---
+const showAddModal = ref(false);
+const returnForm = ref({
+    id_inbound: "",
+    items: [] // { id_barang, nama_barang, qty, kondisi, alasan, max_qty }
+});
+
+// Dummy data Inbound (Idealnya dikirim via props atau fetch API)
+const inboundsList = ref([
+    { id_inbound: "INB-001" },
+    { id_inbound: "INB-002" },
+    { id_inbound: "INB-003" }
+]);
+
+const conditions = [
+    { label: "Rusak", value: "Rusak" },
+    { label: "Cacat", value: "Cacat" },
+    { label: "Tidak Sesuai", value: "Tidak Sesuai" },
+    { label: "Lainnya", value: "Lainnya" }
+];
+
+const handleInboundChange = async () => {
+    if (!returnForm.value.id_inbound) return;
+    
+    // Asumsi kita melakukan fetch data item berdasarkan inbound
+    // Disini saya buatkan dummy mapping untuk contoh
+    returnForm.value.items = [
+        { id_barang: 1, nama_barang: "Semen Tiga Roda", qty: 1, max_qty: 10, kondisi: "Rusak", alasan: "" },
+        { id_barang: 2, nama_barang: "Paku Beton", qty: 1, max_qty: 25, kondisi: "Cacat", alasan: "" }
+    ];
+};
+
 const handleAddReturn = () => {
-    // router.get(route('admin.returns.create'));
-    console.log('Add Return Clicked');
+    showAddModal.value = true;
+};
+
+const submitReturn = () => {
+    router.post(route('admin.return-management.store'), returnForm.value, {
+        onSuccess: () => {
+            showAddModal.value = false;
+            returnForm.value = { id_inbound: "", items: [] };
+            alert("Data berhasil disimpan!");
+        },
+    });
 };
 </script>
 
@@ -156,7 +197,7 @@ const handleAddReturn = () => {
         </div>
 
         <!-- Table Section -->
-        <div class="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden">
+        <div class="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse">
                     <thead>
@@ -219,6 +260,121 @@ const handleAddReturn = () => {
                 <div class="flex gap-2">
                     <button class="px-4 py-2 bg-white border border-slate-200 rounded-xl text-[10px] font-black text-slate-400 uppercase tracking-widest opacity-50 cursor-not-allowed transition-all">Previous</button>
                     <button class="px-4 py-2 bg-white border border-slate-200 rounded-xl text-[10px] font-black text-slate-400 uppercase tracking-widest opacity-50 cursor-not-allowed transition-all">Next</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL ADD RETURN -->
+        <div v-if="showAddModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div class="bg-white rounded-[32px] shadow-2xl w-full max-w-5xl overflow-hidden border border-slate-100 transform transition-all">
+                <!-- Header -->
+                <div class="px-8 py-6 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
+                    <div>
+                        <h3 class="text-xl font-black text-slate-800 uppercase tracking-tight">Add New Return</h3>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Form Pengembalian Barang ke Supplier</p>
+                    </div>
+                    <button @click="showAddModal = false" class="p-2 hover:bg-slate-200 rounded-xl transition-colors text-slate-400">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+
+                <div class="p-8">
+                    <form @submit.prevent="submitReturn" class="space-y-6">
+                        <!-- ID Inbound Selection -->
+                        <div class="max-w-xs">
+                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Pilih ID Inbound</label>
+                            <select 
+                                v-model="returnForm.id_inbound" 
+                                @change="handleInboundChange"
+                                class="w-full bg-white border border-slate-200 text-slate-700 text-sm rounded-2xl py-3.5 px-4 focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all font-bold shadow-sm"
+                                required
+                            >
+                                <option value="" disabled>-- Pilih ID Inbound --</option>
+                                <option v-for="inb in inboundsList" :key="inb.id_inbound" :value="inb.id_inbound">
+                                    {{ inb.id_inbound }}
+                                </option>
+                            </select>
+                        </div>
+
+                        <!-- Detail Barang Table -->
+                        <div v-if="returnForm.id_inbound" class="space-y-4">
+                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Detail Barang Return</label>
+                            <div class="border border-slate-100 rounded-[24px] overflow-hidden shadow-sm">
+                                <table class="w-full text-left text-xs border-collapse">
+                                    <thead class="bg-slate-50/50 border-b border-slate-100">
+                                        <tr>
+                                            <th class="py-4 px-6 font-black text-slate-400 uppercase tracking-widest w-16 text-center">No</th>
+                                            <th class="py-4 px-6 font-black text-slate-400 uppercase tracking-widest">Nama Barang</th>
+                                            <th class="py-4 px-6 font-black text-slate-400 uppercase tracking-widest text-center">Qty</th>
+                                            <th class="py-4 px-6 font-black text-slate-400 uppercase tracking-widest">Kondisi Barang</th>
+                                            <th class="py-4 px-6 font-black text-slate-400 uppercase tracking-widest">Alasan Return</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-50 bg-white">
+                                        <tr v-for="(item, idx) in returnForm.items" :key="idx" class="hover:bg-slate-50/50 transition-colors">
+                                            <td class="py-4 px-6 text-center font-bold text-slate-400">{{ idx + 1 }}</td>
+                                            <td class="py-4 px-6">
+                                                <p class="font-black text-slate-900">{{ item.nama_barang }}</p>
+                                                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-tighter mt-0.5">Stok Inbound: {{ item.max_qty }}</p>
+                                            </td>
+                                            <td class="py-4 px-6 text-center">
+                                                <input 
+                                                    type="number" 
+                                                    v-model="item.qty"
+                                                    :max="item.max_qty"
+                                                    min="1"
+                                                    class="w-20 text-center py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all font-bold text-xs"
+                                                    required
+                                                />
+                                            </td>
+                                            <td class="py-4 px-6">
+                                                <select 
+                                                    v-model="item.kondisi"
+                                                    class="w-full bg-slate-50 border border-slate-200 text-slate-700 text-xs rounded-xl py-2 px-3 focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all font-bold"
+                                                    required
+                                                >
+                                                    <option v-for="c in conditions" :key="c.value" :value="c.value">{{ c.label }}</option>
+                                                </select>
+                                            </td>
+                                            <td class="py-4 px-6">
+                                                <input 
+                                                    v-model="item.alasan"
+                                                    type="text"
+                                                    placeholder="Contoh: Barang penyok, label lepas..."
+                                                    class="w-full bg-slate-50 border border-slate-200 text-xs rounded-xl py-2 px-4 focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all font-medium placeholder:text-slate-300"
+                                                    required
+                                                />
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Empty Placeholder -->
+                        <div v-if="!returnForm.id_inbound" class="py-16 border-2 border-dashed border-slate-100 rounded-[32px] flex flex-col items-center justify-center text-slate-300 bg-slate-50/30">
+                            <div class="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-sm mb-4">
+                                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                </svg>
+                            </div>
+                            <p class="text-xs font-bold uppercase tracking-widest">Silakan pilih ID Inbound terlebih dahulu</p>
+                        </div>
+
+                        <!-- Footer Actions -->
+                        <div class="pt-6 border-t border-slate-100 flex justify-end gap-3">
+                            <button type="button" @click="showAddModal = false" class="px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all active:scale-95 leading-none">
+                                Cancel
+                            </button>
+                            <button 
+                                type="submit" 
+                                :disabled="!returnForm.id_inbound"
+                                class="px-10 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest bg-red-600 text-white hover:bg-red-700 shadow-lg shadow-red-100 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed leading-none"
+                            >
+                                Save Return
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>

@@ -8,6 +8,8 @@ use App\Models\Layout;
 use App\Models\Location;
 use App\Models\Inventory;
 use App\Models\Barang;
+use App\Models\PutAway;
+use Illuminate\Support\Facades\DB; 
 use Inertia\Inertia;
 
 class InboundController extends Controller
@@ -68,17 +70,53 @@ class InboundController extends Controller
      */
     public function storeInventory(Request $request)
     {
-        $validated = $request->validate([
-            'qty' => 'required|integer|min:1',
-            'id_barang' => 'required|exists:barang,id_barang',
-            'id_location' => 'required|exists:location,id_location'
+         // 1. Validasi Input
+        $request->validate([
+            'id_inbound' => 'required|string',
+            'items' => 'required|array|min:1',
+            'items.*.id_barang' => 'required|exists:barang,id_barang',
+            'items.*.qty' => 'required|integer|min:1',
+            'items.*.id_location' => 'required|exists:location,id_location',
         ]);
 
-        $inventory = Inventory::create($validated);
+        try {
+            DB::beginTransaction();
 
-        return response()->json([
-            'message' => 'Inventory added successfully',
-            'inventory' => $inventory
-        ]);
+            foreach ($request->items as $item) {
+                // 2. Update atau Create data di tabel Inventory (Stok di Rak)
+                // Kita cari dulu apakah barang yang sama sudah ada di lokasi tersebut
+                $inventory = Inventory::updateOrCreate(
+                    [
+                        'id_barang'   => $item['id_barang'],
+                        'id_location' => $item['id_location'],
+                    ],
+                    [
+                        // Jika sudah ada, tambahkan Qty lama dengan Qty baru
+                        'qty' => DB::raw("qty + " . $item['qty']) 
+                    ]
+                );
+
+                // 3. Catat histori ke tabel Put Away
+                PutAway::create([
+                    'id_inbound'   => $request->id_inbound,
+                    'id_inventory' => $inventory->id_inventory,
+                    'qty'          => $item['qty'],
+                ]);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Proses Put Away berhasil disimpan.'
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }
