@@ -66,6 +66,11 @@ Route::middleware('auth')->group(function () {
 
         Route::get('/timeline', fn() => Inertia::render('Supplier/Timeline'))->name('timeline');
         Route::get('/purchase-orders', fn() => Inertia::render('Supplier/PurchaseOrders'))->name('purchase-orders.index');
+        
+        // Purchase Order - Supplier can submit verification and update
+        Route::middleware('supplier.approved')->group(function () {
+            Route::post('/purchase-orders/submit-verification', [\App\Http\Controllers\SupplierPurchaseOrderController::class, 'submitVerification'])->name('purchase-orders.submit-verification');
+            Route::put('/purchase-orders/{id}/update-verification', [\App\Http\Controllers\SupplierPurchaseOrderController::class, 'updateVerification'])->name('purchase-orders.update-verification');
         });
     });
 
@@ -108,7 +113,33 @@ Route::middleware('auth')->group(function () {
         Route::get('/field-officers', [\App\Http\Controllers\Admin\FieldOfficerController::class, 'index'])->name('field-officers');
         Route::post('/field-officers/petugas', [\App\Http\Controllers\Admin\FieldOfficerController::class, 'storePetugas'])->name('field-officers.petugas.store');
         Route::post('/field-officers/jadwal', [\App\Http\Controllers\Admin\FieldOfficerController::class, 'storeJadwal'])->name('field-officers.jadwal.store');
-        Route::get('/purchase-orders', fn() => Inertia::render('Admin/PurchaseOrders'))->name('purchase-orders');
+        
+        // Purchase Order Routes - Admin view (index)
+        Route::get('/purchase-orders', [\App\Http\Controllers\AdminPurchaseOrderController::class, 'index'])->name('purchase-orders.index');
+        
+        // Order Request (Phase 1 - Create/Edit/Delete draft inquiries and RFQ)
+        Route::prefix('purchase-orders')->group(function () {
+            Route::post('/order-request', [\App\Http\Controllers\OrderRequestController::class, 'store'])->name('order-request.store');
+            Route::put('{id}/order-request', [\App\Http\Controllers\OrderRequestController::class, 'update'])->name('order-request.update');
+            Route::delete('{id}/order-request', [\App\Http\Controllers\OrderRequestController::class, 'destroy'])->name('order-request.destroy');
+            
+            // Waiting List (Phase 2 - Supplier verification & completeness check)
+            Route::get('{id}/verification-details', [\App\Http\Controllers\WaitingListController::class, 'verificationDetails'])->name('verification-details');
+            Route::post('{id}/approve-verification', [\App\Http\Controllers\WaitingListController::class, 'approveVerification'])->name('approve-verification');
+            Route::post('{id}/counter-offer', [\App\Http\Controllers\WaitingListController::class, 'submitCounterOffer'])->name('counter-offer');
+            Route::get('{id}/completeness-check', [\App\Http\Controllers\WaitingListController::class, 'completenessCheck'])->name('completeness-check');
+            Route::post('{id}/confirm-completeness', [\App\Http\Controllers\WaitingListController::class, 'confirmCompleteness'])->name('confirm-completeness');
+
+            // Shipments (Phase 3) - admin manages shipments
+            Route::get('{id}/shipments', [\App\Http\Controllers\ShipmentController::class, 'index'])->name('purchase-orders.shipments.index');
+            Route::post('{id}/shipments', [\App\Http\Controllers\ShipmentController::class, 'store'])->name('purchase-orders.shipments.store');
+            Route::put('{id}/shipments/{shipment}/ship', [\App\Http\Controllers\ShipmentController::class, 'markShipped'])->name('purchase-orders.shipments.ship');
+            Route::put('{id}/shipments/{shipment}/deliver', [\App\Http\Controllers\ShipmentController::class, 'markDelivered'])->name('purchase-orders.shipments.deliver');
+            Route::put('{id}/shipments/{shipment}/cancel', [\App\Http\Controllers\ShipmentController::class, 'cancel'])->name('purchase-orders.shipments.cancel');
+        });
+        
+        
+        
         Route::get('/inbound', fn() => Inertia::render('Admin/Inbound/Index'))->name('inbound');
         Route::get('/inventory', fn() => Inertia::render('Admin/Inventory'))->name('inventory');
         Route::get('/return-management', [ReturnController::class, 'index'])->name('return-management');
@@ -129,9 +160,37 @@ Route::middleware('auth')->group(function () {
         Route::get('/classification', fn() => Inertia::render('Petugas/Classification'))->name('classification');
         Route::get('/field-officers', fn() => Inertia::render('Petugas/FieldOfficers'))->name('field-officers');
     });
+    });
 
+    // ===================================================
+    // Manajer Gudang
+    // ===================================================
 
+    // Manajer Gudang Routes (Phase 5)
+    Route::middleware(['role:manajer'])->prefix('manajer')->name('manajer.')->group(function () {
+        // Purchase Order (manajer control over POs)
+        Route::get('/purchase-orders', [\App\Http\Controllers\PurchaseOrderController::class, 'index'])->name('purchase-orders.index');
+        Route::post('/purchase-orders', [\App\Http\Controllers\PurchaseOrderController::class, 'store'])->name('purchase-orders.store');
+        Route::prefix('purchase-order-config')->name('purchase-order-config.')->group(function () {
+            // Item Type Management
+            Route::get('/item-types', [\App\Http\Controllers\PurchaseOrderConfigController::class, 'indexItemTypes'])->name('item-types.index');
+            Route::post('/item-types', [\App\Http\Controllers\PurchaseOrderConfigController::class, 'storeItemType'])->name('item-types.store');
+            Route::put('/item-types/{id}', [\App\Http\Controllers\PurchaseOrderConfigController::class, 'updateItemType'])->name('item-types.update');
+            Route::delete('/item-types/{id}', [\App\Http\Controllers\PurchaseOrderConfigController::class, 'destroyItemType'])->name('item-types.destroy');
 
+            // Item Subtype & UoM Management (nested under item type)
+            Route::get('/item-types/{itemTypeId}/subtypes', [\App\Http\Controllers\PurchaseOrderConfigController::class, 'indexSubtypes'])->name('subtypes.index');
+            Route::post('/item-types/{itemTypeId}/subtypes', [\App\Http\Controllers\PurchaseOrderConfigController::class, 'storeSubtype'])->name('subtypes.store');
+            Route::put('/item-types/{itemTypeId}/subtypes/{subtypeId}', [\App\Http\Controllers\PurchaseOrderConfigController::class, 'updateSubtype'])->name('subtypes.update');
+            Route::delete('/item-types/{itemTypeId}/subtypes/{subtypeId}', [\App\Http\Controllers\PurchaseOrderConfigController::class, 'destroySubtype'])->name('subtypes.destroy');
+
+            // UoM Default Configuration
+            Route::post('/item-types/{itemTypeId}/uom', [\App\Http\Controllers\PurchaseOrderConfigController::class, 'storeUoM'])->name('uom.store');
+            Route::put('/item-types/{itemTypeId}/uom/{uomConfigId}', [\App\Http\Controllers\PurchaseOrderConfigController::class, 'updateUoM'])->name('uom.update');
+        });
+
+        // Manajer - Purchase Order actions (manajer view/creation kept here)
+});
 
 
 require __DIR__.'/auth.php';
