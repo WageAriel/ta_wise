@@ -6,12 +6,14 @@ import AdminLayout from "../../../Layouts/AdminLayout.vue";
 
 // Props dari controller (data awal saat halaman pertama dimuat)
 const props = defineProps({
-    suppliers: { type: Array, default: () => [] },
-    years: { type: Array, default: () => [2024, 2025, 2026] },
+    suppliers: { type: Object, default: () => ({ data: [] }) },
+    years: { type: Array, default: () => [] },
 });
 
-// State reaktif untuk daftar supplier (bisa di-refresh tanpa reload halaman)
-const suppliers = ref(props.suppliers);
+// State reaktif
+const suppliers = ref(props.suppliers.data);
+const pagination = ref(props.suppliers);
+const currentPage = ref(props.suppliers.current_page || 1);
 const years = ref(props.years);
 const isLoading = ref(false);
 
@@ -85,12 +87,22 @@ const executeDeleteSupplier = async () => {
 };
 
 // Refresh data dari server via Axios (dipanggil setelah setiap aksi CRUD)
-const fetchSuppliers = async () => {
+const fetchSuppliers = async (page = 1) => {
     try {
         isLoading.value = true;
-        const response = await axios.get("/admin/supplier/data");
+        currentPage.value = page;
+        const response = await axios.get("/admin/supplier/data", {
+            params: {
+                page: page,
+                search: searchQuery.value,
+                tahun: selectedYear.value,
+                per_page: perPage.value,
+            }
+        });
+        
         if (response.data.status === "success") {
-            suppliers.value = response.data.data.suppliers;
+            suppliers.value = response.data.data.suppliers.data;
+            pagination.value = response.data.data.suppliers;
             years.value = response.data.data.years;
         }
     } catch (err) {
@@ -99,6 +111,17 @@ const fetchSuppliers = async () => {
         isLoading.value = false;
     }
 };
+
+// Computed untuk Link Pagination (seperti KlasifikasiView)
+const paginationLinks = computed(() => {
+    if (!pagination.value.links) return [];
+    return pagination.value.links
+        .filter(l => !l.label.includes('Previous') && !l.label.includes('Next') && l.label !== '...')
+        .map(l => ({
+            ...l,
+            page: parseInt(l.label)
+        }));
+});
 
 const toggleSort = (key) => {
     if (sortKey.value === key) {
@@ -109,28 +132,9 @@ const toggleSort = (key) => {
     }
 };
 
-// Logic Pencarian & Filter Client-Side
+// Logic Pencarian & Filter (Sekarang server-side, computed ini hanya sorting data yang tampil di halaman aktif)
 const filteredSuppliers = computed(() => {
-    let result = suppliers.value.filter((supplier) => {
-        const matchesSearch =
-            supplier.nama_perusahaan
-                ?.toLowerCase()
-                .includes(searchQuery.value.toLowerCase()) ||
-            supplier.email_perusahaan
-                ?.toLowerCase()
-                .includes(searchQuery.value.toLowerCase()) ||
-            supplier.alamat_perusahaan
-                ?.toLowerCase()
-                .includes(searchQuery.value.toLowerCase());
-
-        const supplierYear = supplier.created_at
-            ? new Date(supplier.created_at).getFullYear()
-            : null;
-        const matchesYear =
-            !selectedYear.value || supplierYear == selectedYear.value;
-
-        return matchesSearch && matchesYear;
-    });
+    let result = [...suppliers.value];
 
     return result.sort((a, b) => {
         let valA = a[sortKey.value];
@@ -438,6 +442,7 @@ const systemRecommendation = computed(() => {
                     </span>
                     <input
                         v-model="searchQuery"
+                        @input="fetchSuppliers(1)"
                         type="text"
                         placeholder="Cari nama perusahaan, email, atau alamat..."
                         class="w-full pl-11 pr-4 py-3 text-sm bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-slate-400 shadow-sm"
@@ -453,6 +458,7 @@ const systemRecommendation = computed(() => {
                         >
                         <select
                             v-model="perPage"
+                            @change="fetchSuppliers(1)"
                             class="bg-white border border-slate-200 text-slate-700 text-sm rounded-xl py-2.5 px-3 pr-8 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium shadow-sm"
                         >
                             <option :value="10">10 Data</option>
@@ -465,6 +471,7 @@ const systemRecommendation = computed(() => {
                     <div class="flex items-center gap-2">
                         <select
                             v-model="selectedYear"
+                            @change="fetchSuppliers(1)"
                             class="bg-white border border-slate-200 text-slate-700 text-sm rounded-xl py-2.5 px-3 pr-8 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium shadow-sm"
                         >
                             <option value="">Semua Tahun</option>
@@ -536,7 +543,7 @@ const systemRecommendation = computed(() => {
                             <tr
                                 v-for="(
                                     supplier, idx
-                                ) in filteredSuppliers.slice(0, perPage)"
+                                ) in filteredSuppliers"
                                 :key="supplier.id"
                                 class="hover:bg-slate-50/50 transition-colors group"
                             >
@@ -544,7 +551,7 @@ const systemRecommendation = computed(() => {
                                 <td
                                     class="py-4 px-6 text-center text-sm font-bold text-slate-500"
                                 >
-                                    {{ idx + 1 }}
+                                    {{ idx + 1 + ((pagination.current_page || 1) - 1) * (pagination.per_page || 10) }}
                                 </td>
                                 <!-- Nama Perusahaan -->
                                 <td class="py-4 px-6">
@@ -620,7 +627,7 @@ const systemRecommendation = computed(() => {
                                     >
                                         <button
                                             @click="openDetailModal(supplier)"
-                                            class="p-2 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 active:scale-95 transition-all"
+                                            class="p-2 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-600 hover:text-white transition-all shadow-sm group/btn"
                                             title="Lihat Detail Profil"
                                         >
                                             <svg
@@ -649,7 +656,7 @@ const systemRecommendation = computed(() => {
                                                     supplier.id,
                                                 )
                                             "
-                                            class="p-2 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 active:scale-95 transition-all"
+                                            class="p-2 bg-rose-50 text-rose-600 rounded-xl hover:bg-rose-600 hover:text-white transition-all shadow-sm"
                                             title="Hapus Supplier"
                                         >
                                             <svg
@@ -710,6 +717,27 @@ const systemRecommendation = computed(() => {
                             </tr>
                         </tbody>
                     </table>
+                </div>
+
+                <!-- NEW: Pagination Section -->
+                <div class="px-6 py-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white">
+                    <p class="text-xs text-slate-400 font-medium">
+                        Menampilkan {{ pagination.from || 0 }} - {{ pagination.to || 0 }} dari {{ pagination.total || 0 }} data
+                    </p>
+                    <div class="flex items-center gap-1">
+                        <button
+                            v-for="link in paginationLinks"
+                            :key="link.label"
+                            @click="fetchSuppliers(link.page)"
+                            class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all"
+                            :class="link.active 
+                                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-100' 
+                                : 'bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50'"
+                            :disabled="!link.page"
+                        >
+                            {{ link.label }}
+                        </button>
+                    </div>
                 </div>
             </div>
     </AdminLayout>

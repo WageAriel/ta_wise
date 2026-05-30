@@ -2,6 +2,7 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\SeleksiController;
 use App\Http\Controllers\KlasifikasiController;
 use App\Http\Controllers\HeaderSoalController;
 use App\Http\Controllers\PertanyaanController;
@@ -39,15 +40,19 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // ============================================================
-    // KLASIFIKASI — Supplier
+    // SUPPLIER API
     // ============================================================
-    Route::middleware('role:supplier')->prefix('klasifikasi')->group(function () {
-        // Ambil daftar pertanyaan untuk form pengajuan
-        Route::get('/pertanyaan',               [KlasifikasiController::class, 'getPertanyaan']);
-        // Submit pengajuan klasifikasi
-        Route::post('/',                        [KlasifikasiController::class, 'store']);
-        // Riwayat pengajuan milik supplier yang sedang login
-        Route::get('/saya',                     [KlasifikasiController::class, 'supplierIndex']);
+    Route::middleware('role:supplier')->group(function () {
+        Route::prefix('klasifikasi')->group(function () {
+            Route::get('/pertanyaan',               [KlasifikasiController::class, 'getPertanyaan']);
+            Route::post('/',                        [KlasifikasiController::class, 'store']);
+            Route::get('/saya',                     [KlasifikasiController::class, 'supplierIndex']);
+        });
+
+        Route::prefix('seleksi')->group(function () {
+            Route::get('/pertanyaan',               [SeleksiController::class, 'getQuestions']);
+            Route::post('/',                        [SeleksiController::class, 'store']);
+        });
     });
 
     // ============================================================
@@ -64,5 +69,13 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::patch('/{klasifikasi}/status',               [KlasifikasiController::class, 'adminUpdateStatus']);
             Route::post('/{klasifikasi}/validasi',              [KlasifikasiController::class, 'adminValidasi']);
         });
+    });
+
+    // ============================================================
+    // SELEKSI — Admin
+    // ============================================================
+    Route::prefix('admin/seleksi')->middleware('role:admin')->group(function () {
+        Route::get('/', [SeleksiController::class, 'adminIndex']);
+        Route::post('/{id}/status', [SeleksiController::class, 'adminUpdateStatus']);
     });
 });

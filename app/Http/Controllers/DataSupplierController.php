@@ -108,12 +108,32 @@ class DataSupplierController extends Controller
     // 1. Tampil daftar semua supplier (render UI atau JSON untuk Axios refresh)
     public function adminIndex(Request $request)
     {
-        $suppliers = Supplier::with(['user', 'documents'])
+        $query = Supplier::with(['user', 'documents'])
             ->whereIn('status', ['submitted', 'approved', 'rejected'])
-            ->latest()
-            ->get();
+            ->latest();
 
-        $years = [2024, 2025, 2026];
+        // Filter Pencarian
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('nama_perusahaan', 'like', "%{$search}%")
+                    ->orWhere('email_perusahaan', 'like', "%{$search}%")
+                    ->orWhere('alamat_perusahaan', 'like', "%{$search}%");
+            });
+        }
+
+        // Filter Tahun
+        if ($request->filled('tahun')) {
+            $query->whereYear('created_at', $request->tahun);
+        }
+
+        $perPage = $request->get('per_page', 10);
+        $suppliers = $query->paginate($perPage);
+
+        $years = Supplier::selectRaw('YEAR(created_at) as year')
+            ->distinct()
+            ->orderBy('year', 'desc')
+            ->pluck('year');
 
         // Jika dipanggil oleh Axios (Accept: application/json) → kembalikan JSON
         if ($request->wantsJson()) {
