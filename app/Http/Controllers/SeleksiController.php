@@ -341,7 +341,24 @@ class SeleksiController extends Controller
      */
     public function adminExport(Request $request)
     {
-        // Logika export excel menggunakan Laravel Excel
-        return response()->json(['message' => 'Fungsi export sedang disiapkan']);
+        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\SeleksiExport, 'data_seleksi.xlsx');
+    }
+
+    /**
+     * POST /admin/supplier-selection/import
+     * Import data riwayat seleksi dari file Excel.
+     */
+    public function adminImport(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|mimes:xlsx,xls,csv|max:2048'
+        ]);
+
+        \Maatwebsite\Excel\Facades\Excel::import(new \App\Imports\SeleksiImport, $request->file('file'));
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Data seleksi berhasil diimport.'
+        ]);
     }
 }

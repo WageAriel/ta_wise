@@ -37,17 +37,19 @@ const icons = {
         class="flex flex-col w-64 h-screen sticky top-0 bg-white text-black border-r border-gray-200 shadow-sm"
     >
         <!-- Brand (Bagian Atas - Tetap) -->
-        <div
-            class="flex items-center gap-3 px-6 py-5 border-b border-gray-100 shrink-0"
-        >
-            <div
-                class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center font-black text-white text-sm shadow-sm shadow-blue-200"
-            >
-                W
-            </div>
-            <span class="font-bold text-lg tracking-widest text-gray-800"
-                >WISE</span
-            >
+        <div class="flex items-center gap-3 px-6 py-5 border-b border-gray-100 shrink-0">
+            <template v-if="$page.props.app_settings?.system_logo">
+                <img :src="$page.props.app_settings.system_logo" class="w-8 h-8 rounded-lg object-contain" alt="Logo">
+            </template>
+            <template v-else>
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center font-black text-white text-sm shadow-sm shadow-blue-200"
+                     :style="{ backgroundColor: $page.props.app_settings?.theme_color || '#2563eb' }">
+                    {{ ($page.props.app_settings?.system_name || 'WISE').charAt(0).toUpperCase() }}
+                </div>
+            </template>
+            <span class="font-bold text-lg tracking-widest text-gray-800">
+                {{ $page.props.app_settings?.system_name || 'WISE' }}
+            </span>
         </div>
 
         <!-- Menu Navigation (Bagian Tengah - Bisa di-scroll) -->
@@ -82,6 +84,54 @@ const icons = {
                 </Link>
             </div>
 
+            <div>
+                <p
+                    class="px-3 text-xs font-bold text-gray-400 uppercase tracking-widest mb-3"
+                >
+                    Setting Aplikasi
+                </p>
+                <div class="space-y-1">
+                    <Link
+                        v-for="(val, rName) in {
+                            'admin.settings.general': {
+                                label: 'Pengaturan Umum',
+                                icon: 'dashboard',
+                            },
+                            'admin.settings.kelas': {
+                                label: 'Kelas Klasifikasi',
+                                icon: 'classification',
+                            },
+                            'admin.soal.header.index': {
+                                label: 'Bank Pertanyaan',
+                                icon: 'selection',
+                            },
+                        }"
+                        :key="rName"
+                        :href="route().has(rName) ? route(rName) : '#'"
+                        class="flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-all duration-200 group"
+                        :class="
+                            isActive(rName)
+                                ? 'text-blue-600 font-semibold bg-blue-50'
+                                : 'text-black hover:text-blue-600 hover:bg-blue-50'
+                        "
+                    >
+                        <svg
+                            class="w-5 h-5 transition-colors shrink-0"
+                            :class="
+                                isActive(rName)
+                                    ? 'text-blue-600'
+                                    : 'text-gray-400 group-hover:text-blue-600'
+                            "
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke-width="1.5"
+                            stroke="currentColor"
+                            v-html="icons[val.icon] || icons.dashboard"
+                        ></svg>
+                        <span>{{ val.label }}</span>
+                    </Link>
+                </div>
+            </div>
             <!-- GROUP: Supplier Management -->
             <div>
                 <p
@@ -145,10 +195,10 @@ const icons = {
                 </p>
                 <div class="space-y-1">
                     <Link
-                        :href="route('admin.purchase-orders')"
+                        :href="route('admin.purchase-orders.index')"
                         class="flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-all duration-200 group"
                         :class="
-                            isActive('admin.purchase-orders')
+                            isActive('admin.purchase-orders.index')
                                 ? 'text-blue-600 font-semibold bg-blue-50'
                                 : 'text-black hover:text-blue-600 hover:bg-blue-50'
                         "
@@ -156,7 +206,7 @@ const icons = {
                         <svg
                             class="w-5 h-5 transition-colors shrink-0"
                             :class="
-                                isActive('admin.purchase-orders')
+                                isActive('admin.purchase-orders.index')
                                     ? 'text-blue-600'
                                     : 'text-gray-400 group-hover:text-blue-600'
                             "

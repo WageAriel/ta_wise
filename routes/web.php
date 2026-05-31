@@ -91,6 +91,7 @@ Route::middleware('auth')->group(function () {
         Route::prefix('supplier/selection')->name('supplier.selection')->group(function () {
         Route::get('/', [\App\Http\Controllers\SeleksiController::class, 'adminIndex']); // Menampilkan tabel
         Route::get('/export', [\App\Http\Controllers\SeleksiController::class, 'adminExport'])->name('.export');
+        Route::post('/import', [\App\Http\Controllers\SeleksiController::class, 'adminImport'])->name('.import');
         Route::get('/{id}', [\App\Http\Controllers\SeleksiController::class, 'adminShow'])->name('.show');
         Route::post('/{id}/status', [\App\Http\Controllers\SeleksiController::class, 'adminUpdateStatus'])->name('.update-status');
         Route::delete('/{id}', [\App\Http\Controllers\SeleksiController::class, 'adminDestroy'])->name('.destroy');
@@ -102,6 +103,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/supplier/classification', function() {
             return Inertia::render('Admin/KlasifikasiView');
         })->name('supplier.classification');
+        Route::get('/supplier/classification/export', [KlasifikasiController::class, 'adminExport'])->name('supplier.classification.export');
         Route::get('/supplier/classification/{klasifikasi}', [KlasifikasiController::class, 'adminShow'])->name('supplier.classification.show');
         Route::patch('/supplier/classification/{klasifikasi}/status', [KlasifikasiController::class, 'adminUpdateStatus'])->name('supplier.classification.status');
 
@@ -109,6 +111,13 @@ Route::middleware('auth')->group(function () {
         Route::prefix('soal')->name('soal.')->group(function () {
             Route::resource('header', HeaderSoalController::class)->names('header');
             Route::resource('pertanyaan', PertanyaanController::class)->names('pertanyaan');
+        });
+        
+        // Settings Routes
+        Route::prefix('settings')->name('settings.')->group(function () {
+            Route::get('/general', [\App\Http\Controllers\Admin\AppSettingController::class, 'index'])->name('general');
+            Route::post('/general', [\App\Http\Controllers\Admin\AppSettingController::class, 'update'])->name('general.update');
+            Route::resource('kelas', \App\Http\Controllers\Admin\KelasController::class);
         });
         Route::get('/field-officers', [\App\Http\Controllers\Admin\FieldOfficerController::class, 'index'])->name('field-officers');
         Route::post('/field-officers/petugas', [\App\Http\Controllers\Admin\FieldOfficerController::class, 'storePetugas'])->name('field-officers.petugas.store');
@@ -141,7 +150,7 @@ Route::middleware('auth')->group(function () {
         
         
         Route::get('/inbound', fn() => Inertia::render('Admin/Inbound/Index'))->name('inbound');
-        Route::get('/inventory', fn() => Inertia::render('Admin/Inventory'))->name('inventory');
+        Route::get('/inventory', fn() => Inertia::render('Admin/Inventory/InventoryView'))->name('inventory');
         Route::get('/return-management', [ReturnController::class, 'index'])->name('return-management');
         Route::post('/return-management', [ReturnController::class, 'store'])->name('return-management.store');
         Route::get('/outbound', fn() => Inertia::render('Admin/Outbound'))->name('outbound');
@@ -153,7 +162,7 @@ Route::middleware('auth')->group(function () {
     // PETUGAS LAPANGAN ROUTES (placeholder)
     // ===================================================
     Route::middleware(['role:petugas_lapangan'])->prefix('petugas')->name('petugas.')->group(function () {
-        Route::get('/dashboard', fn() => Inertia::render('PetugasLapangan/DashboardPetugas'))->name('dashboard');
+         Route::get('/dashboard', [\App\Http\Controllers\Petugas\DashboardController::class, 'index'])->name('dashboard.petugas');
         Route::get('/jadwal', [JadwalController::class, 'index'])->name('jadwal');
         Route::get('/verifikasi/{jadwal}', [VerifikasiController::class, 'show'])->name('verifikasi.form');
         Route::post('/verifikasi/{jadwal}', [VerifikasiController::class, 'store'])->name('verifikasi.store');

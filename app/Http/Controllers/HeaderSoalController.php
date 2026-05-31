@@ -13,13 +13,19 @@ class HeaderSoalController extends Controller
      * GET /api/soal/header
      * Daftar semua header soal beserta jumlah pertanyaannya
      */
-    public function index()
+    public function index(Request $request)
     {
         $headerSoals = HeaderSoal::withCount('pertanyaans')
             ->latest()
             ->get();
 
-        return response()->json($headerSoals);
+        if ($request->wantsJson()) {
+            return response()->json($headerSoals);
+        }
+
+        return \Inertia\Inertia::render('Admin/Soal/Index', [
+            'initialHeaderSoals' => $headerSoals
+        ]);
     }
 
     /**

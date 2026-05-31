@@ -253,4 +253,25 @@ class DataSupplierController extends Controller
             'message' => 'Data supplier berhasil dihapus.'
         ], 200);
     }
+
+    // 6. Export Excel
+    public function export(Request $request)
+    {
+        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\SupplierExport, 'data_supplier.xlsx');
+    }
+
+    // 7. Import Excel
+    public function import(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|mimes:xlsx,xls,csv|max:2048'
+        ]);
+
+        \Maatwebsite\Excel\Facades\Excel::import(new \App\Imports\SupplierImport, $request->file('file'));
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Data supplier berhasil diimport.'
+        ]);
+    }
 }

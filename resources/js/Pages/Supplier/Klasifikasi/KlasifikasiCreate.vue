@@ -132,7 +132,7 @@ async function submitPengajuan(e) {
 
         <!-- ── Main Content (Scrollable) ── -->
         <main class="flex-1 h-full overflow-y-auto">
-            <div class="space-y-5 max-w-3xl mx-auto px-6 py-10">
+            <div class="space-y-5 max-w-7xl mx-auto px-6 py-10">
 
                 <!-- Loading -->
                 <div v-if="isLoading" class="flex flex-col items-center justify-center py-32 gap-4">
@@ -148,7 +148,7 @@ async function submitPengajuan(e) {
                     </div>
 
                     <!-- Sukses -->
-                    <div v-if="showSuccess" class="bg-white rounded-2xl shadow-sm border border-slate-100 p-12 text-center">
+                    <!-- <div v-if="showSuccess" class="bg-white rounded-2xl shadow-sm border border-slate-100 p-12 text-center">
                         <div class="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-5">
                             <svg class="w-10 h-10 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
@@ -156,50 +156,45 @@ async function submitPengajuan(e) {
                         </div>
                         <h2 class="text-2xl font-extrabold text-slate-900 mb-2">Pengajuan Terkirim!</h2>
                         <p class="text-slate-500 text-sm">Pengajuan klasifikasi Anda sedang menunggu verifikasi lapangan.</p>
-                    </div>
+                    </div> -->
 
                     <form v-else @submit.prevent="submitPengajuan" class="space-y-5">
 
-                        <!-- 1. Header -->
-                        <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-                            <div class="flex items-center gap-3">
-                                <div class="w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center flex-shrink-0">
-                                    <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-                                    </svg>
+                        <div class="sticky top-0 z-20 bg-[#F8FAFC] pt-10 pb-4 -mt-10">
+                            <div class="space-y-5">
+                                <!-- 1. Header -->
+                                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center flex-shrink-0">
+                                            <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <h1 class="text-slate-900 text-xl font-bold">Pengajuan Klasifikasi Supplier</h1>
+                                            <p class="text-slate-500 text-sm">Jawab pertanyaan berikut untuk menentukan klasifikasi perusahaan Anda</p>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div>
-                                    <h1 class="text-slate-900 text-xl font-bold">Pengajuan Klasifikasi Supplier</h1>
-                                    <p class="text-slate-500 text-sm">Jawab pertanyaan berikut untuk menentukan klasifikasi perusahaan Anda</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 2. Score Card -->
-                        <div class="bg-gradient-to-br from-orange-50 to-amber-50 rounded-2xl p-6 border-2 border-orange-200">
-                            <div class="flex items-center justify-between mb-4">
-                                <div>
-                                    <h3 class="text-slate-900 font-bold text-sm mb-1">Total Skor Pengajuan</h3>
-                                    <p class="text-slate-600 text-xs">{{ sudahDijawabCount }} dari {{ pertanyaans.length }} pertanyaan dijawab</p>
-                                </div>
-                                <div class="text-right">
-                                    <div class="text-orange-700 text-4xl font-bold leading-none">{{ totalSkor }}</div>
-                                    <div class="text-slate-600 text-xs mt-1">dari 100 poin</div>
-                                </div>
-                            </div>
-                            <div class="p-4 rounded-xl border-2 transition-all"
-                                :style="{ background: prediksiKelas.bg, borderColor: prediksiKelas.warna }">
-                                <div class="flex items-center gap-3">
-                                    <svg class="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                                        :style="{ color: prediksiKelas.warna }">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-                                    </svg>
-                                    <div>
-                                        <p class="text-slate-700 text-xs font-semibold mb-0.5">Prediksi Klasifikasi</p>
-                                        <p class="text-lg font-bold" :style="{ color: prediksiKelas.warna }">{{ prediksiKelas.kelas }}</p>
-                                        <p class="text-slate-600 text-xs">{{ prediksiKelas.desc }}</p>
+        
+                                <!-- 2. Progress Tracker -->
+                                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+                                    <div class="flex items-center justify-between mb-3">
+                                        <div>
+                                            <h3 class="text-slate-900 font-bold text-sm mb-1">Progres Pengisian</h3>
+                                            <p class="text-slate-500 text-xs">{{ sudahDijawabCount }} dari {{ pertanyaans.length }} pertanyaan dijawab</p>
+                                        </div>
+                                        <div class="text-right">
+                                            <div class="text-blue-600 text-2xl font-bold leading-none">{{ pertanyaans.length - sudahDijawabCount }}</div>
+                                            <div class="text-slate-500 text-xs mt-1">tersisa</div>
+                                        </div>
+                                    </div>
+                                    <!-- Progress Bar -->
+                                    <div class="w-full bg-slate-100 rounded-full h-2">
+                                        <div class="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                                            :style="{ width: `${(sudahDijawabCount / (pertanyaans.length || 1)) * 100}%` }">
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -223,16 +218,16 @@ async function submitPengajuan(e) {
                                             <h3 class="text-slate-900 text-sm font-semibold flex-1">
                                                 {{ idx + 1 }}. {{ p.teks_pertanyaan }}
                                             </h3>
-                                            <span v-if="getOpsiDipilih(p)"
+                                            <!-- <span v-if="getOpsiDipilih(p)"
                                                 class="flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold flex-shrink-0"
                                                 style="color: #0ea5e9; background: #e0f2fe;">
                                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                                 </svg>
                                                 {{ hitungPoin(getOpsiDipilih(p), p.bobot) }} poin
-                                            </span>
+                                            </span> -->
                                         </div>
-                                        <p class="text-slate-500 text-xs">Bobot: {{ p.bobot }} poin</p>
+                                        <p class="text-slate-500 text-base">Bobot: {{ p.bobot }} poin</p>
                                     </div>
                                     <div class="space-y-2">
                                         <label
@@ -256,13 +251,13 @@ async function submitPengajuan(e) {
                                                     :class="jawabanLokal[p.id_pertanyaan] === opsi.id_opsi ? 'font-semibold' : 'font-medium'">
                                                     {{ opsi.teks_opsi }}
                                                 </span>
-                                                <span class="px-2 py-0.5 rounded-full text-xs font-semibold flex-shrink-0"
+                                                <!-- <span class="px-2 py-0.5 rounded-full text-xs font-semibold flex-shrink-0"
                                                     :style="{
                                                         color: jawabanLokal[p.id_pertanyaan] === opsi.id_opsi ? '#0ea5e9' : '#64748b',
                                                         background: jawabanLokal[p.id_pertanyaan] === opsi.id_opsi ? '#e0f2fe' : '#f1f5f9',
                                                     }">
                                                     {{ hitungPoin(opsi, p.bobot) }} poin
-                                                </span>
+                                                </span> -->
                                             </div>
                                         </label>
                                     </div>
