@@ -1,43 +1,58 @@
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, watch, onMounted } from "vue";
 import { Head, router } from "@inertiajs/vue3"; // Tambahkan router
 import axios from "axios";
-import AdminLayout from "../../../Layouts/AdminLayout.vue";
+import AdminLayout from "@/Layouts/AdminLayout.vue";
 
 const props = defineProps({
-    selections: { type: Array, default: () => [] },
-    years: { type: Array, default: () => [2024, 2025, 2026] },
+    selections: { type: Object, default: () => ({ data: [] }) },
+    years: { type: Array, default: () => [] },
 });
 
 // State
-const selections = ref(props.selections);
-const years = ref(props.years);
+const selections = ref(props.selections?.data || []);
+const pagination = ref(props.selections || { data: [] });
+const years = ref(props.years || []);
 const isLoading = ref(false);
 const searchQuery = ref("");
 const selectedYear = ref("");
 const perPage = ref(10);
 const activeTab = ref('pending'); // 'pending' = Status Menunggu Review, 'validated' = Lolos/Tidak Lolos
+const currentPage = ref(1);
 
-// Logic Filter & Search
-const filteredSelections = computed(() => {
-    return selections.value.filter((item) => {
-        // Filter Berdasarkan Tab (Status)
-        const isPending = item.status === 'process';
-        const isValidated = ['lolos', 'tidak_lolos'].includes(item.status);
-        
-        const matchesTab = activeTab.value === 'pending' ? isPending : isValidated;
+// Logic Fetch Data
+const fetchData = async (page = 1) => {
+    isLoading.value = true;
+    currentPage.value = page;
+    try {
+        const response = await axios.get('/api/admin/seleksi', {
+            params: {
+                page: page,
+                search: searchQuery.value,
+                tahun: selectedYear.value,
+                status: activeTab.value,
+                per_page: perPage.value
+            }
+        });
+        selections.value = response.data.data;
+        pagination.value = response.data;
+    } catch (error) {
+        console.error("Gagal mengambil data:", error);
+    } finally {
+        isLoading.value = false;
+    }
+};
 
-        // Filter Berdasarkan Search (Nama Supplier)
-        const matchesSearch = item.supplier?.nama_perusahaan
-            ?.toLowerCase()
-            .includes(searchQuery.value.toLowerCase());
+// Watcher untuk Filter & Search agar otomatis fetch
+watch([searchQuery, selectedYear, activeTab, perPage], () => {
+    fetchData(1);
+});
 
-        // Filter Berdasarkan Tahun
-        const itemYear = item.tanggal ? new Date(item.tanggal).getFullYear() : null;
-        const matchesYear = !selectedYear.value || itemYear == selectedYear.value;
-
-        return matchesTab && matchesSearch && matchesYear;
-    });
+onMounted(() => {
+    // Sync initial data if needed
+    if (props.selections.total === 0 && !searchQuery.value) {
+        fetchData();
+    }
 });
 
 // Aksi Buttons
@@ -98,30 +113,43 @@ const updateStatus = (id, newStatus) => {
         message: `Apakah Anda yakin ingin menyatakan supplier ini ${newStatus.toUpperCase()}?`,
         confirmText: 'Ya, Lanjutkan',
         type: newStatus === 'Lolos' ? 'success' : 'danger',
-        action: () => {
+        action: async () => {
             isProcessing.value = true;
-            router.post(`/admin/supplier/selection/${id}/status`, {
-                status: newStatus
-            }, {
-                onSuccess: () => {
-                    showModal.value = false;
-                    showValidationModal.value = false; // Tutup modal validasi baru juga
-                    showConfirmModal.value = false;
-                    isProcessing.value = false;
-                    successMessage.value = `Supplier berhasil dinyatakan ${newStatus.toUpperCase()}.`;
-                    showSuccessModal.value = true;
-                },
-                onFinish: () => isProcessing.value = false
-            });
+            try {
+                await axios.post(`/api/admin/seleksi/${id}/status`, {
+                    status: newStatus
+                });
+                showModal.value = false;
+                showValidationModal.value = false;
+                showConfirmModal.value = false;
+                successMessage.value = `Supplier berhasil dinyatakan ${newStatus.toUpperCase()}.`;
+                showSuccessModal.value = true;
+                fetchData(currentPage.value); // Refresh data table
+            } catch (error) {
+                console.error("Gagal update status:", error);
+            } finally {
+                isProcessing.value = false;
+            }
         }
     };
     showConfirmModal.value = true;
 };
 
-// Hitung Rekomendasi (Contoh: Lolos jika rata-rata nilai >= 3.0)
+// Hitung Rekomendasi
 const recommendation = computed(() => {
     if (!detailData.value) return null;
-    return detailData.value.total_nilai >= 3.0 ? 'Lolos' : 'Tidak Lolos';
+    return detailData.value.total_nilai >= 70? 'Lolos' : 'Tidak Lolos';
+});
+
+// Hitung poin dari jawaban verifikasi petugas
+const paginationLinks = computed(() => {
+    if (!pagination.value.links) return [];
+    return pagination.value.links
+        .filter(l => !l.label.includes('Previous') && !l.label.includes('Next'))
+        .map(l => ({
+            ...l,
+            page: l.url ? parseInt(new URL(l.url).searchParams.get('page')) : null
+        }));
 });
 
 const handleDelete = (id) => {
@@ -130,14 +158,16 @@ const handleDelete = (id) => {
         message: 'Data pengajuan seleksi ini akan dihapus permanen dari sistem. Anda yakin?',
         confirmText: 'Ya, Hapus',
         type: 'danger',
-        action: () => {
-            router.delete(`/admin/supplier/selection/${id}`, {
-                onSuccess: () => {
-                    showConfirmModal.value = false;
-                    successMessage.value = 'Data pengajuan seleksi berhasil dihapus.';
-                    showSuccessModal.value = true;
-                }
-            });
+        action: async () => {
+            try {
+                await axios.delete(`/admin/supplier/selection/${id}`);
+                showConfirmModal.value = false;
+                successMessage.value = 'Data pengajuan seleksi berhasil dihapus.';
+                showSuccessModal.value = true;
+                fetchData(currentPage.value);
+            } catch (error) {
+                console.error("Gagal menghapus data:", error);
+            }
         }
     };
     showConfirmModal.value = true;
@@ -300,8 +330,8 @@ const getStatusBadge = (status) => {
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-50">
-                        <tr v-for="(item, idx) in filteredSelections.slice(0, perPage)" :key="item.id_seleksi" class="hover:bg-slate-50/50 transition-colors group">
-                            <td class="py-4 px-6 text-center text-xs font-bold text-slate-500">{{ idx + 1 }}</td>
+                        <tr v-for="(item, idx) in selections" :key="item.id_seleksi" class="hover:bg-slate-50/50 transition-colors group">
+                            <td class="py-4 px-6 text-center text-xs font-bold text-slate-500">{{ (pagination.from || 0) + idx }}</td>
                             <td class="py-4 px-6 font-bold text-slate-900 text-xs">{{ item.supplier?.nama_perusahaan || '-' }}</td>
                             <td class="py-4 px-6 text-center text-xs font-bold text-slate-600">{{ item.tanggal ? new Date(item.tanggal).getFullYear() : '-' }}</td>
                             <td class="py-4 px-6 text-center">
@@ -327,14 +357,14 @@ const getStatusBadge = (status) => {
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0zM2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                                         </button>
                                         <button @click="handleDelete(item.id_seleksi)" class="p-2.5 bg-rose-50 text-rose-600 rounded-xl hover:bg-rose-600 hover:text-white transition-all shadow-sm">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1 v3M4 7h16"/></svg>
                                         </button>
                                     </template>
                                 </div>
                             </td>
                         </tr>
                         <!-- Empty State -->
-                        <tr v-if="filteredSelections.length === 0">
+                        <tr v-if="selections.length === 0">
                             <td colspan="6" class="py-20 text-center">
                                 <div class="flex flex-col items-center">
                                     <div class="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mb-4 border border-slate-100">
@@ -347,6 +377,44 @@ const getStatusBadge = (status) => {
                         </tr>
                     </tbody>
                 </table>
+            </div>
+
+            <!-- Pagination Toolbar -->
+            <div class="px-6 py-4 bg-slate-50/50 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div class="text-xs font-bold text-slate-400">
+                    Menampilkan <span class="font-bold text-slate-600">{{ pagination.from || 0 }} - {{ pagination.to || 0 }}</span> dari 
+                    <span class="font-bold text-slate-600">{{ pagination.total || 0 }}</span> Data
+                </div>
+                <div class="flex items-center gap-1">
+                    <button 
+                        @click="fetchData(pagination.current_page - 1)"
+                        :disabled="!pagination.prev_page_url"
+                        class="p-2 rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                    </button>
+                    
+                    <button 
+                        v-for="link in paginationLinks" 
+                        :key="link.label"
+                        @click="link.page ? fetchData(link.page) : null"
+                        :disabled="!link.page"
+                        :class="link.active 
+                            ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm shadow-indigo-100' 
+                            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 disabled:opacity-40'"
+                        class="min-w-[36px] h-9 px-2 rounded-lg border text-xs font-black transition-all"
+                    >
+                        <span v-html="link.label"></span>
+                    </button>
+
+                    <button 
+                        @click="fetchData(pagination.current_page + 1)"
+                        :disabled="!pagination.next_page_url"
+                        class="p-2 rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                    </button>
+                </div>
             </div>
         </div>
     </AdminLayout>
@@ -398,7 +466,7 @@ const getStatusBadge = (status) => {
                 <div class="flex items-center justify-between bg-white p-4 rounded-2xl border border-slate-200 shadow-sm mb-4">
                     <div>
                         <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Nilai Supplier</p>
-                        <p class="text-2xl font-black text-slate-800">{{ detailData?.total_nilai }} <span class="text-xs text-slate-400 font-bold">/ 5.0</span></p>
+                        <p class="text-2xl font-black text-slate-800">{{ detailData?.total_nilai }} <span class="text-xs text-slate-400 font-bold">/ 100</span></p>
                     </div>
                     <div class="text-right">
                         <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Rekomendasi Sistem</p>
@@ -469,7 +537,7 @@ const getStatusBadge = (status) => {
                     <div class="flex items-center justify-between bg-white p-4 rounded-2xl border border-slate-200 shadow-sm mb-4">
                         <div>
                             <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Nilai Supplier</p>
-                            <p class="text-2xl font-black text-slate-800">{{ detailData?.total_nilai }} <span class="text-xs text-slate-400 font-bold">/ 5.0</span></p>
+                            <p class="text-2xl font-black text-slate-800">{{ detailData?.total_nilai }} <span class="text-xs text-slate-400 font-bold">/ 100</span></p>
                         </div>
                         <div class="text-right">
                             <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Rekomendasi Sistem</p>

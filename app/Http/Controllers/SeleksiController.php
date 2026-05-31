@@ -11,6 +11,14 @@ use Inertia\Inertia;
 
 class SeleksiController extends Controller
 {
+    // =========================================================
+    // SUPPLIER
+    // =========================================================
+
+    /**
+     * GET /supplier/selection
+     * Menampilkan daftar riwayat seleksi milik supplier.
+     */
     public function index()
     {
         $user = auth()->user();
@@ -51,14 +59,27 @@ class SeleksiController extends Controller
         ]);
     }
 
+    /**
+     * GET /supplier/selection/create
+     * Menampilkan halaman form pengerjaan soal seleksi.
+     */
     public function create()
+    {
+        return Inertia::render('Supplier/SupplierSelection/Create');
+    }
+
+    /**
+     * GET /api/seleksi/questions
+     * Mengambil 15 pertanyaan secara acak untuk pengerjaan seleksi.
+     */
+    public function getQuestions()
     {
         $user = auth()->user();
         $supplier = $user->supplier;
 
         // 1. Validasi: Harus Approved Pengajuan Data Perusahaan
         if (!$supplier || $supplier->status !== 'approved') {
-            return redirect()->route('supplier.selection')->with('error', 'Data perusahaan Anda harus disetujui (Approved) terlebih dahulu sebelum mengikuti seleksi.');
+            return response()->json(['message' => 'Data perusahaan Anda harus disetujui (Approved) terlebih dahulu sebelum mengikuti seleksi.'], 403);
         }
 
         // 2. Validasi: Hanya boleh 1 kali setahun
@@ -67,7 +88,7 @@ class SeleksiController extends Controller
             ->exists();
 
         if ($hasSubmitted) {
-            return redirect()->route('supplier.selection')->with('error', 'Anda sudah mengirimkan pengajuan seleksi untuk tahun ini.');
+            return response()->json(['message' => 'Anda sudah mengirimkan pengajuan seleksi untuk tahun ini.'], 409);
         }
 
         // Ambil header soal yang berkaitan dengan Seleksi
@@ -76,8 +97,7 @@ class SeleksiController extends Controller
             ->first();
 
         if (!$header) {
-            // Jika bank soal belum di-seed, beri pesan error atau gunakan dummy
-            return redirect()->back()->with('error', 'Bank soal seleksi belum tersedia. Silakan hubungi admin.');
+            return response()->json(['message' => 'Bank soal seleksi belum tersedia. Silakan hubungi admin.'], 404);
         }
 
         // Ambil 15 pertanyaan secara acak dari header tersebut
@@ -101,48 +121,57 @@ class SeleksiController extends Controller
                 ];
             });
 
-        $dataSoal = [
+        return response()->json([
             'id_soal' => $header->id_soal,
             'nama_soal' => $header->nama_soal,
             'pertanyaans' => $pertanyaans
-        ];
-
-        return Inertia::render('Supplier/SupplierSelection/Create', [
-            'paket_soal' => (object) $dataSoal
         ]);
     }
 
+    /**
+     * POST /api/seleksi
+     * Menyimpan jawaban seleksi supplier ke database.
+     */
     public function store(Request $request)
     {
         $request->validate([
             'id_soal' => 'required',
-            'answers' => 'required|array',
+            'jawaban' => 'required|array',
         ]);
 
         $user = auth()->user();
         $supplier = $user->supplier;
 
         if (!$supplier) {
+            if ($request->wantsJson()) {
+                return response()->json(['message' => 'Profil supplier tidak ditemukan.'], 404);
+            }
             return redirect()->back()->with('error', 'Profil supplier tidak ditemukan.');
         }
 
         // 1. Validasi: Harus Approved
         if ($supplier->status !== 'approved') {
+            if ($request->wantsJson()) {
+                return response()->json(['message' => 'Data perusahaan Anda belum disetujui.'], 403);
+            }
             return redirect()->back()->with('error', 'Data perusahaan Anda belum disetujui.');
         }
 
         // 2. Validasi: Satu kali setahun
-        $hasSubmitted = Seleksi::where('id_supplier', $supplier->id) // Ubah di sini
+        $hasSubmitted = Seleksi::where('id_supplier', $supplier->id)
             ->whereYear('tanggal', now()->year)
             ->exists();
 
         if ($hasSubmitted) {
+            if ($request->wantsJson()) {
+                return response()->json(['message' => 'Anda sudah mengirimkan pengajuan seleksi tahun ini.'], 409);
+            }
             return redirect()->back()->with('error', 'Anda sudah mengirimkan pengajuan seleksi tahun ini.');
         }
 
         return DB::transaction(function () use ($request, $user, $supplier) {
             $totalNilai = 0;
-            $totalPertanyaan = count($request->answers);
+            $totalPertanyaan = count($request->jawaban);
 
             // 1. Buat Header Seleksi
             $seleksi = Seleksi::create([
@@ -155,7 +184,10 @@ class SeleksiController extends Controller
             ]);
 
             // 2. Simpan Jawaban & Hitung Skor
-            foreach ($request->answers as $pertanyaanId => $opsiId) {
+            foreach ($request->jawaban as $item) {
+                $pertanyaanId = $item['id_pertanyaan'];
+                $opsiId = $item['id_opsi'];
+                
                 $opsi = Opsi::find($opsiId);
                 if ($opsi) {
                     $totalNilai += $opsi->nilai;
@@ -168,38 +200,82 @@ class SeleksiController extends Controller
                 }
             }
 
-            // 3. Update Skor Rata-rata
+            // 3. Update Skor
             $skorFinal = $totalPertanyaan > 0 ? ($totalNilai / $totalPertanyaan) : 0;
             $seleksi->update([
                 'total_nilai' => $skorFinal
             ]);
 
+            if ($request->wantsJson()) {
+                return response()->json(['message' => 'Jawaban seleksi berhasil dikirim!']);
+            }
             return redirect()->route('supplier.selection')->with('success', 'Jawaban seleksi berhasil dikirim!');
         });
     }
 
-    public function adminIndex()
-    {
-        $selections = \App\Models\Seleksi::with('supplier')
-            ->orderBy('id_seleksi', 'desc') 
-            ->get()
-            ->map(function($item) {
-                // Normalisasi status untuk kebutuhan filter di Vue (Index.vue)
-                $status = 'process';
-                if ($item->status_seleksi === 'Lolos') $status = 'lolos';
-                if ($item->status_seleksi === 'Tidak Lolos') $status = 'tidak_lolos';
+    // =========================================================
+    // ADMIN
+    // =========================================================
 
-                return [
-                    'id_seleksi' => $item->id_seleksi,
-                    'status' => $status, // Sesuai yang dicari item.status di Vue
-                    'status_label' => $item->status_seleksi,
-                    'tanggal' => $item->tanggal,
-                    'total_nilai' => $item->total_nilai,
-                    'supplier' => $item->supplier,
-                ];
+    /**
+     * GET /admin/supplier-selection
+     * Menampilkan semua daftar pengajuan seleksi untuk dikelola admin.
+     */
+    public function adminIndex(Request $request)
+    {
+        $query = Seleksi::with('supplier')
+            ->orderBy('id_seleksi', 'desc');
+
+        // Filter Search (Nama Supplier)
+        if ($request->search) {
+            $query->whereHas('supplier', function($q) use ($request) {
+                $q->where('nama_perusahaan', 'like', '%' . $request->search . '%');
             });
-        
-        $years = \App\Models\Seleksi::selectRaw('YEAR(tanggal) as year')
+        }
+
+        // Filter Status
+        if ($request->status) {
+            $statusValue = $request->status;
+            // Jika dikirim dari tab (pending/validated), kita sesuaikan
+            if ($statusValue === 'pending') {
+                $query->where('status_seleksi', 'Menunggu Validasi');
+            } elseif ($statusValue === 'validated') {
+                $query->whereIn('status_seleksi', ['Lolos', 'Tidak Lolos']);
+            } else {
+                $statusLabel = $statusValue === 'lolos' ? 'Lolos' : ($statusValue === 'tidak_lolos' ? 'Tidak Lolos' : 'Menunggu Validasi');
+                $query->where('status_seleksi', $statusLabel);
+            }
+        }
+
+        // Filter Tahun
+        if ($request->tahun) {
+            $query->whereYear('tanggal', $request->tahun);
+        }
+
+        $perPage = $request->per_page ?? 10;
+        $selections = $query->paginate($perPage);
+
+        // Transform results to match Index.vue structure
+        $selections->getCollection()->transform(function($item) {
+            $status = 'process';
+            if ($item->status_seleksi === 'Lolos') $status = 'lolos';
+            if ($item->status_seleksi === 'Tidak Lolos') $status = 'tidak_lolos';
+
+            return [
+                'id_seleksi' => $item->id_seleksi,
+                'status' => $status,
+                'status_label' => $item->status_seleksi,
+                'tanggal' => $item->tanggal,
+                'total_nilai' => $item->total_nilai,
+                'supplier' => $item->supplier,
+            ];
+        });
+
+        if ($request->wantsJson()) {
+            return response()->json($selections);
+        }
+
+        $years = Seleksi::selectRaw('YEAR(tanggal) as year')
             ->distinct()
             ->orderBy('year', 'desc')
             ->pluck('year');
@@ -211,11 +287,12 @@ class SeleksiController extends Controller
     }
 
     /**
-     * Detail Hasil Jawaban Seleksi Supplier
+     * GET /admin/supplier-selection/{id}
+     * Menampilkan detail hasil jawaban seleksi supplier tertentu.
      */
     public function adminShow($id)
     {
-        $selection = \App\Models\Seleksi::with(['supplier', 'jawaban.pertanyaan', 'jawaban.opsi'])->findOrFail($id);
+        $selection = Seleksi::with(['supplier', 'jawaban.pertanyaan', 'jawaban.opsi'])->findOrFail($id);
         
         if (request()->wantsJson()) {
             return response()->json($selection);
@@ -224,29 +301,43 @@ class SeleksiController extends Controller
         return Inertia::render('Admin/Supplier Selection/Show', ['selection' => $selection]);
     }
 
+    /**
+     * PATCH /admin/supplier-selection/{id}
+     * Memperbarui status kelulusan seleksi supplier.
+     */
     public function adminUpdateStatus(Request $request, $id)
     {
         $request->validate(['status' => 'required|in:Lolos,Tidak Lolos']);
         
-        $selection = \App\Models\Seleksi::findOrFail($id);
+        $selection = Seleksi::findOrFail($id);
         $selection->update(['status_seleksi' => $request->status]);
+
+        if ($request->wantsJson()) {
+            return response()->json(['message' => 'Status seleksi berhasil diperbarui.']);
+        }
 
         return redirect()->back()->with('success', 'Status seleksi berhasil diperbarui.');
     }
 
     /**
-     * Hapus Data Seleksi
+     * DELETE /admin/supplier-selection/{id}
+     * Menghapus data riwayat seleksi.
      */
     public function adminDestroy($id)
     {
         $selection = Seleksi::findOrFail($id);
         $selection->delete();
 
+        if (request()->wantsJson()) {
+            return response()->json(['message' => 'Data seleksi berhasil dihapus.']);
+        }
+
         return redirect()->back()->with('success', 'Data seleksi berhasil dihapus.');
     }
 
     /**
-     * Export Data Seleksi ke Excel (Placeholder)
+     * GET /admin/supplier-selection/export
+     * Export data riwayat seleksi ke file Excel.
      */
     public function adminExport(Request $request)
     {
