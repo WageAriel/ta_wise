@@ -22,7 +22,9 @@ class StoreOrderRequestRequest extends FormRequest
             'description' => ['nullable', 'string', 'max:500'],
             'is_draft' => ['boolean'],
             'items' => ['required', 'array', 'min:1'],
-            'items.*.barang_id' => ['required', 'exists:barang,id_barang', 'distinct'],
+            'items.*.barang_id' => ['required', 'exists:barang,id_barang'],
+            'items.*.item_type_id' => ['nullable', 'exists:po_item_types,id_item_type'],
+            'items.*.subtype_id' => ['nullable', 'exists:po_item_subtypes,id_subtype'],
             'items.*.quantity' => ['required', 'integer', 'min:1'],
             'items.*.unit_price' => ['required', 'numeric', 'min:0'],
             'items.*.uom' => ['nullable', 'string', 'max:50'],
@@ -36,7 +38,6 @@ class StoreOrderRequestRequest extends FormRequest
             'supplier_id.exists' => 'Supplier tidak valid',
             'items.required' => 'Minimal harus ada 1 item dalam order request',
             'items.min' => 'Minimal harus ada 1 item dalam order request',
-            'items.*.barang_id.distinct' => 'Barang tidak boleh ada duplikat dalam order request',
             'items.*.barang_id.exists' => 'Salah satu barang tidak valid',
         ];
     }

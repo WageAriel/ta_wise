@@ -96,7 +96,7 @@ const icons = {
                                 label: 'Supplier Data',
                                 icon: 'supplierData',
                             },
-                            'admin.supplier.selection': {
+                            'admin.supplier.selection.index': {
                                 label: 'Supplier Selection',
                                 icon: 'selection',
                             },
@@ -145,10 +145,10 @@ const icons = {
                 </p>
                 <div class="space-y-1">
                     <Link
-                        :href="route('admin.purchase-orders')"
+                        :href="route('admin.purchase-orders.index')"
                         class="flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-all duration-200 group"
                         :class="
-                            isActive('admin.purchase-orders')
+                            isActive('admin.purchase-orders.index')
                                 ? 'text-blue-600 font-semibold bg-blue-50'
                                 : 'text-black hover:text-blue-600 hover:bg-blue-50'
                         "
@@ -156,7 +156,7 @@ const icons = {
                         <svg
                             class="w-5 h-5 transition-colors shrink-0"
                             :class="
-                                isActive('admin.purchase-orders')
+                                isActive('admin.purchase-orders.index')
                                     ? 'text-blue-600'
                                     : 'text-gray-400 group-hover:text-blue-600'
                             "

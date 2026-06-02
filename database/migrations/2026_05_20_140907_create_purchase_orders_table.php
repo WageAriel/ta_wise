@@ -26,6 +26,7 @@ return new class extends Migration
             $table->foreignId('id_item_type')->constrained('po_item_types', 'id_item_type')->onDelete('cascade');
             $table->string('subtype_name'); // "A1", "A2", etc
             $table->text('description')->nullable();
+            $table->string('uom')->nullable();
             $table->integer('sort_order')->default(0);
             $table->timestamps();
         });
@@ -49,6 +50,15 @@ return new class extends Migration
             $table->string('status')->default('inquiry');
             $table->text('description')->nullable();
             $table->decimal('total_price', 15, 2)->default(0);
+            $table->string('driver_name')->nullable();
+            $table->string('vehicle_plate')->nullable();
+            $table->string('carrier')->nullable();
+            $table->string('tracking_number')->nullable();
+            $table->text('shipment_notes')->nullable();
+            $table->string('weighing_note_path')->nullable();
+            $table->string('delivery_note_path')->nullable();
+            $table->timestamp('shipped_at')->nullable();
+            $table->timestamp('delivered_at')->nullable();
             $table->timestamps();
         });
     }

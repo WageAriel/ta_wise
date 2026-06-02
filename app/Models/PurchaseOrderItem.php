@@ -15,6 +15,8 @@ class PurchaseOrderItem extends Model
     protected $fillable = [
         'purchase_order_id',
         'barang_id',
+        'id_item_type',
+        'id_subtype',
         'quantity',
         'unit_price',
         'subtotal',
@@ -49,6 +51,16 @@ class PurchaseOrderItem extends Model
     public function barang()
     {
         return $this->belongsTo(Barang::class, 'barang_id', 'id_barang');
+    }
+
+    public function itemType()
+    {
+        return $this->belongsTo(POItemType::class, 'id_item_type', 'id_item_type');
+    }
+
+    public function subtype()
+    {
+        return $this->belongsTo(POItemSubtype::class, 'id_subtype', 'id_subtype');
     }
 }
 

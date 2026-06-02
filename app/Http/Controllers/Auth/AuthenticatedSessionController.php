@@ -34,11 +34,23 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        if ($request->user()->role === 'petugas_lapangan') {
-            return redirect()->intended(route('petugas.dashboard.petugas'));
+        $user = $request->user();
+
+        // Redirect based on role to appropriate dashboard/area
+        if ($user && $user->role === 'supplier') {
+            return redirect()->route('supplier.purchase-orders.index');
         }
 
-        return redirect()->intended(RouteServiceProvider::HOME);
+        if ($user && $user->role === 'manajer') {
+            return redirect()->route('manajer.dashboard');
+        }
+
+        if ($user && $user->role === 'petugas_lapangan') {
+            return redirect()->route('petugas.dashboard.petugas');
+        }
+
+        // default
+        return redirect()->route('dashboard');
     }
 
     /**

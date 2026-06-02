@@ -19,6 +19,15 @@ return new class extends Migration
             $table->timestamps();
         });
 
+        if (Schema::hasTable('purchase_order_items')) {
+            Schema::table('purchase_order_items', function (Blueprint $table) {
+                $table->foreign('barang_id')
+                    ->references('id_barang')
+                    ->on('barang')
+                    ->onDelete('cascade');
+            });
+        }
+
         Schema::create('layout', function (Blueprint $table) {
             $table->id('id_layout');
             $table->string('nama_layout');
@@ -47,6 +56,16 @@ return new class extends Migration
      */
     public function down(): void
     {
+        if (Schema::hasTable('purchase_order_items')) {
+            try {
+                Schema::table('purchase_order_items', function (Blueprint $table) {
+                    $table->dropForeign(['barang_id']);
+                });
+            } catch (\Throwable $e) {
+                // Foreign key may already be absent in databases that were partially migrated.
+            }
+        }
+
         Schema::dropIfExists('inventory');
         Schema::dropIfExists('location');
         Schema::dropIfExists('layout');

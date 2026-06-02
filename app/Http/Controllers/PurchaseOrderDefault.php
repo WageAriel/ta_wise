@@ -2,28 +2,61 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\StorePOItemTypeRequest;
-use App\Http\Requests\UpdatePOItemTypeRequest;
 use App\Http\Requests\StorePOItemSubtypeRequest;
-use App\Http\Requests\UpdatePOItemSubtypeRequest;
+use App\Http\Requests\StorePOItemTypeRequest;
 use App\Http\Requests\StorePOItemUoMRequest;
+use App\Http\Requests\UpdatePOItemSubtypeRequest;
+use App\Http\Requests\UpdatePOItemTypeRequest;
 use App\Http\Requests\UpdatePOItemUoMRequest;
-use App\Models\POItemType;
 use App\Models\POItemSubtype;
+use App\Models\POItemType;
 use App\Models\POItemUoMDefault;
+use App\Models\PurchaseOrderSetting;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Inertia\Inertia;
 
 /**
- * PurchaseOrderConfigController - Manajer Gudang configuration for PO item types, subtypes, UoM defaults
- * Phase 5: Configuration management interface
+ * PurchaseOrderDefault - Default configuration untuk Purchase Order
  */
-class PurchaseOrderConfigController extends Controller
+class PurchaseOrderDefault extends Controller
 {
-    // ==================== ITEM TYPE MANAGEMENT ====================
+    public function page()
+    {
+        $settings = PurchaseOrderSetting::current();
+        $itemTypes = POItemType::with(['subtypes', 'uomConfig'])->orderBy('sort_order')->get();
 
-    /**
-     * View all item types (POItemType list)
-     */
+        return Inertia::render('Manajer/PurchaseOrdersController/SplitIndex', [
+            'settings' => $settings,
+            'itemTypes' => $itemTypes,
+            'segment' => request()->query('segment', 'supplier'),
+            'uomOptions' => $settings->uom_options ?: PurchaseOrderSetting::defaultUomOptions(),
+        ]);
+    }
+
+    public function updateSettings(Request $request)
+    {
+        $validated = $request->validate([
+            'description' => ['nullable', 'string', 'max:2000'],
+            'supplier_description' => ['nullable', 'string', 'max:2000'],
+            'admin_description' => ['nullable', 'string', 'max:2000'],
+            'uom_options' => ['nullable', 'array'],
+            'uom_options.*' => ['nullable', 'string', 'max:50'],
+        ]);
+
+        $settings = PurchaseOrderSetting::current();
+        $settings->update([
+            'description' => $validated['description'] ?? $settings->description ?? PurchaseOrderSetting::defaultDescription(),
+            'supplier_description' => $validated['supplier_description'] ?? $settings->supplier_description ?? PurchaseOrderSetting::defaultDescription(),
+            'admin_description' => $validated['admin_description'] ?? $settings->admin_description,
+            'uom_options' => array_values(array_filter($validated['uom_options'] ?? $settings->uom_options ?? PurchaseOrderSetting::defaultUomOptions())),
+            'updated_by' => $request->user()?->id,
+        ]);
+
+        return redirect()->route('manajer.purchase-order-controller.index')
+            ->with('success', 'Deskripsi Purchase Order berhasil diperbarui.');
+    }
+
     public function indexItemTypes()
     {
         $itemTypes = POItemType::orderBy('sort_order')->get();
@@ -33,9 +66,6 @@ class PurchaseOrderConfigController extends Controller
         ]);
     }
 
-    /**
-     * Store new item type
-     */
     public function storeItemType(StorePOItemTypeRequest $request)
     {
         $validated = $request->validated();
@@ -48,9 +78,6 @@ class PurchaseOrderConfigController extends Controller
             ->with('success', "Tipe item '{$validated['type_name']}' berhasil dibuat.");
     }
 
-    /**
-     * Update item type
-     */
     public function updateItemType($id, UpdatePOItemTypeRequest $request)
     {
         $itemType = POItemType::findOrFail($id);
@@ -64,9 +91,6 @@ class PurchaseOrderConfigController extends Controller
             ->with('success', "Tipe item '{$validated['type_name']}' berhasil diperbarui.");
     }
 
-    /**
-     * Delete item type
-     */
     public function destroyItemType($id)
     {
         $itemType = POItemType::findOrFail($id);
@@ -79,11 +103,6 @@ class PurchaseOrderConfigController extends Controller
             ->with('success', "Tipe item '{$itemType->type_name}' berhasil dihapus.");
     }
 
-    // ==================== ITEM SUBTYPE MANAGEMENT ====================
-
-    /**
-     * View subtypes for specific item type
-     */
     public function indexSubtypes($itemTypeId)
     {
         $itemType = POItemType::findOrFail($itemTypeId);
@@ -97,9 +116,6 @@ class PurchaseOrderConfigController extends Controller
         ]);
     }
 
-    /**
-     * Store new subtype for item type
-     */
     public function storeSubtype($itemTypeId, StorePOItemSubtypeRequest $request)
     {
         $itemType = POItemType::findOrFail($itemTypeId);
@@ -113,9 +129,6 @@ class PurchaseOrderConfigController extends Controller
             ->with('success', "Subtype '{$validated['subtype_name']}' berhasil dibuat.");
     }
 
-    /**
-     * Update subtype
-     */
     public function updateSubtype($itemTypeId, $subtypeId, UpdatePOItemSubtypeRequest $request)
     {
         $itemType = POItemType::findOrFail($itemTypeId);
@@ -130,9 +143,6 @@ class PurchaseOrderConfigController extends Controller
             ->with('success', "Subtype '{$validated['subtype_name']}' berhasil diperbarui.");
     }
 
-    /**
-     * Delete subtype
-     */
     public function destroySubtype($itemTypeId, $subtypeId)
     {
         $itemType = POItemType::findOrFail($itemTypeId);
@@ -147,33 +157,20 @@ class PurchaseOrderConfigController extends Controller
             ->with('success', "Subtype '{$subtypeName}' berhasil dihapus.");
     }
 
-    // ==================== UoM CONFIGURATION ====================
-
-    /**
-     * Store UoM default for item type (create if not exists)
-     */
     public function storeUoM($itemTypeId, StorePOItemUoMRequest $request)
     {
         $itemType = POItemType::findOrFail($itemTypeId);
         $validated = $request->validated();
 
         DB::transaction(function () use ($itemType, $validated) {
-            // Delete old config if exists
             POItemUoMDefault::where('id_item_type', $itemType->id_item_type)->delete();
-
-            // Create new config
-            POItemUoMDefault::create(
-                array_merge($validated, ['id_item_type' => $itemType->id_item_type])
-            );
+            POItemUoMDefault::create(array_merge($validated, ['id_item_type' => $itemType->id_item_type]));
         });
 
         return redirect("/manajer/purchase-order-config/item-types/{$itemTypeId}/subtypes")
             ->with('success', "Konfigurasi UoM untuk '{$itemType->type_name}' berhasil disimpan.");
     }
 
-    /**
-     * Update UoM default (update if exists)
-     */
     public function updateUoM($itemTypeId, $uomConfigId, UpdatePOItemUoMRequest $request)
     {
         $itemType = POItemType::findOrFail($itemTypeId);
@@ -186,5 +183,12 @@ class PurchaseOrderConfigController extends Controller
 
         return redirect("/manajer/purchase-order-config/item-types/{$itemTypeId}/subtypes")
             ->with('success', "Konfigurasi UoM untuk '{$itemType->type_name}' berhasil diperbarui.");
+    }
+
+    public function itemTypeCatalog()
+    {
+        return response()->json(
+            POItemType::with(['subtypes', 'uomConfig'])->orderBy('sort_order')->get()
+        );
     }
 }

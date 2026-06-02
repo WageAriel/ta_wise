@@ -35,6 +35,8 @@ class OrderRequestController extends Controller
 
                 $po->items()->create([
                     'barang_id' => $item['barang_id'],
+                    'id_item_type' => $item['item_type_id'] ?? null,
+                    'id_subtype' => $item['subtype_id'] ?? null,
                     'quantity' => $item['quantity'],
                     'unit_price' => $item['unit_price'],
                     'subtotal' => $subtotal,
@@ -78,6 +80,8 @@ class OrderRequestController extends Controller
 
                 $po->items()->create([
                     'barang_id' => $item['barang_id'],
+                    'id_item_type' => $item['item_type_id'] ?? null,
+                    'id_subtype' => $item['subtype_id'] ?? null,
                     'quantity' => $item['quantity'],
                     'unit_price' => $item['unit_price'],
                     'subtotal' => $subtotal,
@@ -92,6 +96,30 @@ class OrderRequestController extends Controller
 
         return redirect('/admin/purchase-orders?segment=order-request')->with('success',
             "Order Request '{$po->po_number}' berhasil diperbarui."
+        );
+    }
+
+    /**
+     * Ubah inquiry menjadi request PO/RFQ setelah supplier dipilih.
+     */
+    public function promote($id)
+    {
+        $po = PurchaseOrder::findOrFail($id);
+
+        if ($po->status !== PurchaseOrder::STATUS_INQUIRY) {
+            abort(422, 'Hanya inquiry yang bisa diubah menjadi request PO');
+        }
+
+        if (!$po->supplier_id) {
+            abort(422, 'Supplier harus dipilih sebelum mengubah inquiry menjadi request PO');
+        }
+
+        $po->update([
+            'status' => PurchaseOrder::STATUS_RFQ,
+        ]);
+
+        return redirect('/admin/purchase-orders?segment=order-request')->with('success',
+            "Order Request '{$po->po_number}' berhasil diubah menjadi request PO."
         );
     }
 

@@ -7,7 +7,7 @@ use App\Models\PurchaseOrder;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
-class PurchaseOrderController extends Controller
+class PurchaseOrdersController extends Controller
 {
     public function index()
     {
@@ -18,7 +18,7 @@ class PurchaseOrderController extends Controller
             ->latest()
             ->get();
 
-        return Inertia::render('PurchaseOrders/Index', [
+        return Inertia::render('Manajer/PurchaseOrdersController/Index', [
             'purchaseOrders' => $purchaseOrders,
             'segment' => $segment,
         ]);

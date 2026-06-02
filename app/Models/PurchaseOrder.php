@@ -37,11 +37,22 @@ class PurchaseOrder extends Model
         'status',
         'description',
         'total_price',
+        'driver_name',
+        'vehicle_plate',
+        'carrier',
+        'tracking_number',
+        'shipment_notes',
+        'weighing_note_path',
+        'delivery_note_path',
+        'shipped_at',
+        'delivered_at',
     ];
 
     protected $casts = [
         'date' => 'date',
         'total_price' => 'decimal:2',
+        'shipped_at' => 'datetime',
+        'delivered_at' => 'datetime',
     ];
 
     public static function allowedStatuses(): array
@@ -132,5 +143,15 @@ class PurchaseOrder extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function getShipmentStateLabelAttribute(): string
+    {
+        return match ($this->status) {
+            self::STATUS_APPROVED => 'Masih Diproses',
+            self::STATUS_SHIPMENT => 'Dalam Perjalanan',
+            self::STATUS_COMPLETED => 'Sudah Diterima',
+            default => ucfirst(str_replace('_', ' ', $this->status)),
+        };
     }
 }
