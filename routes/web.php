@@ -162,10 +162,12 @@ Route::middleware('auth')->group(function () {
     // PETUGAS LAPANGAN ROUTES (placeholder)
     // ===================================================
     Route::middleware(['role:petugas_lapangan'])->prefix('petugas')->name('petugas.')->group(function () {
-         Route::get('/dashboard', [\App\Http\Controllers\Petugas\DashboardController::class, 'index'])->name('dashboard.petugas');
-        Route::get('/jadwal', [JadwalController::class, 'index'])->name('jadwal');
-        Route::get('/verifikasi/{jadwal}', [VerifikasiController::class, 'show'])->name('verifikasi.form');
-        Route::post('/verifikasi/{jadwal}', [VerifikasiController::class, 'store'])->name('verifikasi.store');
+        Route::get('/dashboard', [\App\Http\Controllers\Petugas\DashboardController::class, 'index'])->name('dashboard.petugas');
+        Route::get('/jadwal', [\App\Http\Controllers\Petugas\JadwalController::class, 'index'])->name('jadwal');
+        Route::get('/verifikasi/riwayat', [\App\Http\Controllers\Petugas\RiwayatController::class, 'index'])->name('verifikasi.riwayat');
+        Route::get('/laporan-kinerja', [\App\Http\Controllers\Petugas\LaporanController::class, 'index'])->name('laporan');
+        Route::get('/verifikasi/{jadwal}', [\App\Http\Controllers\Petugas\VerifikasiController::class, 'show'])->name('verifikasi.form');
+        Route::post('/verifikasi/{jadwal}', [\App\Http\Controllers\Petugas\VerifikasiController::class, 'store'])->name('verifikasi.store');
         Route::get('/classification', fn() => Inertia::render('Petugas/Classification'))->name('classification');
         Route::get('/field-officers', fn() => Inertia::render('Petugas/FieldOfficers'))->name('field-officers');
     });
