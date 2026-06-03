@@ -25,7 +25,7 @@ class SeleksiController extends Controller
         $supplier = $user->supplier;
 
         $hasSubmittedThisYear = false;
-        $applications = [];
+        $applications = collect([]);
 
         if ($supplier) {
             $hasSubmittedThisYear = Seleksi::where('id_supplier', $supplier->id)
@@ -51,9 +51,10 @@ class SeleksiController extends Controller
             'is_approved' => $supplier && $supplier->status === 'approved',
             'has_submitted_this_year' => $hasSubmittedThisYear,
             'stats' => [
-                'total' => count($applications),
+                'total' => $applications->count(),
                 'lolos' => $applications->where('status', 'Lolos')->count(),
-                'pending' => $applications->where('status', 'Menunggu Validasi')->count(),
+                'review' => $applications->where('status', 'Menunggu Validasi')->count(),
+                'tidak_lolos' => $applications->where('status', 'Tidak Lolos')->count(),
             ],
             'applications' => $applications,
         ]);
@@ -211,6 +212,24 @@ class SeleksiController extends Controller
             }
             return redirect()->route('supplier.selection')->with('success', 'Jawaban seleksi berhasil dikirim!');
         });
+    }
+
+    /**
+     * GET /supplier/selection/{id}/download
+     * Generate & Download Surat Penetapan Seleksi dalam bentuk PDF.
+     */
+    public function downloadPdf($id)
+    {
+        $user = auth()->user();
+        $selection = Seleksi::with('supplier')
+            ->where('id_seleksi', $id)
+            ->where('id_user', $user->id)
+            ->where('status_seleksi', 'Lolos')
+            ->firstOrFail();
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.seleksi_penetapan', compact('selection'));
+        
+        return $pdf->download('Surat_Penetapan_Lolos_Seleksi_' . $selection->supplier->nama_perusahaan . '.pdf');
     }
 
     // =========================================================

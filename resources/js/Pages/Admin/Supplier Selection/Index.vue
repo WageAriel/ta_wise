@@ -173,31 +173,6 @@ const handleDelete = (id) => {
     showConfirmModal.value = true;
 };
 
-// Implementasi Import Excel
-const triggerFileInput = () => {
-    document.getElementById('excel-file-input').click();
-};
-
-const onFileChange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    let formData = new FormData();
-    formData.append('file', file);
-
-    isLoading.value = true;
-    router.post('/admin/supplier/import', formData, {
-        onSuccess: () => {
-            isLoading.value = false;
-            successMessage.value = 'Data berhasil diimport dari Excel.';
-            showSuccessModal.value = true;
-        },
-        onError: () => {
-            isLoading.value = false;
-        }
-    });
-};
-
 const getStatusBadge = (status) => {
     switch (status) {
         case 'lolos': return 'bg-emerald-100 text-emerald-700 border-emerald-200';
@@ -218,38 +193,12 @@ const getStatusBadge = (status) => {
         </div>
 
         <!-- Action Bar: Export/Import -->
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
             <div>
                 <h2 class="text-lg font-semibold text-gray-700">Supplier Selection</h2>
                 <p class="text-sm text-gray-500">Kelola dan tinjau hasil seleksi kapasitas supplier.</p>
             </div>
             <div class="flex items-center gap-3">
-                <button
-                    @click="triggerFileInput"
-                    class="inline-flex items-center gap-2 px-5 py-3 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 active:scale-95 transition-all shadow-sm"
-                    >
-                    <svg
-                        class="w-4 h-4 text-slate-500"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                    >
-                    <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
-                    />
-                    </svg>
-                    IMPORT EXCEL
-                </button>
-                <input
-                        type="file"
-                        id="excel-file-input"
-                        class="hidden"
-                        accept=".xlsx, .xls"
-                        @change="onFileChange"
-                    />
                 <button
                     @click="handleExport"
                     class="inline-flex items-center gap-2 px-5 py-3 text-xs font-bold text-white bg-emerald-600 rounded-xl hover:bg-emerald-700 active:scale-95 transition-all shadow-md shadow-emerald-100"
@@ -276,24 +225,24 @@ const getStatusBadge = (status) => {
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
             <!-- Search -->
             <div class="relative w-full md:flex-1">
-                <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400 pointer-events-none">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400 pointer-events-none">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                 </span>
-                <input v-model="searchQuery" type="text" placeholder="Cari nama supplier..." class="w-full pl-11 pr-4 py-3 text-sm bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-slate-400 shadow-sm" />
+                <input v-model="searchQuery" type="text" placeholder="Cari nama supplier..." class="w-full pl-11 pr-4 py-3 text-sm bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-gray-400 shadow-sm" />
             </div>
 
             <!-- Select Filters -->
             <div class="flex items-center gap-4">
                 <div class="flex items-center gap-2">
-                    <span class="text-sm font-medium text-slate-400">Tampilkan</span>
-                    <select v-model="perPage" class="bg-white border border-slate-200 text-slate-700 text-sm rounded-xl py-2.5 px-3 pr-8 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium shadow-sm">
+                    <span class="text-sm font-medium text-gray-400">Tampilkan</span>
+                    <select v-model="perPage" class="bg-white border border-gray-200 text-gray-700 text-sm rounded-xl py-2.5 px-3 pr-8 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium shadow-sm">
                         <option :value="10">10 Baris</option>
                         <option :value="25">25 Baris</option>
                         <option :value="50">50 Baris</option>
                     </select>
                 </div>
                 <div class="flex items-center gap-2">
-                    <select v-model="selectedYear" class="bg-white border border-slate-200 text-slate-700 text-sm rounded-xl py-2.5 px-3 pr-8 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium shadow-sm">
+                    <select v-model="selectedYear" class="bg-white border border-gray-200 text-gray-700 text-sm rounded-xl py-2.5 px-3 pr-8 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium shadow-sm">
                         <option value="">Semua Tahun</option>
                         <option v-for="year in years" :key="year" :value="year">{{ year }}</option>
                     </select>
@@ -302,44 +251,44 @@ const getStatusBadge = (status) => {
         </div>
 
         <!-- Status Tab Filter -->
-        <div class="mb-6 p-1.5 bg-slate-100 inline-flex rounded-lg border border-slate-200">
+        <div class="mb-6 p-1.5 bg-gray-100 inline-flex rounded-lg border border-gray-200">
             <button @click="activeTab = 'pending'" 
-                :class="activeTab === 'pending' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'"
+                :class="activeTab === 'pending' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'"
                 class="px-6 py-2.5 text-xs font-semibold rounded-lg transition-all">
                 Menunggu Validasi
             </button>
             <button @click="activeTab = 'validated'" 
-                :class="activeTab === 'validated' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'"
+                :class="activeTab === 'validated' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'"
                 class="px-6 py-2.5 text-xs font-semibold rounded-lg transition-all">
                 Tervalidasi
             </button>
         </div>
 
         <!-- Table Section -->
-        <div class="bg-white rounded-[24px] border border-slate-100 shadow-sm overflow-hidden">
+        <div class="bg-white rounded-[24px] border border-gray-100 shadow-sm overflow-hidden">
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse">
                     <thead>
-                        <tr class="bg-slate-50/70 border-b border-slate-100">
-                            <th class="py-5 px-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center w-16">No</th>
-                            <th class="py-5 px-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Nama Supplier</th>
-                            <th class="py-5 px-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Tahun</th>
-                            <th class="py-5 px-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Status</th>
-                            <th class="py-5 px-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Tgl Pengajuan</th>
-                            <th class="py-5 px-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center w-32">Aksi</th>
+                        <tr class="bg-gray-50/70 border-b border-gray-100">
+                            <th class="py-5 px-6 text-xs font-bold text-gray-400 uppercase text-center w-16">No</th>
+                            <th class="py-5 px-6 text-xs font-bold text-gray-400 uppercase">Nama Supplier</th>
+                            <th class="py-5 px-6 text-xs font-bold text-gray-400 uppercase text-center">Tahun</th>
+                            <th class="py-5 px-6 text-xs font-bold text-gray-400 uppercase text-center">Status</th>
+                            <th class="py-5 px-6 text-xs font-bold text-gray-400 uppercase text-center">Tgl Pengajuan</th>
+                            <th class="py-5 px-6 text-xs font-bold text-gray-400 uppercase text-center w-32">Aksi</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-slate-50">
-                        <tr v-for="(item, idx) in selections" :key="item.id_seleksi" class="hover:bg-slate-50/50 transition-colors group">
-                            <td class="py-4 px-6 text-center text-xs font-bold text-slate-500">{{ (pagination.from || 0) + idx }}</td>
-                            <td class="py-4 px-6 font-bold text-slate-900 text-xs">{{ item.supplier?.nama_perusahaan || '-' }}</td>
-                            <td class="py-4 px-6 text-center text-xs font-bold text-slate-600">{{ item.tanggal ? new Date(item.tanggal).getFullYear() : '-' }}</td>
+                    <tbody class="divide-y divide-gray-50">
+                        <tr v-for="(item, idx) in selections" :key="item.id_seleksi" class="hover:bg-gray-50/50 transition-colors group">
+                            <td class="py-4 px-6 text-center text-xs font-bold text-gray-500">{{ (pagination.from || 0) + idx }}</td>
+                            <td class="py-4 px-6 font-bold text-gray-900 text-xs">{{ item.supplier?.nama_perusahaan || '-' }}</td>
+                            <td class="py-4 px-6 text-center text-xs font-bold text-gray-600">{{ item.tanggal ? new Date(item.tanggal).getFullYear() : '-' }}</td>
                             <td class="py-4 px-6 text-center">
                                 <span :class="getStatusBadge(item.status)" class="px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border shadow-sm">
                                     {{ item.status === 'process' ? 'Menunggu Review' : (item.status === 'lolos' ? 'Lolos' : 'Tidak Lolos') }}
                                 </span>
                             </td>
-                            <td class="py-4 px-6 text-center text-xs font-bold text-slate-500">{{ item.tanggal || '-' }}</td>
+                            <td class="py-4 px-6 text-center text-xs font-bold text-gray-500">{{ item.tanggal || '-' }}</td>
                             <td class="py-4 px-6">
                                 <div class="flex items-center justify-center gap-2">
                                     <!-- Jika Tab Menunggu Validasi -->
@@ -367,11 +316,11 @@ const getStatusBadge = (status) => {
                         <tr v-if="selections.length === 0">
                             <td colspan="6" class="py-20 text-center">
                                 <div class="flex flex-col items-center">
-                                    <div class="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mb-4 border border-slate-100">
-                                        <svg class="w-8 h-8 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                    <div class="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center mb-4 border border-gray-100">
+                                        <svg class="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                                     </div>
-                                    <h3 class="text-xs font-black text-slate-700 uppercase tracking-widest">Data Tidak Ditemukan</h3>
-                                    <p class="text-[10px] text-slate-400 mt-1 uppercase font-bold tracking-tighter">Silakan gunakan filter atau kata kunci pencarian lain.</p>
+                                    <h3 class="text-xs font-black text-gray-700 uppercase tracking-widest">Data Tidak Ditemukan</h3>
+                                    <p class="text-xs text-gray-400 mt-1 uppercase font-bold tracking-tighter">Silakan gunakan filter atau kata kunci pencarian lain.</p>
                                 </div>
                             </td>
                         </tr>
@@ -380,16 +329,16 @@ const getStatusBadge = (status) => {
             </div>
 
             <!-- Pagination Toolbar -->
-            <div class="px-6 py-4 bg-slate-50/50 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div class="text-xs font-bold text-slate-400">
-                    Menampilkan <span class="font-bold text-slate-600">{{ pagination.from || 0 }} - {{ pagination.to || 0 }}</span> dari 
-                    <span class="font-bold text-slate-600">{{ pagination.total || 0 }}</span> Data
+            <div class="px-6 py-4 bg-gray-50/50 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div class="text-xs font-bold text-gray-400">
+                    Menampilkan <span class="font-bold text-gray-600">{{ pagination.from || 0 }} - {{ pagination.to || 0 }}</span> dari 
+                    <span class="font-bold text-gray-600">{{ pagination.total || 0 }}</span> Data
                 </div>
                 <div class="flex items-center gap-1">
                     <button 
                         @click="fetchData(pagination.current_page - 1)"
                         :disabled="!pagination.prev_page_url"
-                        class="p-2 rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                        class="p-2 rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                     >
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
                     </button>
@@ -401,7 +350,7 @@ const getStatusBadge = (status) => {
                         :disabled="!link.page"
                         :class="link.active 
                             ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm shadow-indigo-100' 
-                            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 disabled:opacity-40'"
+                            : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50 disabled:opacity-40'"
                         class="min-w-[36px] h-9 px-2 rounded-lg border text-xs font-black transition-all"
                     >
                         <span v-html="link.label"></span>
@@ -410,7 +359,7 @@ const getStatusBadge = (status) => {
                     <button 
                         @click="fetchData(pagination.current_page + 1)"
                         :disabled="!pagination.next_page_url"
-                        class="p-2 rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                        class="p-2 rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                     >
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                     </button>
@@ -421,39 +370,39 @@ const getStatusBadge = (status) => {
 
     <!-- Modal Baru: Detail Pengajuan & Validasi -->
     <div v-if="showValidationModal" class="fixed inset-0 z-[60] overflow-y-auto px-4 py-6 sm:px-0 flex items-center justify-center">
-        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" @click="showValidationModal = false"></div>
+        <div class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity" @click="showValidationModal = false"></div>
 
-        <div class="bg-white rounded-3xl overflow-hidden shadow-2xl transform transition-all sm:max-w-xl w-full border border-slate-100">
+        <div class="bg-white rounded-3xl overflow-hidden shadow-2xl transform transition-all sm:max-w-xl w-full border border-gray-100">
             <!-- Modal Header -->
-            <div class="px-6 py-4 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
+            <div class="px-6 py-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
                 <div>
-                    <h3 class="text-lg font-black text-slate-800 uppercase tracking-tight">Validasi Pengajuan Seleksi</h3>
+                    <h3 class="text-lg font-black text-gray-800 uppercase tracking-tight">Validasi Pengajuan Seleksi</h3>
                     <div class="flex items-center gap-3 mt-1">
-                        <span class="flex items-center text-[10px] font-bold text-slate-500 bg-white px-2 py-0.5 rounded-full border border-slate-200">
+                        <span class="flex items-center text-[10px] font-bold text-gray-500 bg-white px-2 py-0.5 rounded-full border border-gray-200">
                             <svg class="w-2.5 h-2.5 mr-1 text-blue-500" fill="currentColor" viewBox="0 0 20 20"><path d="M10.394 2.827a1 1 0 00-.788 0L2.606 6A1 1 0 001 6.91v9.18a1 1 0 00.553.894l8 4a1 1 0 00.894 0l8-4A1 1 0 0019 16.09V6.91a1 1 0 00-.606-.883l-8-3.127z"/></svg>
                             {{ detailData?.supplier?.nama_perusahaan }}
                         </span>
-                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{{ detailData?.tanggal }}</span>
+                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{{ detailData?.tanggal }}</span>
                     </div>
                 </div>
-                <button @click="showValidationModal = false" class="p-1.5 hover:bg-slate-200 rounded-lg transition-colors">
-                    <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                <button @click="showValidationModal = false" class="p-1.5 hover:bg-gray-200 rounded-lg transition-colors">
+                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
             </div>
 
             <!-- Modal Body -->
             <div class="px-6 py-4 max-h-[50vh] overflow-y-auto bg-white">
                 <div class="space-y-4">
-                    <div v-for="(jwb, index) in detailData?.jawaban" :key="index" class="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                    <div v-for="(jwb, index) in detailData?.jawaban" :key="index" class="p-4 bg-gray-50 rounded-2xl border border-gray-100">
                         <div class="flex items-start gap-3">
-                            <div class="w-6 h-6 flex-shrink-0 bg-white border border-slate-200 rounded-lg flex items-center justify-center text-[10px] font-black text-slate-400">
+                            <div class="w-6 h-6 flex-shrink-0 bg-white border border-gray-200 rounded-lg flex items-center justify-center text-[10px] font-black text-gray-400">
                                 {{ index + 1 }}
                             </div>
                             <div class="flex-1">
-                                <p class="text-xs font-bold text-slate-800 leading-relaxed">{{ jwb.pertanyaan?.teks_pertanyaan }}</p>
+                                <p class="text-xs font-bold text-gray-800 leading-relaxed">{{ jwb.pertanyaan?.teks_pertanyaan }}</p>
                                 <div class="mt-2 flex items-center justify-between">
                                     <span class="text-[10px] text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded-md">Jawaban: {{ jwb.opsi?.teks_opsi }}</span>
-                                    <span class="text-[10px] font-black text-slate-500">POIN: <span :class="jwb.opsi?.nilai >= 3 ? 'text-emerald-500' : 'text-rose-500'">{{ jwb.opsi?.nilai }}</span></span>
+                                    <span class="text-[10px] font-black text-gray-500">POIN: <span :class="jwb.opsi?.nilai >= 3 ? 'text-emerald-500' : 'text-rose-500'">{{ jwb.opsi?.nilai }}</span></span>
                                 </div>
                             </div>
                         </div>
@@ -462,14 +411,14 @@ const getStatusBadge = (status) => {
             </div>
 
             <!-- Summary Footer -->
-            <div class="px-6 py-4 bg-slate-50 border-t border-slate-100">
-                <div class="flex items-center justify-between bg-white p-4 rounded-2xl border border-slate-200 shadow-sm mb-4">
+            <div class="px-6 py-4 bg-gray-50 border-t border-gray-100">
+                <div class="flex items-center justify-between bg-white p-4 rounded-2xl border border-gray-200 shadow-sm mb-4">
                     <div>
-                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Nilai Supplier</p>
-                        <p class="text-2xl font-black text-slate-800">{{ detailData?.total_nilai }} <span class="text-xs text-slate-400 font-bold">/ 100</span></p>
+                        <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total Nilai Supplier</p>
+                        <p class="text-2xl font-black text-gray-800">{{ detailData?.total_nilai }} <span class="text-xs text-gray-400 font-bold">/ 100</span></p>
                     </div>
                     <div class="text-right">
-                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Rekomendasi Sistem</p>
+                        <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Rekomendasi Sistem</p>
                         <span :class="recommendation === 'Lolos' ? 'text-emerald-600 bg-emerald-50 border-emerald-100' : 'text-rose-600 bg-rose-50 border-rose-100'" class="px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border">
                             {{ recommendation }}
                         </span>
@@ -492,39 +441,39 @@ const getStatusBadge = (status) => {
 
     <!-- Modal Detail Review -->
         <div v-if="showModal" class="fixed inset-0 z-[60] overflow-y-auto px-4 py-6 sm:px-0 flex items-center justify-center">
-            <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" @click="showModal = false"></div>
+            <div class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity" @click="showModal = false"></div>
 
-            <div class="bg-white rounded-3xl overflow-hidden shadow-2xl transform transition-all sm:max-w-xl w-full border border-slate-100">
+            <div class="bg-white rounded-3xl overflow-hidden shadow-2xl transform transition-all sm:max-w-xl w-full border border-gray-100">
                 <!-- Modal Header -->
-                <div class="px-6 py-4 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
+                <div class="px-6 py-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
                     <div>
-                        <h3 class="text-lg font-black text-slate-800 uppercase tracking-tight">Detail Review Seleksi</h3>
+                        <h3 class="text-lg font-black text-gray-800 uppercase tracking-tight">Detail Review Seleksi</h3>
                         <div class="flex items-center gap-3 mt-1">
-                            <span class="flex items-center text-[10px] font-bold text-slate-500 bg-white px-2 py-0.5 rounded-full border border-slate-200">
+                            <span class="flex items-center text-[10px] font-bold text-gray-500 bg-white px-2 py-0.5 rounded-full border border-gray-200">
                                 <svg class="w-2.5 h-2.5 mr-1 text-blue-500" fill="currentColor" viewBox="0 0 20 20"><path d="M10.394 2.827a1 1 0 00-.788 0L2.606 6A1 1 0 001 6.91v9.18a1 1 0 00.553.894l8 4a1 1 0 00.894 0l8-4A1 1 0 0019 16.09V6.91a1 1 0 00-.606-.883l-8-3.127z"/></svg>
                                 {{ detailData?.supplier?.nama_perusahaan }}
                             </span>
-                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{{ detailData?.tanggal }}</span>
+                            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{{ detailData?.tanggal }}</span>
                         </div>
                     </div>
-                    <button @click="showModal = false" class="p-1.5 hover:bg-slate-200 rounded-lg transition-colors">
-                        <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    <button @click="showModal = false" class="p-1.5 hover:bg-gray-200 rounded-lg transition-colors">
+                        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                     </button>
                 </div>
 
                 <!-- Modal Body -->
                 <div class="px-6 py-4 max-h-[50vh] overflow-y-auto bg-white">
                     <div class="space-y-4">
-                        <div v-for="(jwb, index) in detailData?.jawaban" :key="index" class="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                        <div v-for="(jwb, index) in detailData?.jawaban" :key="index" class="p-4 bg-gray-50 rounded-2xl border border-gray-100">
                             <div class="flex items-start gap-3">
-                                <div class="w-6 h-6 flex-shrink-0 bg-white border border-slate-200 rounded-lg flex items-center justify-center text-[10px] font-black text-slate-400">
+                                <div class="w-6 h-6 flex-shrink-0 bg-white border border-gray-200 rounded-lg flex items-center justify-center text-[10px] font-black text-gray-400">
                                     {{ index + 1 }}
                                 </div>
                                 <div class="flex-1">
-                                    <p class="text-xs font-bold text-slate-800 leading-relaxed">{{ jwb.pertanyaan?.teks_pertanyaan }}</p>
+                                    <p class="text-xs font-bold text-gray-800 leading-relaxed">{{ jwb.pertanyaan?.teks_pertanyaan }}</p>
                                     <div class="mt-2 flex items-center justify-between">
                                         <span class="text-[10px] text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded-md">Jawaban: {{ jwb.opsi?.teks_opsi }}</span>
-                                        <span class="text-[10px] font-black text-slate-500">POIN: <span :class="jwb.opsi?.nilai >= 3 ? 'text-emerald-500' : 'text-rose-500'">{{ jwb.opsi?.nilai }}</span></span>
+                                        <span class="text-[10px] font-black text-gray-500">POIN: <span :class="jwb.opsi?.nilai >= 3 ? 'text-emerald-500' : 'text-rose-500'">{{ jwb.opsi?.nilai }}</span></span>
                                     </div>
                                 </div>
                             </div>
@@ -533,14 +482,14 @@ const getStatusBadge = (status) => {
                 </div>
 
                 <!-- Summary Footer -->
-                <div class="px-6 py-4 bg-slate-50 border-t border-slate-100">
-                    <div class="flex items-center justify-between bg-white p-4 rounded-2xl border border-slate-200 shadow-sm mb-4">
+                <div class="px-6 py-4 bg-gray-50 border-t border-gray-100">
+                    <div class="flex items-center justify-between bg-white p-4 rounded-2xl border border-gray-200 shadow-sm mb-4">
                         <div>
-                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Nilai Supplier</p>
-                            <p class="text-2xl font-black text-slate-800">{{ detailData?.total_nilai }} <span class="text-xs text-slate-400 font-bold">/ 100</span></p>
+                            <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total Nilai Supplier</p>
+                            <p class="text-2xl font-black text-gray-800">{{ detailData?.total_nilai }} <span class="text-xs text-gray-400 font-bold">/ 100</span></p>
                         </div>
                         <div class="text-right">
-                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Rekomendasi Sistem</p>
+                            <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Rekomendasi Sistem</p>
                             <span :class="recommendation === 'Lolos' ? 'text-emerald-600 bg-emerald-50 border-emerald-100' : 'text-rose-600 bg-rose-50 border-rose-100'" class="px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border">
                                 {{ recommendation }}
                             </span>
@@ -552,9 +501,9 @@ const getStatusBadge = (status) => {
 
         <!-- Modal Konfirmasi Custom -->
         <div v-if="showConfirmModal" class="fixed inset-0 z-[70] overflow-y-auto px-4 py-6 sm:px-0 flex items-center justify-center">
-            <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" @click="showConfirmModal = false"></div>
+            <div class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity" @click="showConfirmModal = false"></div>
 
-            <div class="bg-white rounded-[32px] overflow-hidden shadow-2xl transform transition-all sm:max-w-sm w-full border border-slate-100 p-8 text-center">
+            <div class="bg-white rounded-[32px] overflow-hidden shadow-2xl transform transition-all sm:max-w-sm w-full border border-gray-100 p-8 text-center">
                 <div :class="confirmConfig.type === 'danger' ? 'bg-rose-50 text-rose-500' : 'bg-emerald-50 text-emerald-500'" 
                     class="w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-6">
                     <svg v-if="confirmConfig.type === 'danger'" class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -565,11 +514,11 @@ const getStatusBadge = (status) => {
                     </svg>
                 </div>
 
-                <h3 class="text-xl font-black text-slate-800 uppercase tracking-tight mb-2">{{ confirmConfig.title }}</h3>
-                <p class="text-xs font-bold text-slate-500 leading-relaxed mb-8 px-4">{{ confirmConfig.message }}</p>
+                <h3 class="text-xl font-black text-gray-800 uppercase tracking-tight mb-2">{{ confirmConfig.title }}</h3>
+                <p class="text-xs font-bold text-gray-500 leading-relaxed mb-8 px-4">{{ confirmConfig.message }}</p>
 
                 <div class="grid grid-cols-2 gap-3">
-                    <button @click="showConfirmModal = false" class="w-full py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:bg-slate-50 transition-all border border-slate-100">
+                    <button @click="showConfirmModal = false" class="w-full py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-gray-400 hover:bg-gray-50 transition-all border border-gray-100">
                         Batal
                     </button>
                     <button @click="confirmConfig.action" 
@@ -583,19 +532,19 @@ const getStatusBadge = (status) => {
 
         <!-- Modal Success Custom -->
         <div v-if="showSuccessModal" class="fixed inset-0 z-[80] overflow-y-auto px-4 py-6 sm:px-0 flex items-center justify-center">
-            <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" @click="showSuccessModal = false"></div>
+            <div class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity" @click="showSuccessModal = false"></div>
 
-            <div class="bg-white rounded-[32px] overflow-hidden shadow-2xl transform transition-all sm:max-w-sm w-full border border-slate-100 p-8 text-center">
+            <div class="bg-white rounded-[32px] overflow-hidden shadow-2xl transform transition-all sm:max-w-sm w-full border border-gray-100 p-8 text-center">
                 <div class="bg-emerald-50 text-emerald-500 w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-6">
                     <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                     </svg>
                 </div>
 
-                <h3 class="text-xl font-black text-slate-800 uppercase tracking-tight mb-2">Berhasil!</h3>
-                <p class="text-xs font-bold text-slate-500 leading-relaxed mb-8 px-4">{{ successMessage }}</p>
+                <h3 class="text-xl font-black text-gray-800 uppercase tracking-tight mb-2">Berhasil!</h3>
+                <p class="text-xs font-bold text-gray-500 leading-relaxed mb-8 px-4">{{ successMessage }}</p>
 
-                <button @click="showSuccessModal = false" class="w-full py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest bg-slate-800 text-white hover:bg-slate-900 shadow-lg shadow-slate-100 transition-all active:scale-95">
+                <button @click="showSuccessModal = false" class="w-full py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest bg-gray-800 text-white hover:bg-gray-900 shadow-lg shadow-gray-100 transition-all active:scale-95">
                     Tutup
                 </button>
             </div>
