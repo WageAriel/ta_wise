@@ -209,7 +209,7 @@ const availableLocations = computed(() => {
             <div class="relative w-full md:flex-1">
                 <span class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
                     <svg
-                        class="w-5 h-5 text-slate-400"
+                        class="w-5 h-5 text-gray-400"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -220,17 +220,17 @@ const availableLocations = computed(() => {
                     v-model="searchQuery"
                     type="text"
                     placeholder="Cari ID Inbound atau PO..."
-                    class="w-full pl-11 pr-4 py-3 text-sm bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-slate-400 shadow-sm"
+                    class="w-full pl-11 pr-4 py-3 text-sm bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-gray-400 shadow-sm"
                 />
             </div>
 
             <!-- Right Filters -->
             <div class="flex flex-wrap items-center gap-3">
                 <div class="flex items-center gap-2">
-                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Tampilkan:</span>
+                    <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Tampilkan:</span>
                     <select
                         v-model="perPage"
-                        class="bg-white border border-slate-200 text-slate-700 text-sm rounded-xl py-2.5 px-3 pr-8 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-semibold shadow-sm appearance-none"
+                        class="bg-white border border-gray-200 text-gray-700 text-sm rounded-xl py-2.5 px-3 pr-8 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-semibold shadow-sm appearance-none"
                     >
                         <option :value="10">10 Data</option>
                         <option :value="25">25 Data</option>
@@ -240,10 +240,10 @@ const availableLocations = computed(() => {
                 </div>
 
                 <div class="flex items-center gap-2">
-                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Tahun:</span>
+                    <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Tahun:</span>
                     <select
                         v-model="selectedYear"
-                        class="bg-white border border-slate-200 text-slate-700 text-sm rounded-xl py-2.5 px-3 pr-8 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-semibold shadow-sm appearance-none"
+                        class="bg-white border border-gray-200 text-gray-700 text-sm rounded-xl py-2.5 px-3 pr-8 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-semibold shadow-sm appearance-none"
                     >
                         <option value="">Semua Tahun</option>
                         <option v-for="year in years" :key="year" :value="year">
@@ -258,7 +258,7 @@ const availableLocations = computed(() => {
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             <div class="overflow-x-auto">
                 <table class="w-full text-sm text-left">
-                    <thead class="bg-gray-50 text-gray-600 uppercase text-xs font-bold">
+                    <thead class="bg-gray-50 text-gray-400 uppercase text-xs font-bold">
                         <tr>
                             <th class="px-6 py-4 text-center w-16">No</th>
                             <th class="px-6 py-4">ID Inbound</th>
@@ -375,11 +375,11 @@ const availableLocations = computed(() => {
 
         <!-- MODAL ADD INVENTORY -->
         <div v-if="showInventoryModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <div class="bg-white rounded-lg shadow-2xl w-full max-w-4xl overflow-hidden border border-slate-100">
+            <div class="bg-white rounded-lg shadow-2xl w-full max-w-4xl overflow-hidden border border-gray-100">
                 <!-- Header -->
-                <div class="px-4 py-2 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
+                <div class="px-4 py-2 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
                     <div>
-                        <h3 class="text-center text-xl font-semibold text-slate-800">Add Inventory</h3>
+                        <h3 class="text-center text-xl font-semibold text-gray-800">Add Inventory</h3>
                     </div>
                 </div>
 
@@ -387,11 +387,11 @@ const availableLocations = computed(() => {
                     <form @submit.prevent="submitInventory" class="space-y-6">
                         <!-- ID Inbound Dropdown -->
                         <div class="max-w-xs">
-                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">ID Inbound</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">ID Inbound</label>
                             <select 
                                 v-model="inventoryForm.id_inbound" 
                                 @change="handleInboundChange"
-                                class="w-full bg-white border border-slate-200 text-slate-700 text-sm rounded-2xl py-3 px-4 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-bold shadow-sm"
+                                class="w-full bg-white border border-gray-200 text-gray-700 text-sm rounded-lg py-3 px-4 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium shadow-sm"
                                 required
                             >
                                 <option value="" disabled>-- Pilih ID Inbound --</option>
@@ -403,21 +403,21 @@ const availableLocations = computed(() => {
 
                         <!-- Detail Barang Table -->
                         <div v-if="inventoryForm.id_inbound" class="space-y-4">
-                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Detail Barang Inbound</label>
-                            <div class="border border-slate-100 rounded-[24px] overflow-hidden shadow-sm">
+                            <label class="block text-sm font-medium text-gray-700">Detail Barang Inbound</label>
+                            <div class="border border-gray-100 rounded-lg overflow-hidden shadow-sm">
                                 <table class="w-full text-left text-xs border-collapse">
-                                    <thead class="bg-slate-50/50 border-b border-slate-100">
+                                    <thead class="bg-gray-50/50 border-b border-gray-100">
                                         <tr>
-                                            <th class="py-4 px-6 font-black text-slate-400 uppercase tracking-widest w-16 text-center">No</th>
-                                            <th class="py-4 px-6 font-black text-slate-400 uppercase tracking-widest">Nama Barang</th>
-                                            <th class="py-4 px-6 font-black text-slate-400 uppercase tracking-widest text-center">Quantity</th>
-                                            <th class="py-4 px-6 font-black text-slate-400 uppercase tracking-widest">Lokasi Barang</th>
+                                            <th class="py-4 px-6 font-medium text-gray-400 w-16 text-center">No</th>
+                                            <th class="py-4 px-6 font-medium text-gray-400">Nama Barang</th>
+                                            <th class="py-4 px-6 font-medium text-gray-400 text-center">Quantity</th>
+                                            <th class="py-4 px-6 font-medium text-gray-400">Lokasi Barang</th>
                                         </tr>
                                     </thead>
-                                    <tbody class="divide-y divide-slate-50 bg-white">
-                                        <tr v-for="(item, idx) in inventoryForm.items" :key="idx" class="hover:bg-slate-50/50 transition-colors">
-                                            <td class="py-4 px-6 text-center font-semibold text-slate-400">{{ idx + 1 }}</td>
-                                            <td class="py-4 px-6 font-black text-slate-900">{{ item.nama_barang }}</td>
+                                    <tbody class="divide-y divide-gray-50 bg-white">
+                                        <tr v-for="(item, idx) in inventoryForm.items" :key="idx" class="hover:bg-gray-50/50 transition-colors">
+                                            <td class="py-4 px-6 text-center font-semibold text-gray-400">{{ idx + 1 }}</td>
+                                            <td class="py-4 px-6 font-medium text-gray-900">{{ item.nama_barang }}</td>
                                             <td class="py-4 px-6 text-center">
                                                 <div class="space-y-1">
                                                     <input 
@@ -425,18 +425,18 @@ const availableLocations = computed(() => {
                                                         v-model="item.qty"
                                                         :max="item.max_qty"
                                                         min="1"
-                                                        class="w-20 text-center py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-bold text-xs"
+                                                        class="w-20 text-center py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-xs"
                                                         :class="item.qty > item.max_qty ? 'border-rose-300 text-rose-600 focus:border-rose-500 focus:ring-rose-500/20' : ''"
                                                         required
                                                     />
-                                                    <p v-if="item.qty > item.max_qty" class="text-[9px] font-bold text-rose-500 uppercase tracking-tighter">Maks: {{ item.max_qty }}</p>
-                                                    <p v-else class="text-[9px] font-bold text-slate-400 uppercase tracking-tighter italic">Batas: {{ item.max_qty }}</p>
+                                                    <p v-if="item.qty > item.max_qty" class="text-xs font-medium text-rose-500">Maks: {{ item.max_qty }}</p>
+                                                    <p v-else class="text-xs font-medium text-gray-400">Batas: {{ item.max_qty }}</p>
                                                 </div>
                                             </td>
                                             <td class="py-4 px-6">
                                                 <select 
                                                     v-model="item.id_location"
-                                                    class="w-full bg-slate-50 border border-slate-200 text-slate-700 text-[11px] rounded-xl py-2 px-3 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-semibold"
+                                                    class="w-full bg-gray-50 border border-gray-200 text-gray-700 text-xs rounded-lg py-2 px-3 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium"
                                                     required
                                                 >
                                                     <option value="" disabled>-- Pilih Lokasi --</option>
@@ -452,20 +452,20 @@ const availableLocations = computed(() => {
                         </div>
 
                         <!-- Empty Placeholder -->
-                        <div v-if="!inventoryForm.id_inbound" class="py-12 border-2 border-dashed border-slate-100 rounded-[32px] flex flex-col items-center justify-center text-slate-300 bg-slate-50/30">
+                        <div v-if="!inventoryForm.id_inbound" class="py-12 border-2 border-dashed border-gray-100 rounded-[32px] flex flex-col items-center justify-center text-gray-300 bg-gray-50/30">
                             <svg class="w-12 h-12 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" v-html="icons.package"></svg>
                             <p class="text-xs font-bold uppercase tracking-widest">Pilih ID Inbound untuk melihat detail barang</p>
                         </div>
 
                         <!-- Footer Actions -->
-                        <div class="pt-6 border-t border-slate-100 flex justify-end gap-3">
-                            <button type="button" @click="showInventoryModal = false" class="px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all active:scale-95">
+                        <div class="pt-6 border-t border-gray-100 flex justify-end gap-3">
+                            <button type="button" @click="showInventoryModal = false" class="px-8 py-4 rounded-xl bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all active:scale-95">
                                 Batal
                             </button>
                             <button 
                                 type="submit" 
                                 :disabled="!isInventoryFormValid"
-                                class="px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest bg-green-600 text-white hover:bg-green-700 shadow-lg shadow-green-100 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                                class="px-8 py-4 rounded-xl bg-green-600 text-white hover:bg-green-700 shadow-lg shadow-green-100 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 Simpan Inventory
                             </button>

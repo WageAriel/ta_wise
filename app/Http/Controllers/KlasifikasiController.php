@@ -31,6 +31,17 @@ class KlasifikasiController extends Controller
             $supplier = Supplier::where('user_id', Auth::id())->first();
 
             if ($supplier) {
+                $latestSeleksi = \App\Models\Seleksi::where('id_supplier', $supplier->id)
+                    ->latest('tanggal')
+                    ->first();
+
+                if (!$latestSeleksi || $latestSeleksi->status_seleksi !== 'Lolos') {
+                    return response()->json([
+                        'message'  => 'Anda harus divalidasi dan lolos seleksi terlebih dahulu sebelum dapat mengajukan klasifikasi.',
+                        'existing' => null,
+                    ], 403);
+                }
+
                 $existing = Klasifikasi::where('id_supplier', $supplier->id)
                     ->whereIn('status_klasifikasi', ['pending', 'diproses'])
                     ->first();
@@ -44,8 +55,11 @@ class KlasifikasiController extends Controller
             }
         }
 
-        // Cari header soal yang aktif. Untuk saat ini ambil yang terbaru.
-        $headerSoal = \App\Models\HeaderSoal::latest('id_soal')->first();
+        // Cari header soal yang aktif untuk klasifikasi.
+        $headerSoal = \App\Models\HeaderSoal::whereHas('pertanyaans', function ($query) {
+            $query->where('jenis_soal', 'klasifikasi')
+                  ->where('status', 'aktif');
+        })->latest('id_soal')->first();
 
         if (!$headerSoal) {
             return response()->json([
@@ -92,6 +106,16 @@ class KlasifikasiController extends Controller
             return response()->json([
                 'message' => 'Data supplier tidak ditemukan. Lengkapi profil perusahaan Anda terlebih dahulu.'
             ], 422);
+        }
+
+        $latestSeleksi = \App\Models\Seleksi::where('id_supplier', $supplier->id)
+            ->latest('tanggal')
+            ->first();
+
+        if (!$latestSeleksi || $latestSeleksi->status_seleksi !== 'Lolos') {
+            return response()->json([
+                'message' => 'Anda harus divalidasi dan lolos seleksi terlebih dahulu sebelum dapat mengajukan klasifikasi.'
+            ], 403);
         }
 
         $validated = $request->validate([
@@ -150,6 +174,16 @@ class KlasifikasiController extends Controller
     {
         $supplier = Supplier::where('user_id', Auth::id())->first();
 
+        $canSubmitClassification = false;
+        if ($supplier) {
+            $latestSeleksi = \App\Models\Seleksi::where('id_supplier', $supplier->id)
+                ->latest('tanggal')
+                ->first();
+            if ($latestSeleksi && $latestSeleksi->status_seleksi === 'Lolos') {
+                $canSubmitClassification = true;
+            }
+        }
+
         if (!$supplier) {
             return response()->json([
                 'data'  => new \Illuminate\Pagination\LengthAwarePaginator([], 0, $request->get('per_page', 10), 1, ['path' => $request->url()]),
@@ -158,6 +192,7 @@ class KlasifikasiController extends Controller
                     'disetujui'           => 0,
                     'menunggu_validasi'   => 0,
                 ],
+                'can_submit_classification' => false,
             ]);
         }
 
@@ -181,6 +216,7 @@ class KlasifikasiController extends Controller
         return response()->json([
             'data'  => $klasifikasis,
             'stats' => $stats,
+            'can_submit_classification' => $canSubmitClassification,
         ]);
     }
 
@@ -310,5 +346,14 @@ class KlasifikasiController extends Controller
         return response()->json([
             'message' => 'Keputusan validasi akhir berhasil disimpan.',
         ]);
+    }
+
+    /**
+     * GET /admin/supplier/classification/export
+     * Admin export data klasifikasi
+     */
+    public function adminExport(\Illuminate\Http\Request $request)
+    {
+        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\KlasifikasiExport, 'data_klasifikasi.xlsx');
     }
 }

@@ -108,19 +108,19 @@ const submitReturn = () => {
     <AdminLayout>
         <!-- Header Page -->
         <div class="mb-8">
-            <h1 class="text-2xl font-bold text-slate-900">Return Management</h1>
-            <p class="text-slate-500 text-sm mt-1">Kelola data pengembalian barang dari gudang ke supplier.</p>
+            <h1 class="text-2xl font-bold text-gray-900">Return Management</h1>
+            <p class="text-gray-500 text-sm mt-1">Kelola data pengembalian barang dari gudang ke supplier.</p>
         </div>
 
         <!-- Action Card -->
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
             <div>
-                <h2 class="text-lg font-bold text-slate-800">Return Management</h2>
-                <p class="text-sm text-slate-400 font-medium">Daftar Transaksi Return</p>
+                <h2 class="text-lg font-bold text-gray-800">Return Management</h2>
+                <p class="text-sm text-gray-400 font-medium">Daftar Transaksi Return</p>
             </div>
             <button 
                 @click="handleAddReturn"
-                class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-red-600 text-white text-xs font-black uppercase tracking-widest rounded-xl hover:bg-red-700 transition-all active:scale-95 shadow-lg shadow-red-100"
+                class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-red-600 text-white text-sm font-semibold rounded-xl hover:bg-red-700 transition-all active:scale-95 shadow-lg shadow-red-100"
             >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
@@ -139,7 +139,7 @@ const submitReturn = () => {
                     class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none"
                 >
                     <svg
-                        class="w-5 h-5 text-slate-400"
+                        class="w-5 h-5 text-gray-400"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -156,7 +156,7 @@ const submitReturn = () => {
                         v-model="searchQuery"
                         type="text"
                         placeholder="Cari nama perusahaan, email, atau alamat..."
-                        class="w-full pl-11 pr-4 py-3 text-sm bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-slate-400 shadow-sm"
+                        class="w-full pl-11 pr-4 py-3 text-sm bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-gray-400 shadow-sm"
                 />
             </div>
 
@@ -164,12 +164,12 @@ const submitReturn = () => {
             <div class="flex flex-wrap items-center gap-3">
                 <div class="flex items-center gap-2">
                     <span
-                        class="text-sm font-medium text-slate-400"
+                        class="text-sm font-medium text-gray-400"
                         >Tampilkan</span
                     >
                     <select
                         v-model="perPage"
-                        class="bg-white border border-slate-200 text-slate-700 text-sm rounded-xl py-2.5 px-3 pr-8 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium shadow-sm"
+                        class="bg-white border border-gray-200 text-gray-700 text-sm rounded-xl py-2.5 px-3 pr-8 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium shadow-sm"
                     >
                         <option :value="10">10 Data</option>
                         <option :value="25">25 Data</option>
@@ -181,7 +181,7 @@ const submitReturn = () => {
                 <div class="flex items-center gap-2">
                     <select
                         v-model="selectedYear"
-                        class="bg-white border border-slate-200 text-slate-700 text-sm rounded-xl py-2.5 px-3 pr-8 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium shadow-sm"
+                        class="bg-white border border-gray-200 text-gray-700 text-sm rounded-xl py-2.5 px-3 pr-8 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium shadow-sm"
                     >
                         <option value="">Semua Tahun</option>
                         <option
@@ -197,38 +197,38 @@ const submitReturn = () => {
         </div>
 
         <!-- Table Section -->
-        <div class="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse">
                     <thead>
-                        <tr class="bg-slate-50/50 border-b border-slate-100">
-                            <th class="py-5 px-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center w-16">No</th>
-                            <th class="py-5 px-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">ID Return</th>
-                            <th class="py-5 px-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">ID Inbound</th>
-                            <th class="py-5 px-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Tanggal Return</th>
-                            <th class="py-5 px-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Jumlah Item</th>
-                            <th class="py-5 px-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Notes</th>
-                            <th class="py-5 px-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center w-24">Aksi</th>
+                        <tr class="bg-gray-50/50 border-b border-gray-100">
+                            <th class="py-5 px-6 text-xs font-bold text-gray-400 uppercase text-center w-16">No</th>
+                            <th class="py-5 px-6 text-xs font-bold text-gray-400 uppercase">ID Return</th>
+                            <th class="py-5 px-6 text-xs font-bold text-gray-400 uppercase">ID Inbound</th>
+                            <th class="py-5 px-6 text-xs font-bold text-gray-400 uppercase text-center">Tanggal Return</th>
+                            <th class="py-5 px-6 text-xs font-bold text-gray-400 uppercase text-center">Jumlah Item</th>
+                            <th class="py-5 px-6 text-xs font-bold text-gray-400 uppercase">Notes</th>
+                            <th class="py-5 px-6 text-xs font-bold text-gray-400 uppercase text-center w-24">Aksi</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-slate-50">
-                        <tr v-for="(item, idx) in displayReturns" :key="idx" class="hover:bg-slate-50/50 transition-colors group">
-                            <td class="py-4 px-6 text-center text-xs font-bold text-slate-400">{{ idx + 1 }}</td>
+                    <tbody class="divide-y divide-gray-50">
+                        <tr v-for="(item, idx) in displayReturns" :key="idx" class="hover:bg-gray-50/50 transition-colors group">
+                            <td class="py-4 px-6 text-center text-xs font-bold text-gray-400">{{ idx + 1 }}</td>
                             <td class="py-4 px-6">
-                                <span class="text-xs font-black text-slate-900 leading-none">RET-{{ item.id_return }}</span>
+                                <span class="text-xs font-black text-gray-900 leading-none">RET-{{ item.id_return }}</span>
                             </td>
-                            <td class="py-4 px-6 text-xs font-bold text-slate-600">INB-{{ item.id_inbound }}</td>
-                            <td class="py-4 px-6 text-center text-xs font-bold text-slate-500">{{ item.tanggal_return }}</td>
+                            <td class="py-4 px-6 text-xs font-bold text-gray-600">INB-{{ item.id_inbound }}</td>
+                            <td class="py-4 px-6 text-center text-xs font-bold text-gray-500">{{ item.tanggal_return }}</td>
                             <td class="py-4 px-6 text-center">
                                 <span class="bg-indigo-50 text-indigo-700 px-3 py-1 rounded-lg text-[10px] font-black shadow-sm border border-indigo-100">
                                     {{ item.jumlah_item }} Items
                                 </span>
                             </td>
-                            <td class="py-4 px-6 text-xs text-slate-500 font-medium italic">
+                            <td class="py-4 px-6 text-xs text-gray-500 font-medium italic">
                                 {{ item.notes || '-' }}
                             </td>
                             <td class="py-4 px-6 text-center">
-                                <button class="p-2 bg-slate-50 text-slate-400 rounded-xl hover:bg-indigo-50 hover:text-indigo-600 transition-all">
+                                <button class="p-2 bg-gray-50 text-gray-400 rounded-xl hover:bg-indigo-50 hover:text-indigo-600 transition-all">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0zM2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                     </svg>
@@ -240,13 +240,13 @@ const submitReturn = () => {
                         <tr v-if="displayReturns.length === 0">
                             <td colspan="7" class="py-24 text-center">
                                 <div class="flex flex-col items-center justify-center">
-                                    <div class="w-20 h-20 bg-slate-50 rounded-[28px] flex items-center justify-center mb-6 border border-slate-100">
-                                        <svg class="w-10 h-10 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <div class="w-20 h-20 bg-gray-50 rounded-[28px] flex items-center justify-center mb-6 border border-gray-100">
+                                        <svg class="w-10 h-10 text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
                                         </svg>
                                     </div>
-                                    <h3 class="text-sm font-black text-slate-700 uppercase tracking-widest">No Return Data Found</h3>
-                                    <p class="text-[10px] text-slate-400 mt-2 uppercase font-bold tracking-tighter">Silakan gunakan button di atas untuk menambahkan data retur baru.</p>
+                                    <h3 class="text-sm font-black text-gray-700 uppercase tracking-widest">No Return Data Found</h3>
+                                    <p class="text-[10px] text-gray-400 mt-2 uppercase font-bold tracking-tighter">Silakan gunakan button di atas untuk menambahkan data retur baru.</p>
                                 </div>
                             </td>
                         </tr>
@@ -255,25 +255,25 @@ const submitReturn = () => {
             </div>
 
             <!-- Simple Pagination Footer -->
-            <div class="px-8 py-5 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between">
-                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Showing 0 of 0 Records</p>
+            <div class="px-8 py-5 bg-gray-50/50 border-t border-gray-100 flex items-center justify-between">
+                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Showing 0 of 0 Records</p>
                 <div class="flex gap-2">
-                    <button class="px-4 py-2 bg-white border border-slate-200 rounded-xl text-[10px] font-black text-slate-400 uppercase tracking-widest opacity-50 cursor-not-allowed transition-all">Previous</button>
-                    <button class="px-4 py-2 bg-white border border-slate-200 rounded-xl text-[10px] font-black text-slate-400 uppercase tracking-widest opacity-50 cursor-not-allowed transition-all">Next</button>
+                    <button class="px-4 py-2 bg-white border border-gray-200 rounded-xl text-[10px] font-black text-gray-400 uppercase tracking-widest opacity-50 cursor-not-allowed transition-all">Previous</button>
+                    <button class="px-4 py-2 bg-white border border-gray-200 rounded-xl text-[10px] font-black text-gray-400 uppercase tracking-widest opacity-50 cursor-not-allowed transition-all">Next</button>
                 </div>
             </div>
         </div>
 
         <!-- MODAL ADD RETURN -->
         <div v-if="showAddModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <div class="bg-white rounded-[32px] shadow-2xl w-full max-w-5xl overflow-hidden border border-slate-100 transform transition-all">
+            <div class="bg-white rounded-[32px] shadow-2xl w-full max-w-5xl overflow-hidden border border-gray-100 transform transition-all">
                 <!-- Header -->
-                <div class="px-8 py-6 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
+                <div class="px-8 py-6 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
                     <div>
-                        <h3 class="text-xl font-black text-slate-800 uppercase tracking-tight">Add New Return</h3>
-                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Form Pengembalian Barang ke Supplier</p>
+                        <h3 class="text-xl font-black text-gray-800 uppercase tracking-tight">Add New Return</h3>
+                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Form Pengembalian Barang ke Supplier</p>
                     </div>
-                    <button @click="showAddModal = false" class="p-2 hover:bg-slate-200 rounded-xl transition-colors text-slate-400">
+                    <button @click="showAddModal = false" class="p-2 hover:bg-gray-200 rounded-xl transition-colors text-gray-400">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                     </button>
                 </div>
@@ -282,11 +282,11 @@ const submitReturn = () => {
                     <form @submit.prevent="submitReturn" class="space-y-6">
                         <!-- ID Inbound Selection -->
                         <div class="max-w-xs">
-                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Pilih ID Inbound</label>
+                            <label class="block text-sm font-medium text-gray-400 mb-2">ID Inbound</label>
                             <select 
                                 v-model="returnForm.id_inbound" 
                                 @change="handleInboundChange"
-                                class="w-full bg-white border border-slate-200 text-slate-700 text-sm rounded-2xl py-3.5 px-4 focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all font-bold shadow-sm"
+                                class="w-full bg-white border border-gray-200 text-gray-700 text-sm rounded-lg py-3.5 px-4 focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all font-medium shadow-sm"
                                 required
                             >
                                 <option value="" disabled>-- Pilih ID Inbound --</option>
@@ -298,24 +298,24 @@ const submitReturn = () => {
 
                         <!-- Detail Barang Table -->
                         <div v-if="returnForm.id_inbound" class="space-y-4">
-                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Detail Barang Return</label>
-                            <div class="border border-slate-100 rounded-[24px] overflow-hidden shadow-sm">
+                            <label class="block text-sm font-medium text-gray-400">Detail Barang Return</label>
+                            <div class="border border-gray-100 rounded-lg overflow-hidden shadow-sm">
                                 <table class="w-full text-left text-xs border-collapse">
-                                    <thead class="bg-slate-50/50 border-b border-slate-100">
+                                    <thead class="bg-gray-50/50 border-b border-gray-100">
                                         <tr>
-                                            <th class="py-4 px-6 font-black text-slate-400 uppercase tracking-widest w-16 text-center">No</th>
-                                            <th class="py-4 px-6 font-black text-slate-400 uppercase tracking-widest">Nama Barang</th>
-                                            <th class="py-4 px-6 font-black text-slate-400 uppercase tracking-widest text-center">Qty</th>
-                                            <th class="py-4 px-6 font-black text-slate-400 uppercase tracking-widest">Kondisi Barang</th>
-                                            <th class="py-4 px-6 font-black text-slate-400 uppercase tracking-widest">Alasan Return</th>
+                                            <th class="py-4 px-6 font-medium text-gray-400 w-16 text-center">No</th>
+                                            <th class="py-4 px-6 font-medium text-gray-400">Nama Barang</th>
+                                            <th class="py-4 px-6 font-medium text-gray-400 text-center">Qty</th>
+                                            <th class="py-4 px-6 font-medium text-gray-400">Kondisi Barang</th>
+                                            <th class="py-4 px-6 font-medium text-gray-400">Alasan Return</th>
                                         </tr>
                                     </thead>
-                                    <tbody class="divide-y divide-slate-50 bg-white">
-                                        <tr v-for="(item, idx) in returnForm.items" :key="idx" class="hover:bg-slate-50/50 transition-colors">
-                                            <td class="py-4 px-6 text-center font-bold text-slate-400">{{ idx + 1 }}</td>
+                                    <tbody class="divide-y divide-gray--50 bg-white">
+                                        <tr v-for="(item, idx) in returnForm.items" :key="idx" class="hover:bg-gray-50/50 transition-colors">
+                                            <td class="py-4 px-6 text-center font-semibold text-gray-400">{{ idx + 1 }}</td>
                                             <td class="py-4 px-6">
-                                                <p class="font-black text-slate-900">{{ item.nama_barang }}</p>
-                                                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-tighter mt-0.5">Stok Inbound: {{ item.max_qty }}</p>
+                                                <p class="font-medium text-gray-900">{{ item.nama_barang }}</p>
+                                                <p class="text-xs text-gray-400 font-medium mt-0.5">Stok Inbound: {{ item.max_qty }}</p>
                                             </td>
                                             <td class="py-4 px-6 text-center">
                                                 <input 
@@ -323,14 +323,14 @@ const submitReturn = () => {
                                                     v-model="item.qty"
                                                     :max="item.max_qty"
                                                     min="1"
-                                                    class="w-20 text-center py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all font-bold text-xs"
+                                                    class="w-20 text-center py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all font-medium text-xs"
                                                     required
                                                 />
                                             </td>
                                             <td class="py-4 px-6">
                                                 <select 
                                                     v-model="item.kondisi"
-                                                    class="w-full bg-slate-50 border border-slate-200 text-slate-700 text-xs rounded-xl py-2 px-3 focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all font-bold"
+                                                    class="w-full bg-gray-50 border border-gray-200 text-gray-700 text-xs rounded-lg py-2 px-3 focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all font-medium"
                                                     required
                                                 >
                                                     <option v-for="c in conditions" :key="c.value" :value="c.value">{{ c.label }}</option>
@@ -341,7 +341,7 @@ const submitReturn = () => {
                                                     v-model="item.alasan"
                                                     type="text"
                                                     placeholder="Contoh: Barang penyok, label lepas..."
-                                                    class="w-full bg-slate-50 border border-slate-200 text-xs rounded-xl py-2 px-4 focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all font-medium placeholder:text-slate-300"
+                                                    class="w-full bg-gray-50 border border-gray-200 text-xs rounded-lg py-2 px-4 focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all font-medium placeholder:text-gray-300"
                                                     required
                                                 />
                                             </td>
@@ -352,7 +352,7 @@ const submitReturn = () => {
                         </div>
 
                         <!-- Empty Placeholder -->
-                        <div v-if="!returnForm.id_inbound" class="py-16 border-2 border-dashed border-slate-100 rounded-[32px] flex flex-col items-center justify-center text-slate-300 bg-slate-50/30">
+                        <div v-if="!returnForm.id_inbound" class="py-16 border-2 border-dashed border-gray-100 rounded-[32px] flex flex-col items-center justify-center text-gray-300 bg-gray-50/30">
                             <div class="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-sm mb-4">
                                 <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
@@ -362,14 +362,14 @@ const submitReturn = () => {
                         </div>
 
                         <!-- Footer Actions -->
-                        <div class="pt-6 border-t border-slate-100 flex justify-end gap-3">
-                            <button type="button" @click="showAddModal = false" class="px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all active:scale-95 leading-none">
+                        <div class="pt-6 border-t border-gray-100 flex justify-end gap-3">
+                            <button type="button" @click="showAddModal = false" class="px-8 py-4 rounded-xl bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all active:scale-95">
                                 Cancel
                             </button>
                             <button 
                                 type="submit" 
                                 :disabled="!returnForm.id_inbound"
-                                class="px-10 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest bg-red-600 text-white hover:bg-red-700 shadow-lg shadow-red-100 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed leading-none"
+                                class="px-8 py-4 rounded-xl bg-red-600 text-white hover:bg-red-700 shadow-lg shadow-red-100 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 Save Return
                             </button>

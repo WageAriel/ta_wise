@@ -123,22 +123,9 @@ const paginationLinks = computed(() => {
         }));
 });
 
-// ─── Import / Export modal ─────────────────────────────────────────────────
-const showImportModal = ref(false);
-const importFile      = ref(null);
-
-function handleImportFile(e) {
-    importFile.value = e.target.files[0] ?? null;
-}
-
-function submitImport() {
-    if (!importFile.value) return;
-    showImportModal.value = false;
-    importFile.value = null;
-}
-
+// ─── Export ─────────────────────────────────────────────────
 function doExport() {
-    window.location.href = route("admin.supplier.classification") + "?export=1";
+    window.location.href = route("admin.supplier.classification.export");
 }
 
 // ─── Validasi Modal ───────────────────────────────────────────────────────
@@ -251,7 +238,7 @@ function hitungPoinJawaban(jawaban) {
 
         <!-- Main -->
         <main class="flex-1 h-full overflow-y-auto">
-            <div class="max-w-7xl mx-auto px-6 py-10 lg:px-10">
+            <div class="max-w-8xl mx-auto px-6 py-10 lg:px-10">
 
                 <!-- ── Page Header ── -->
                 <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
@@ -324,21 +311,10 @@ function hitungPoinJawaban(jawaban) {
                 <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 mb-8">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div>
-                            <h2 class="text-sm font-bold text-slate-800">Import &amp; Export Data</h2>
-                            <p class="text-xs text-slate-400 mt-0.5">Upload data klasifikasi via Excel atau unduh laporan.</p>
+                            <h2 class="text-sm font-bold text-slate-800">Export Data</h2>
+                            <p class="text-xs text-slate-400 mt-0.5">Unduh laporan data klasifikasi via Excel.</p>
                         </div>
                         <div class="flex items-center gap-3">
-                            <!-- Import -->
-                            <button
-                                @click="showImportModal = true"
-                                class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-700 text-sm font-semibold hover:bg-blue-100 transition-colors"
-                            >
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                                </svg>
-                                Import Excel
-                            </button>
                             <!-- Export -->
                             <button
                                 @click="doExport"
@@ -805,61 +781,7 @@ function hitungPoinJawaban(jawaban) {
         </Transition>
     </Teleport>
 
-    <!-- ── Import Modal ── -->
-    <Teleport to="body">
-        <Transition name="fade">
-            <div
-                v-if="showImportModal"
-                class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
-                @click.self="showImportModal = false"
-            >
-                <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-8">
-                    <div class="flex items-center justify-between mb-6">
-                        <h3 class="text-lg font-bold text-slate-900">Import Data Klasifikasi</h3>
-                        <button @click="showImportModal = false" class="text-slate-400 hover:text-slate-600 transition-colors">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
-                    </div>
 
-                    <!-- Upload Area -->
-                    <label class="block cursor-pointer">
-                        <input type="file" accept=".xlsx,.xls,.csv" class="hidden" @change="handleImportFile" />
-                        <div
-                            class="border-2 border-dashed rounded-xl p-8 flex flex-col items-center text-center transition-colors"
-                            :class="importFile ? 'border-blue-400 bg-blue-50' : 'border-slate-300 hover:border-blue-400 hover:bg-slate-50'"
-                        >
-                            <svg class="w-10 h-10 mb-3" :class="importFile ? 'text-blue-500' : 'text-slate-300'"
-                                fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                            </svg>
-                            <p v-if="importFile" class="text-sm font-bold text-blue-700">{{ importFile.name }}</p>
-                            <p v-else class="text-sm font-semibold text-slate-500">Klik untuk pilih file</p>
-                            <p class="text-xs text-slate-400 mt-1">Format: .xlsx, .xls, .csv</p>
-                        </div>
-                    </label>
-
-                    <div class="flex justify-end gap-3 mt-6">
-                        <button
-                            @click="showImportModal = false"
-                            class="px-5 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors"
-                        >
-                            Batal
-                        </button>
-                        <button
-                            @click="submitImport"
-                            :disabled="!importFile"
-                            class="px-5 py-2.5 rounded-xl bg-blue-600 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-40 transition-colors"
-                        >
-                            Upload & Import
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </Transition>
-    </Teleport>
     <!-- ── Detail Modal ── -->
     <Teleport to="body">
         <Transition name="fade">

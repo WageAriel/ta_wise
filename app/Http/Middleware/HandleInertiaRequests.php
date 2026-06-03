@@ -34,6 +34,7 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user() ? $request->user()->load('profilPetugas') : null,
             ],
+            'app_settings' => \App\Models\AppSetting::pluck('value', 'key')->toArray(),
         ];
     }
 }

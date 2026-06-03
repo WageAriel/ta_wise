@@ -59,15 +59,19 @@ const icons = {
         class="flex flex-col w-64 min-h-screen bg-white text-black border-r border-gray-200 shadow-sm"
     >
         <!-- Brand -->
-        <div class="flex items-center gap-3 px-6 py-5 border-b border-gray-50">
-            <div
-                class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center font-black text-white text-sm shadow-sm shadow-blue-200"
-            >
-                W
-            </div>
-            <span class="font-bold text-lg tracking-widest text-gray-800"
-                >WISE</span
-            >
+        <div class="flex items-center gap-3 px-6 py-5 border-b border-gray-50 shrink-0">
+            <template v-if="$page.props.app_settings?.system_logo">
+                <img :src="$page.props.app_settings.system_logo" class="w-8 h-8 rounded-lg object-contain" alt="Logo">
+            </template>
+            <template v-else>
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center font-black text-white text-sm shadow-sm shadow-blue-200"
+                     :style="{ backgroundColor: $page.props.app_settings?.theme_color || '#2563eb' }">
+                    {{ ($page.props.app_settings?.system_name || 'WISE').charAt(0).toUpperCase() }}
+                </div>
+            </template>
+            <span class="font-bold text-lg tracking-widest text-gray-800">
+                {{ $page.props.app_settings?.system_name || 'WISE' }}
+            </span>
         </div>
 
         <!-- Menu Navigation -->
