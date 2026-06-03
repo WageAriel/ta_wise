@@ -42,12 +42,14 @@ class HeaderSoalController extends Controller
     {
         $validated = $request->validate([
             'nama_soal'        => 'required|string|max:255',
+            'jenis_soal'       => 'required|in:seleksi,klasifikasi',
             'pertanyaan_ids'   => 'required|array|min:1',
             'pertanyaan_ids.*' => 'exists:pertanyaan,id_pertanyaan',
         ]);
 
         $headerSoal = HeaderSoal::create([
             'nama_soal' => $validated['nama_soal'],
+            'jenis_soal' => $validated['jenis_soal'],
         ]);
 
         foreach ($validated['pertanyaan_ids'] as $idPertanyaan) {
@@ -67,10 +69,10 @@ class HeaderSoalController extends Controller
      * GET /api/soal/header/{id}
      * Detail header soal beserta seluruh pertanyaan & opsinya
      */
-    public function show(HeaderSoal $headerSoal)
+    public function show(HeaderSoal $header)
     {
         return response()->json(
-            $headerSoal->load('pertanyaans.opsis')
+            $header->load('pertanyaans.opsis')
         );
     }
 
@@ -78,27 +80,31 @@ class HeaderSoalController extends Controller
      * PUT /api/soal/header/{id}
      * Update header soal + sinkronisasi detail_soal
      */
-    public function update(Request $request, HeaderSoal $headerSoal)
+    public function update(Request $request, HeaderSoal $header)
     {
         $validated = $request->validate([
             'nama_soal'        => 'required|string|max:255',
+            'jenis_soal'       => 'required|in:seleksi,klasifikasi',
             'pertanyaan_ids'   => 'required|array|min:1',
             'pertanyaan_ids.*' => 'exists:pertanyaan,id_pertanyaan',
         ]);
 
-        $headerSoal->update(['nama_soal' => $validated['nama_soal']]);
+        $header->update([
+            'nama_soal' => $validated['nama_soal'],
+            'jenis_soal' => $validated['jenis_soal']
+        ]);
 
         // Sync detail_soal: hapus lama, buat ulang
-        DetailSoal::where('id_soal', $headerSoal->id_soal)->delete();
+        DetailSoal::where('id_soal', $header->id_soal)->delete();
         foreach ($validated['pertanyaan_ids'] as $idPertanyaan) {
             DetailSoal::create([
-                'id_soal'       => $headerSoal->id_soal,
+                'id_soal'       => $header->id_soal,
                 'id_pertanyaan' => $idPertanyaan,
             ]);
         }
 
         return response()->json(
-            $headerSoal->load('pertanyaans.opsis')
+            $header->load('pertanyaans.opsis')
         );
     }
 
@@ -106,9 +112,9 @@ class HeaderSoalController extends Controller
      * DELETE /api/soal/header/{id}
      * Hapus header soal (detail_soal cascade delete)
      */
-    public function destroy(HeaderSoal $headerSoal)
+    public function destroy(HeaderSoal $header)
     {
-        $headerSoal->delete();
+        $header->delete();
         return response()->json(['message' => 'Header soal berhasil dihapus.']);
     }
 }
