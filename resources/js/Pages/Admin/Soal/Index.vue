@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import SidebarAdmin from "@/Components/SidebarAdmin.vue";
 import axios from 'axios';
@@ -46,14 +46,19 @@ const removeOpsi = (index) => {
     if(formPertanyaan.opsis.length > 2) formPertanyaan.opsis.splice(index, 1);
 };
 
-const openPertanyaanModal = (item = null) => {
+const openPertanyaanModal = async (item = null) => {
     if (item) {
         formPertanyaan.id_pertanyaan = item.id_pertanyaan;
         formPertanyaan.jenis_soal = item.jenis_soal;
         formPertanyaan.teks_pertanyaan = item.teks_pertanyaan;
         formPertanyaan.bobot = item.bobot;
         formPertanyaan.status = item.status;
-        formPertanyaan.opsis = item.opsis.map(o => ({ teks_opsi: o.teks_opsi, nilai: o.nilai }));
+        try {
+            const res = await axios.get(route('admin.soal.pertanyaan.show', item.id_pertanyaan));
+            formPertanyaan.opsis = res.data.opsis.map(o => ({ teks_opsi: o.teks_opsi, nilai: o.nilai }));
+        } catch(e) {
+            console.error(e);
+        }
     } else {
         formPertanyaan.reset();
         formPertanyaan.id_pertanyaan = null;
@@ -92,13 +97,27 @@ const isModalHeaderOpen = ref(false);
 const formHeader = useForm({
     id_soal: null,
     nama_soal: '',
+    jenis_soal: 'seleksi',
     pertanyaan_ids: []
+});
+
+// Filtered pertanyaans based on jenis_soal selected in header modal
+const pertanyaansForHeader = computed(() => {
+    return pertanyaans.value.filter(p => p.jenis_soal === formHeader.jenis_soal);
+});
+
+// --- Filter untuk Tab Daftar Pertanyaan ---
+const filterJenisSoal = ref('semua');
+const filteredPertanyaans = computed(() => {
+    if (filterJenisSoal.value === 'semua') return pertanyaans.value;
+    return pertanyaans.value.filter(p => p.jenis_soal === filterJenisSoal.value);
 });
 
 const openHeaderModal = async (item = null) => {
     if (item) {
         formHeader.id_soal = item.id_soal;
         formHeader.nama_soal = item.nama_soal;
+        formHeader.jenis_soal = item.jenis_soal || 'seleksi';
         try {
             const res = await axios.get(route('admin.soal.header.show', item.id_soal));
             formHeader.pertanyaan_ids = res.data.pertanyaans.map(p => p.id_pertanyaan);
@@ -108,6 +127,7 @@ const openHeaderModal = async (item = null) => {
     } else {
         formHeader.reset();
         formHeader.id_soal = null;
+        formHeader.jenis_soal = 'seleksi';
         formHeader.pertanyaan_ids = [];
     }
     isModalHeaderOpen.value = true;
@@ -204,16 +224,39 @@ const deleteHeader = async (id) => {
 
                     <!-- TAB 2: Pertanyaan -->
                     <div v-if="activeTab === 'pertanyaan'" class="p-6">
-                        <div class="flex justify-end mb-4">
+                        <div class="flex items-center justify-between mb-4">
+                            <!-- Filter Jenis Soal (kiri) -->
+                            <div class="flex items-center gap-2">
+                                <button
+                                    @click="filterJenisSoal = 'semua'"
+                                    class="px-3 py-2 rounded-lg text-sm font-bold transition-colors"
+                                    :class="filterJenisSoal === 'semua' ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'"
+                                >Semua</button>
+                                <button
+                                    @click="filterJenisSoal = 'seleksi'"
+                                    class="px-3 py-2 rounded-lg text-sm font-bold transition-colors"
+                                    :class="filterJenisSoal === 'seleksi' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'"
+                                >Seleksi</button>
+                                <button
+                                    @click="filterJenisSoal = 'klasifikasi'"
+                                    class="px-3 py-2 rounded-lg text-sm font-bold transition-colors"
+                                    :class="filterJenisSoal === 'klasifikasi' ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'"
+                                >Klasifikasi</button>
+                            </div>
+                            <!-- Tombol Tambah Pertanyaan (kanan) -->
                             <button @click="openPertanyaanModal()" class="px-4 py-2 bg-blue-600 text-white font-bold rounded-lg text-sm hover:bg-blue-700">
                                 + Tambah Pertanyaan
                             </button>
                         </div>
                         <div class="space-y-4">
-                            <div v-for="p in pertanyaans" :key="p.id_pertanyaan" class="border border-slate-200 rounded-xl p-4 flex justify-between items-start hover:bg-slate-50 transition">
+                            <p v-if="filteredPertanyaans.length === 0" class="text-center text-slate-400 py-8 text-sm">Tidak ada pertanyaan ditemukan.</p>
+                            <div v-for="p in filteredPertanyaans" :key="p.id_pertanyaan" class="border border-slate-200 rounded-xl p-4 flex justify-between items-start hover:bg-slate-50 transition">
                                 <div>
                                     <div class="flex items-center gap-2 mb-2">
-                                        <span class="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-xs font-bold uppercase">{{ p.jenis_soal }}</span>
+                                        <span
+                                            class="px-2 py-0.5 rounded text-xs font-bold uppercase"
+                                            :class="p.jenis_soal === 'seleksi' ? 'bg-indigo-100 text-indigo-700' : 'bg-emerald-100 text-emerald-700'"
+                                        >{{ p.jenis_soal }}</span>
                                         <span class="px-2 py-0.5 rounded text-xs font-bold uppercase" :class="p.status === 'aktif' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'">{{ p.status }}</span>
                                     </div>
                                     <h4 class="font-bold text-slate-800">{{ p.teks_pertanyaan }}</h4>
@@ -242,14 +285,23 @@ const deleteHeader = async (id) => {
                         <label class="block text-sm font-bold text-slate-700 mb-2">Nama Paket Soal</label>
                         <input type="text" v-model="formHeader.nama_soal" class="w-full border-slate-200 rounded-lg bg-slate-50 text-sm p-2.5">
                     </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-bold text-slate-700 mb-2">Jenis Soal</label>
+                        <select v-model="formHeader.jenis_soal" class="w-full border-slate-200 rounded-lg bg-slate-50 text-sm p-2.5">
+                            <option value="seleksi">Seleksi</option>
+                            <option value="klasifikasi">Klasifikasi</option>
+                        </select>
+                        <p class="text-xs text-slate-400 mt-1">Daftar pertanyaan di bawah akan disesuaikan dengan jenis soal yang dipilih.</p>
+                    </div>
                     <div>
                         <label class="block text-sm font-bold text-slate-700 mb-2">Pilih Pertanyaan yang Dimasukkan</label>
-                        <div class="max-h-64 overflow-y-auto border border-slate-200 rounded-lg p-3 space-y-2">
-                            <label v-for="p in pertanyaans" :key="p.id_pertanyaan" class="flex items-start gap-3 p-2 hover:bg-slate-50 rounded cursor-pointer border border-transparent hover:border-slate-200">
+                        <p v-if="pertanyaansForHeader.length === 0" class="text-xs text-slate-400 italic p-3 border border-slate-200 rounded-lg">Tidak ada pertanyaan {{ formHeader.jenis_soal }} yang tersedia.</p>
+                        <div v-else class="max-h-64 overflow-y-auto border border-slate-200 rounded-lg p-3 space-y-2">
+                            <label v-for="p in pertanyaansForHeader" :key="p.id_pertanyaan" class="flex items-start gap-3 p-2 hover:bg-slate-50 rounded cursor-pointer border border-transparent hover:border-slate-200">
                                 <input type="checkbox" :value="p.id_pertanyaan" v-model="formHeader.pertanyaan_ids" class="mt-1 rounded text-blue-600 focus:ring-blue-500">
                                 <div>
                                     <p class="text-sm font-bold text-slate-800">{{ p.teks_pertanyaan }}</p>
-                                    <p class="text-xs text-slate-500 mt-0.5">Jenis: {{ p.jenis_soal }} | Status: {{ p.status }}</p>
+                                    <p class="text-xs text-slate-500 mt-0.5">Status: {{ p.status }}</p>
                                 </div>
                             </label>
                         </div>

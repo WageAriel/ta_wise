@@ -14,6 +14,7 @@ class HeaderSoal extends Model
 
     protected $fillable = [
         'nama_soal',
+        'jenis_soal',
     ];
 
     /**
