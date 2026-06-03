@@ -230,32 +230,60 @@ const showShipmentModal = ref(false);
 const modalMode = ref('create');
 const activePoId = ref(null);
 const activeShipmentPo = ref(null);
-const submitting = ref(false);
 
-const makeTypeLine = () => ({
-  item_type_id: '',
-  subtype_id: '',
-  quantity: 1,
-  unit_price: 0,
-  quotation_request: 0,
-  uom: '',
-  uom_locked: false,
-});
 
-// We'll keep a top-level selected barang for the whole PO and a list of type lines
+const getSelectedItemType = () => {
+  const barang = findBarangById(form.barang_id);
+  if (!barang) return null;
+
+  if (barang.id_item_type) {
+    const found = findItemTypeById(barang.id_item_type);
+    if (found) return found;
+  }
+
+  const matched = itemTypesForItem({ barang_id: form.barang_id });
+  return matched.length ? matched[0] : null;
+};
+
+const makeTypeLine = () => {
+  const itemType = getSelectedItemType();
+  const barang = findBarangById(form.barang_id);
+  const forceUom = Boolean(itemType?.uomConfig?.force_uom);
+  const defaultUom = itemType?.uomConfig?.default_uom || barang?.satuan || '';
+
+  return {
+    item_type_id: itemType?.id_item_type || '',
+    subtype_id: '',
+    quantity: 1,
+    unit_price: 0,
+    uom: forceUom ? defaultUom : (barang?.satuan || ''),
+    uom_locked: forceUom,
+  };
+};
+
 const form = useForm({
   supplier_id: '',
   description: '',
   is_draft: false,
   barang_id: '',
-  types: [makeTypeLine()],
+  types: [],
 });
+
+// Watch barang_id to initialize types list if empty
+watch(
+  () => form.barang_id,
+  (newVal) => {
+    if (newVal && form.types.length === 0) {
+      form.types = [makeTypeLine()];
+    }
+  }
+);
 
 const resetForm = () => {
   form.reset();
   form.clearErrors();
   form.barang_id = '';
-  form.types = [makeTypeLine()];
+  form.types = [];
 };
 
 const openCreateModal = () => {
@@ -271,18 +299,20 @@ const openEditModal = (po) => {
   activePoId.value = po.id;
   form.supplier_id = po.supplier_id || '';
   form.description = po.description || '';
-  form.is_draft = po.status === 'inquiry' || po.status === 'draft';
-  // If incoming PO has multiple barang, pick the first barang and map types accordingly
+  form.is_draft = (po.status === 'inquiry' || po.status === 'draft');
   form.barang_id = po.items?.[0]?.barang_id || '';
-  form.types = po.items.map((item) => ({
-    item_type_id: item.id_item_type || item.item_type_id || item.itemType?.id_item_type || '',
-    subtype_id: item.id_subtype || item.subtype_id || item.subtype?.id_subtype || '',
-    quantity: item.quantity,
-    unit_price: item.unit_price,
-    quotation_request: item.quotation_request || 0,
-    uom: item.uom || '',
-    uom_locked: Boolean(selectedType(item)?.uomConfig?.force_uom),
-  }));
+  form.types = po.items.map((item) => {
+    const itemType = findItemTypeById(item.id_item_type || item.item_type_id || item.itemType?.id_item_type);
+    const forceUom = Boolean(itemType?.uomConfig?.force_uom);
+    return {
+      item_type_id: item.id_item_type || item.item_type_id || item.itemType?.id_item_type || '',
+      subtype_id: item.id_subtype || item.subtype_id || item.subtype?.id_subtype || '',
+      quantity: item.quantity,
+      unit_price: item.unit_price,
+      uom: item.uom || '',
+      uom_locked: forceUom,
+    };
+  });
   showRequestModal.value = true;
 };
 
@@ -292,17 +322,20 @@ const openViewModal = (po) => {
   activePoId.value = po.id;
   form.supplier_id = po.supplier_id || '';
   form.description = po.description || '';
-  form.is_draft = po.status === 'inquiry' || po.status === 'draft';
+  form.is_draft = (po.status === 'inquiry' || po.status === 'draft');
   form.barang_id = po.items?.[0]?.barang_id || '';
-  form.types = po.items.map((item) => ({
-    item_type_id: item.id_item_type || item.item_type_id || item.itemType?.id_item_type || '',
-    subtype_id: item.id_subtype || item.subtype_id || item.subtype?.id_subtype || '',
-    quantity: item.quantity,
-    unit_price: item.unit_price,
-    quotation_request: item.quotation_request || 0,
-    uom: item.uom || '',
-    uom_locked: Boolean(selectedType(item)?.uomConfig?.force_uom),
-  }));
+  form.types = po.items.map((item) => {
+    const itemType = findItemTypeById(item.id_item_type || item.item_type_id || item.itemType?.id_item_type);
+    const forceUom = Boolean(itemType?.uomConfig?.force_uom);
+    return {
+      item_type_id: item.id_item_type || item.item_type_id || item.itemType?.id_item_type || '',
+      subtype_id: item.id_subtype || item.subtype_id || item.subtype?.id_subtype || '',
+      quantity: item.quantity,
+      unit_price: item.unit_price,
+      uom: item.uom || '',
+      uom_locked: forceUom,
+    };
+  });
   showRequestModal.value = true;
 };
 
@@ -316,63 +349,83 @@ const removeTypeLine = (index) => {
 };
 
 const onBarangChange = () => {
-  // When barang changes, reset existing type lines and set default uom per line if possible
   const barang = findBarangById(form.barang_id);
-  form.types = form.types.map((t) => ({
-    ...t,
-    item_type_id: t.item_type_id,
-    subtype_id: '',
-    uom: barang?.satuan || t.uom || '',
-    uom_locked: false,
-  }));
+  const itemType = getSelectedItemType();
+  const forceUom = Boolean(itemType?.uomConfig?.force_uom);
+  const defaultUom = itemType?.uomConfig?.default_uom || barang?.satuan || '';
+
+  form.types = [
+    {
+      item_type_id: itemType?.id_item_type || '',
+      subtype_id: '',
+      quantity: 1,
+      unit_price: 0,
+      uom: forceUom ? defaultUom : (barang?.satuan || ''),
+      uom_locked: forceUom,
+    }
+  ];
 };
 
-const onTypeChange = (typeLine) => {
-  // ensure the typeLine has barang context so applyItemTypeSelection can derive uom defaults
-  typeLine.barang_id = form.barang_id;
-  applyItemTypeSelection(typeLine);
-  // remove temporary helper prop if present
-  if (typeLine.barang_id === form.barang_id) delete typeLine.barang_id;
+const onSubtypeChange = (typeLine) => {
+  const itemType = getSelectedItemType();
+  if (!itemType) return;
+
+  const forceUom = Boolean(itemType.uomConfig?.force_uom);
+  if (forceUom) {
+    typeLine.uom = itemType.uomConfig?.default_uom || '';
+    typeLine.uom_locked = true;
+    return;
+  }
+
+  const subtype = itemType.subtypes?.find((st) => String(st.id_subtype) === String(typeLine.subtype_id));
+  if (subtype && subtype.uom) {
+    typeLine.uom = subtype.uom;
+  }
 };
 
 const typeLineSubtotal = (t) => Number(t.quantity || 0) * Number(t.unit_price || 0);
 
 const totalRequestValue = computed(() => form.types.reduce((sum, t) => sum + typeLineSubtotal(t), 0));
 
+const formErrors = computed(() => {
+  const errs = [];
+  if (!form.errors) return errs;
+  Object.keys(form.errors).forEach((key) => {
+    if (key.startsWith('items.') || key === 'items') {
+      errs.push(form.errors[key]);
+    }
+  });
+  return [...new Set(errs)];
+});
+
 const submitRequest = () => {
   if (modalMode.value === 'view') return;
 
-  // build items payload: each type line becomes an item with the selected barang_id
-  const payloadItems = form.types.map((t) => ({
-    barang_id: form.barang_id,
-    item_type_id: t.item_type_id || null,
-    subtype_id: t.subtype_id || null,
-    quantity: t.quantity,
-    unit_price: t.unit_price,
-    uom: t.uom || null,
-    quotation_request: t.quotation_request || 0,
-  }));
-
-  const payload = {
-    supplier_id: form.supplier_id || null,
-    description: form.description || null,
-    is_draft: Boolean(form.is_draft),
-    items: payloadItems,
-  };
-
   const options = {
     preserveScroll: true,
-    onStart: () => (submitting.value = true),
-    onFinish: () => (submitting.value = false),
     onSuccess: () => (showRequestModal.value = false),
   };
 
+  const transformed = form.transform((data) => ({
+    supplier_id: data.supplier_id || null,
+    description: data.description || null,
+    is_draft: data.is_draft,
+    items: data.types.map((t) => ({
+      barang_id: data.barang_id,
+      item_type_id: t.item_type_id || null,
+      subtype_id: t.subtype_id || null,
+      quantity: t.quantity,
+      unit_price: t.unit_price,
+      uom: t.uom || null,
+    })),
+  }));
+
   if (modalMode.value === 'edit' && activePoId.value) {
-    router.put(route('admin.order-request.update', activePoId.value), payload, options);
+    transformed.put(route('admin.order-request.update', activePoId.value), options);
     return;
   }
 
-  router.post(route('admin.order-request.store'), payload, options);
+  transformed.post(route('admin.order-request.store'), options);
 };
 
 const deleteRequest = (po) => {
@@ -635,9 +688,9 @@ const confirmArrival = () => {
           </div>
 
           <div class="text-right">
-            <label class="block text-xs font-semibold text-slate-500">Draft Request</label>
+            <label class="block text-xs font-semibold text-slate-500">Status Transaksi</label>
             <div class="mt-2 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-2">
-              <span class="text-xs font-medium text-slate-500">Inquiry</span>
+              <span class="text-xs font-medium text-slate-500">Request PO</span>
               <button
                 class="relative inline-flex h-6 w-11 items-center rounded-full transition"
                 :class="form.is_draft ? 'bg-blue-600' : 'bg-slate-300'"
@@ -649,10 +702,16 @@ const confirmArrival = () => {
                   :class="form.is_draft ? 'translate-x-6' : 'translate-x-1'"
                 ></span>
               </button>
-              <span class="text-xs font-medium text-slate-500">Request PO</span>
+              <span class="text-xs font-medium text-slate-500">Inquiry (Draft)</span>
             </div>
             <p v-if="modalMode === 'edit'" class="mt-1 text-[11px] text-slate-400">Status inquiry tidak bisa diubah dari form ini.</p>
           </div>
+        </div>
+
+        <div v-if="Object.keys(form.errors).length" class="mx-6 mt-2 rounded-lg bg-red-50 border border-red-200 px-4 py-3">
+          <p v-if="form.errors.supplier_id" class="text-xs text-red-600">{{ form.errors.supplier_id }}</p>
+          <p v-if="form.errors.items" class="text-xs text-red-600">{{ form.errors.items }}</p>
+          <p v-for="(err, idx) in formErrors" :key="idx" class="text-xs text-red-600">{{ err }}</p>
         </div>
 
         <div class="min-h-0 flex-1 overflow-y-auto px-6 py-4">
@@ -669,7 +728,7 @@ const confirmArrival = () => {
                   {{ supplierDisplay(supplier) }}
                 </option>
               </select>
-              <p v-if="form.errors.supplier_id" class="mt-1 text-xs text-red-500">{{ form.errors.supplier_id }}</p>
+
             </div>
             <div>
               <label class="text-xs font-semibold text-slate-500">Kelas Supplier</label>
@@ -722,44 +781,31 @@ const confirmArrival = () => {
 
             <div v-for="(t, idx) in form.types" :key="idx" class="rounded-xl border border-slate-100 bg-slate-50 p-4">
               <div class="flex items-center justify-between">
-                <span class="text-xs font-semibold uppercase tracking-wide text-slate-500">Tipe {{ idx + 1 }}</span>
+                <span class="text-xs font-semibold uppercase tracking-wide text-slate-500">Tipe Item {{ idx + 1 }}</span>
                 <button class="text-xs font-semibold text-red-500" @click="removeTypeLine(idx)" :disabled="modalMode === 'view'">
                   Hapus
                 </button>
               </div>
 
-              <div class="mt-3 grid gap-3 md:grid-cols-2">
-                <div>
-                  <label class="text-xs font-semibold text-slate-500">Tipe Item (berdasarkan Nama Item)</label>
-                  <select
-                    v-model="t.item_type_id"
-                    class="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                    :disabled="modalMode === 'view' || !form.barang_id"
-                    @change="onTypeChange(t)"
-                  >
-                    <option value="">Pilih Tipe Item</option>
-                    <option v-for="type in itemTypesForItem({ barang_id: form.barang_id })" :key="type.id_item_type" :value="type.id_item_type">
-                      {{ type.type_name }}
-                    </option>
-                  </select>
-                </div>
-                <div>
-                  <label class="text-xs font-semibold text-slate-500">Subtype</label>
-                  <select v-model="t.subtype_id" class="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" :disabled="modalMode === 'view' || !t.item_type_id">
-                    <option value="">Pilih Subtype</option>
-                    <option v-for="st in typeSubtypes(t.item_type_id)" :key="st.id_subtype" :value="st.id_subtype">{{ st.subtype_name }}</option>
-                  </select>
-                </div>
+              <div class="mt-3">
+                <label class="text-xs font-semibold text-slate-500">Pilih Tipe Item</label>
+                <select
+                  v-model="t.subtype_id"
+                  class="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                  :disabled="modalMode === 'view' || !form.barang_id"
+                  @change="onSubtypeChange(t)"
+                >
+                  <option value="">Pilih Tipe</option>
+                  <option v-for="st in typeSubtypes(t.item_type_id)" :key="st.id_subtype" :value="st.id_subtype">
+                    {{ st.subtype_name }}
+                  </option>
+                </select>
               </div>
 
-              <div class="mt-3 grid gap-3 md:grid-cols-4">
+              <div class="mt-3 grid gap-3 md:grid-cols-3">
                 <div>
                   <label class="text-xs font-semibold text-slate-500">Price Request</label>
                   <input v-model.number="t.unit_price" type="number" min="0" class="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" :disabled="modalMode === 'view'" />
-                </div>
-                <div>
-                  <label class="text-xs font-semibold text-slate-500">Quotation Request</label>
-                  <input v-model.number="t.quotation_request" type="number" min="0" class="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" :disabled="modalMode === 'view'" />
                 </div>
                 <div>
                   <label class="text-xs font-semibold text-slate-500">Quantity</label>
@@ -795,7 +841,7 @@ const confirmArrival = () => {
             v-if="modalMode !== 'view'"
             class="rounded px-3 py-1.5 text-xs font-medium bg-blue-600 text-white hover:bg-blue-700"
             @click="submitRequest"
-            :disabled="submitting"
+            :disabled="form.processing"
           >
             Simpan
           </button>

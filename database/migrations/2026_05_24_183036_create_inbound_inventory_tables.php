@@ -16,6 +16,7 @@ return new class extends Migration
             $table->string('nama_barang');
             $table->string('satuan');
             $table->string('status');
+            $table->unsignedBigInteger('id_item_type')->nullable();
             $table->timestamps();
         });
 

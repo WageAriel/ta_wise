@@ -71,11 +71,16 @@ class PurchaseOrderDefault extends Controller
         $validated = $request->validated();
 
         DB::transaction(function () use ($validated) {
-            POItemType::create($validated);
+            $type = POItemType::create($validated);
+            \App\Models\Barang::create([
+                'nama_barang' => $type->type_name,
+                'satuan' => 'pcs',
+                'status' => 'aktif',
+                'id_item_type' => $type->id_item_type,
+            ]);
         });
 
-        return redirect('/manajer/purchase-order-config/item-types')
-            ->with('success', "Tipe item '{$validated['type_name']}' berhasil dibuat.");
+        return redirect()->back()->with('success', "Tipe item '{$validated['type_name']}' berhasil dibuat.");
     }
 
     public function updateItemType($id, UpdatePOItemTypeRequest $request)
@@ -85,10 +90,22 @@ class PurchaseOrderDefault extends Controller
 
         DB::transaction(function () use ($itemType, $validated) {
             $itemType->update($validated);
+            $barang = \App\Models\Barang::where('id_item_type', $itemType->id_item_type)->first();
+            if ($barang) {
+                $barang->update([
+                    'nama_barang' => $itemType->type_name,
+                ]);
+            } else {
+                \App\Models\Barang::create([
+                    'nama_barang' => $itemType->type_name,
+                    'satuan' => 'pcs',
+                    'status' => 'aktif',
+                    'id_item_type' => $itemType->id_item_type,
+                ]);
+            }
         });
 
-        return redirect('/manajer/purchase-order-config/item-types')
-            ->with('success', "Tipe item '{$validated['type_name']}' berhasil diperbarui.");
+        return redirect()->back()->with('success', "Tipe item '{$validated['type_name']}' berhasil diperbarui.");
     }
 
     public function destroyItemType($id)
@@ -96,11 +113,11 @@ class PurchaseOrderDefault extends Controller
         $itemType = POItemType::findOrFail($id);
 
         DB::transaction(function () use ($itemType) {
+            \App\Models\Barang::where('id_item_type', $itemType->id_item_type)->delete();
             $itemType->delete();
         });
 
-        return redirect('/manajer/purchase-order-config/item-types')
-            ->with('success', "Tipe item '{$itemType->type_name}' berhasil dihapus.");
+        return redirect()->back()->with('success', "Tipe item '{$itemType->type_name}' berhasil dihapus.");
     }
 
     public function indexSubtypes($itemTypeId)
@@ -125,8 +142,7 @@ class PurchaseOrderDefault extends Controller
             $itemType->subtypes()->create($validated);
         });
 
-        return redirect("/manajer/purchase-order-config/item-types/{$itemTypeId}/subtypes")
-            ->with('success', "Subtype '{$validated['subtype_name']}' berhasil dibuat.");
+        return redirect()->back()->with('success', "Subtype '{$validated['subtype_name']}' berhasil dibuat.");
     }
 
     public function updateSubtype($itemTypeId, $subtypeId, UpdatePOItemSubtypeRequest $request)
@@ -139,8 +155,7 @@ class PurchaseOrderDefault extends Controller
             $subtype->update($validated);
         });
 
-        return redirect("/manajer/purchase-order-config/item-types/{$itemTypeId}/subtypes")
-            ->with('success', "Subtype '{$validated['subtype_name']}' berhasil diperbarui.");
+        return redirect()->back()->with('success', "Subtype '{$validated['subtype_name']}' berhasil diperbarui.");
     }
 
     public function destroySubtype($itemTypeId, $subtypeId)
@@ -153,8 +168,7 @@ class PurchaseOrderDefault extends Controller
             $subtype->delete();
         });
 
-        return redirect("/manajer/purchase-order-config/item-types/{$itemTypeId}/subtypes")
-            ->with('success', "Subtype '{$subtypeName}' berhasil dihapus.");
+        return redirect()->back()->with('success', "Subtype '{$subtypeName}' berhasil dihapus.");
     }
 
     public function storeUoM($itemTypeId, StorePOItemUoMRequest $request)
@@ -165,10 +179,16 @@ class PurchaseOrderDefault extends Controller
         DB::transaction(function () use ($itemType, $validated) {
             POItemUoMDefault::where('id_item_type', $itemType->id_item_type)->delete();
             POItemUoMDefault::create(array_merge($validated, ['id_item_type' => $itemType->id_item_type]));
+
+            $barang = \App\Models\Barang::where('id_item_type', $itemType->id_item_type)->first();
+            if ($barang) {
+                $barang->update([
+                    'satuan' => $validated['default_uom'],
+                ]);
+            }
         });
 
-        return redirect("/manajer/purchase-order-config/item-types/{$itemTypeId}/subtypes")
-            ->with('success', "Konfigurasi UoM untuk '{$itemType->type_name}' berhasil disimpan.");
+        return redirect()->back()->with('success', "Konfigurasi UoM untuk '{$itemType->type_name}' berhasil disimpan.");
     }
 
     public function updateUoM($itemTypeId, $uomConfigId, UpdatePOItemUoMRequest $request)
@@ -177,12 +197,18 @@ class PurchaseOrderDefault extends Controller
         $uomConfig = POItemUoMDefault::findOrFail($uomConfigId);
         $validated = $request->validated();
 
-        DB::transaction(function () use ($uomConfig, $validated) {
+        DB::transaction(function () use ($itemType, $uomConfig, $validated) {
             $uomConfig->update($validated);
+
+            $barang = \App\Models\Barang::where('id_item_type', $itemType->id_item_type)->first();
+            if ($barang) {
+                $barang->update([
+                    'satuan' => $validated['default_uom'],
+                ]);
+            }
         });
 
-        return redirect("/manajer/purchase-order-config/item-types/{$itemTypeId}/subtypes")
-            ->with('success', "Konfigurasi UoM untuk '{$itemType->type_name}' berhasil diperbarui.");
+        return redirect()->back()->with('success', "Konfigurasi UoM untuk '{$itemType->type_name}' berhasil diperbarui.");
     }
 
     public function itemTypeCatalog()
