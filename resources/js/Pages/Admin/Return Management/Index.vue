@@ -79,12 +79,31 @@ const conditions = [
 const handleInboundChange = async () => {
     if (!returnForm.value.id_inbound) return;
     
-    // Asumsi kita melakukan fetch data item berdasarkan inbound
-    // Disini saya buatkan dummy mapping untuk contoh
+    // Logika Return: Jumlah Inbound dikurangi Jumlah Put Away
+    // Contoh dari user: Inbound 20, Put Away 15 -> Return = 5
+    // Disini saya buatkan dummy mapping untuk contoh sesuai request
     returnForm.value.items = [
-        { id_barang: 1, nama_barang: "Semen Tiga Roda", qty: 1, max_qty: 10, kondisi: "Rusak", alasan: "" },
-        { id_barang: 2, nama_barang: "Paku Beton", qty: 1, max_qty: 25, kondisi: "Cacat", alasan: "" }
-    ];
+        { 
+            id_barang: 1, 
+            nama_barang: "Semen Tiga Roda", 
+            inbound_qty: 20, 
+            put_away_qty: 15, 
+            qty: 5, // 20 - 15 = 5 (Return)
+            max_qty: 5, 
+            kondisi: "Tidak Sesuai", 
+            alasan: "Barang tidak sesuai/diterima" 
+        },
+        { 
+            id_barang: 2, 
+            nama_barang: "Paku Beton", 
+            inbound_qty: 30, 
+            put_away_qty: 28, 
+            qty: 2, // 30 - 28 = 2 (Return)
+            max_qty: 2, 
+            kondisi: "Cacat", 
+            alasan: "Rusak di perjalanan" 
+        }
+    ].filter(item => item.qty > 0); // Hanya yang ada selisih yang bisa direturn
 };
 
 const handleAddReturn = () => {

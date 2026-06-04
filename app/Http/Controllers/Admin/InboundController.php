@@ -76,6 +76,7 @@ class InboundController extends Controller
             'items' => 'required|array|min:1',
             'items.*.id_barang' => 'required|exists:barang,id_barang',
             'items.*.qty' => 'required|integer|min:1',
+            'items.*.max_qty' => 'sometimes|integer|min:1',
             'items.*.id_location' => 'required|exists:location,id_location',
         ]);
 
@@ -102,6 +103,24 @@ class InboundController extends Controller
                     'id_inventory' => $inventory->id_inventory,
                     'qty'          => $item['qty'],
                 ]);
+
+                // 4. Logika Return Otomatis
+                // Return = Barang Inbound dikurangi Barang Put Away
+                $inboundQty = $item['max_qty'] ?? $item['qty'];
+                $putAwayQty = $item['qty'];
+                $returnQty = $inboundQty - $putAwayQty;
+
+                if ($returnQty > 0) {
+                    \App\Models\ReturnBarang::create([
+                        'id_inbound' => $request->id_inbound,
+                        'tanggal'    => now(),
+                        'id_barang'  => $item['id_barang'],
+                        'qty'        => $returnQty,
+                        'kondisi'    => 'Tidak Sesuai / Rusak',
+                        'alasan'     => 'Kekurangan saat put away otomatis: Inbound (' . $inboundQty . ') - Put Away (' . $putAwayQty . ') = ' . $returnQty,
+                        'status'     => 'Pending',
+                    ]);
+                }
             }
 
             DB::commit();

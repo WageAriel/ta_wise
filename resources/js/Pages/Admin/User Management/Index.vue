@@ -52,8 +52,9 @@ const confirmDelete = () => {
 
 const getRoleBadge = (role) => {
     switch (role?.toLowerCase()) {
+        case 'manajer': return 'bg-red-100 text-red-700 border-red-200';
         case 'admin': return 'bg-purple-100 text-purple-700 border-purple-200';
-        case 'supplier': return 'bg-blue-100 text-blue-700 border-blue-200';
+        case 'supplier': return 'bg-green-100 text-green-700 border-green-200';
         case 'petugas_lapangan': return 'bg-amber-100 text-amber-700 border-amber-200';
         default: return 'bg-red-100 text-red-700 border-red-200';
     }
@@ -101,6 +102,7 @@ const getRoleBadge = (role) => {
                     <span class="text-sm font-medium text-slate-400">Role</span>
                     <select v-model="filterRole" class="bg-white border border-slate-200 text-slate-700 text-sm rounded-xl py-2.5 px-3 pr-8 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium shadow-sm">
                         <option value="">Semua Role</option>
+                        <option value="manajer">Manajer</option>
                         <option value="admin">Admin</option>
                         <option value="supplier">Supplier</option>
                         <option value="petugas_lapangan">Petugas Lapangan</option>
