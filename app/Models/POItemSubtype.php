@@ -21,6 +21,7 @@ class POItemSubtype extends Model
         'id_item_type',
         'subtype_name',
         'description',
+        'uom',
         'sort_order',
     ];
 

@@ -146,7 +146,7 @@ const icons = {
                                 label: 'Supplier Data',
                                 icon: 'supplierData',
                             },
-                            'admin.supplier.selection': {
+                            'admin.supplier.selection.index': {
                                 label: 'Supplier Selection',
                                 icon: 'selection',
                             },

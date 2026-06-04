@@ -19,7 +19,9 @@ class UpdateOrderRequestRequest extends FormRequest
         return [
             'description' => ['nullable', 'string', 'max:500'],
             'items' => ['required', 'array', 'min:1'],
-            'items.*.barang_id' => ['required', 'exists:barang,id_barang', 'distinct'],
+            'items.*.barang_id' => ['required', 'exists:barang,id_barang'],
+            'items.*.item_type_id' => ['nullable', 'exists:po_item_types,id_item_type'],
+            'items.*.subtype_id' => ['nullable', 'exists:po_item_subtypes,id_subtype'],
             'items.*.quantity' => ['required', 'integer', 'min:1'],
             'items.*.unit_price' => ['required', 'numeric', 'min:0'],
             'items.*.uom' => ['nullable', 'string', 'max:50'],
@@ -30,7 +32,7 @@ class UpdateOrderRequestRequest extends FormRequest
     {
         return [
             'items.required' => 'Minimal harus ada 1 item dalam order request',
-            'items.*.barang_id.distinct' => 'Barang tidak boleh ada duplikat',
+            // no distinct constraint: allow multiple type lines for the same barang
         ];
     }
 }

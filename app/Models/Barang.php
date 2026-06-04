@@ -16,6 +16,7 @@ class Barang extends Model
         'nama_barang',
         'satuan',
         'status',
+        'id_item_type',
     ];
 
     public function inventories()

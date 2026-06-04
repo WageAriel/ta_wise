@@ -16,7 +16,7 @@ class StorePOItemTypeRequest extends FormRequest
         return [
             'type_name' => ['required', 'string', 'max:255', 'unique:po_item_types'],
             'description' => ['nullable', 'string', 'max:500'],
-            'sort_order' => ['required', 'integer', 'min:1'],
+            'sort_order' => ['sometimes', 'integer', 'min:0'],
         ];
     }
 

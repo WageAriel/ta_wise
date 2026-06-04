@@ -24,7 +24,7 @@ class UpdatePOItemTypeRequest extends FormRequest
                 Rule::unique('po_item_types')->ignore($itemTypeId, 'id_item_type'),
             ],
             'description' => ['nullable', 'string', 'max:500'],
-            'sort_order' => ['required', 'integer', 'min:1'],
+            'sort_order' => ['sometimes', 'integer', 'min:0'],
         ];
     }
 

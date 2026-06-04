@@ -11,16 +11,20 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('purchase_order_items', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('purchase_order_id')->constrained('purchase_orders')->onDelete('cascade');
-            $table->foreignId('barang_id')->constrained('barang', 'id_barang')->onDelete('cascade');
-            $table->integer('quantity');
-            $table->decimal('unit_price', 15, 2);
-            $table->decimal('subtotal', 15, 2);
-            $table->string('uom')->nullable();
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('purchase_order_items')) {
+            Schema::create('purchase_order_items', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('purchase_order_id')->constrained('purchase_orders')->onDelete('cascade');
+                $table->unsignedBigInteger('barang_id');
+                $table->foreignId('id_item_type')->nullable()->constrained('po_item_types', 'id_item_type')->nullOnDelete();
+                $table->foreignId('id_subtype')->nullable()->constrained('po_item_subtypes', 'id_subtype')->nullOnDelete();
+                $table->integer('quantity');
+                $table->decimal('unit_price', 15, 2);
+                $table->decimal('subtotal', 15, 2);
+                $table->string('uom')->nullable();
+                $table->timestamps();
+            });
+        }
     }
 
     /**
