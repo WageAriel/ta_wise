@@ -148,7 +148,13 @@ Route::middleware('auth')->group(function () {
         
         
         Route::get('/inbound', fn() => Inertia::render('Admin/Inbound/Index'))->name('inbound');
-        Route::get('/inventory', fn() => Inertia::render('Admin/Inventory/InventoryView'))->name('inventory');
+        Route::get('/inbound/data', [\App\Http\Controllers\Admin\InboundController::class, 'getLayoutLocations'])->name('inbound.data');
+        Route::get('/inbound/items/{id_inbound}', [\App\Http\Controllers\Admin\InboundController::class, 'getInboundItems'])->name('inbound.items');
+        Route::post('/inbound/layout', [\App\Http\Controllers\Admin\InboundController::class, 'storeLayout'])->name('inbound.layout.store');
+        Route::post('/inbound/location', [\App\Http\Controllers\Admin\InboundController::class, 'storeLocation'])->name('inbound.location.store');
+        Route::post('/inbound/inventory', [\App\Http\Controllers\Admin\InboundController::class, 'storeInventory'])->name('inbound.inventory.store');
+        Route::get('/inventory', [\App\Http\Controllers\Admin\InventoryController::class, 'index'])->name('inventory');
+        Route::resource('barang', \App\Http\Controllers\Admin\BarangController::class)->except(['create', 'show', 'edit']);
         Route::get('/return-management', [ReturnController::class, 'index'])->name('return-management');
         Route::post('/return-management', [ReturnController::class, 'store'])->name('return-management.store');
         Route::get('/outbound', fn() => Inertia::render('Admin/Outbound'))->name('outbound');
