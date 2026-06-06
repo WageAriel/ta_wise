@@ -36,6 +36,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/{headerSoal}',             [HeaderSoalController::class, 'show']);
             Route::put('/{headerSoal}',             [HeaderSoalController::class, 'update']);
             Route::delete('/{headerSoal}',          [HeaderSoalController::class, 'destroy']);
+            Route::patch('/{headerSoal}/set-aktif', [HeaderSoalController::class, 'setAktif'])->name('admin.soal.header.setAktif');
         });
     });
 

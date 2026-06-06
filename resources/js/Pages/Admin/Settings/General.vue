@@ -38,13 +38,13 @@ const submit = () => {
                             <input type="text" v-model="form.system_name" class="w-full border-slate-200 rounded-lg bg-slate-50 focus:ring-blue-500 focus:border-blue-500 text-sm" placeholder="Contoh: Aplikasi Klasifikasi Supplier">
                         </div>
 
-                        <div>
+                        <!-- <div>
                             <label class="block text-sm font-bold text-slate-700 mb-2">Warna Tema (Hex Code)</label>
                             <div class="flex items-center gap-4">
                                 <input type="color" v-model="form.theme_color" class="h-10 w-16 p-1 border border-slate-200 rounded-lg cursor-pointer">
                                 <input type="text" v-model="form.theme_color" class="w-full border-slate-200 rounded-lg bg-slate-50 focus:ring-blue-500 focus:border-blue-500 text-sm font-mono uppercase" placeholder="#FFFFFF">
                             </div>
-                        </div>
+                        </div> -->
 
                         <div>
                             <label class="block text-sm font-bold text-slate-700 mb-2">Upload Logo Sistem (Opsional)</label>

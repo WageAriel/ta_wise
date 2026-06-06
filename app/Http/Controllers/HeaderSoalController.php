@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AppSetting;
 use App\Models\HeaderSoal;
 use App\Models\DetailSoal;
 use App\Models\Pertanyaan;
@@ -19,12 +20,19 @@ class HeaderSoalController extends Controller
             ->latest()
             ->get();
 
+        $idAktif = (int) AppSetting::where('key', 'id_soal_klasifikasi_aktif')
+            ->value('value');
+
         if ($request->wantsJson()) {
-            return response()->json($headerSoals);
+            return response()->json([
+                'data'            => $headerSoals,
+                'id_soal_aktif'   => $idAktif ?: null,
+            ]);
         }
 
         return \Inertia\Inertia::render('Admin/Soal/Index', [
-            'initialHeaderSoals' => $headerSoals
+            'initialHeaderSoals' => $headerSoals,
+            'initialIdSoalAktif' => $idAktif ?: null,
         ]);
     }
 
@@ -116,5 +124,23 @@ class HeaderSoalController extends Controller
     {
         $header->delete();
         return response()->json(['message' => 'Header soal berhasil dihapus.']);
+    }
+
+    /**
+     * PATCH /api/soal/header/{id}/set-aktif
+     * Set paket soal klasifikasi yang aktif digunakan untuk pengajuan supplier.
+     */
+    public function setAktif(HeaderSoal $header)
+    {
+        AppSetting::updateOrCreate(
+            ['key' => 'id_soal_klasifikasi_aktif'],
+            ['value' => $header->id_soal]
+        );
+
+        return response()->json([
+            'message'       => 'Paket soal klasifikasi aktif berhasil diperbarui.',
+            'id_soal_aktif' => $header->id_soal,
+            'nama_soal'     => $header->nama_soal,
+        ]);
     }
 }

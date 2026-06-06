@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AppSetting;
 use App\Models\Klasifikasi;
 use App\Models\Pertanyaan;
 use App\Models\Opsi;
@@ -55,11 +56,21 @@ class KlasifikasiController extends Controller
             }
         }
 
-        // Cari header soal yang aktif untuk klasifikasi.
-        $headerSoal = \App\Models\HeaderSoal::whereHas('pertanyaans', function ($query) {
+        // Cari header soal aktif berdasarkan pilihan admin.
+        // Jika admin sudah memilih, gunakan yang dipilih; fallback ke latest.
+        $idSoalAktif = AppSetting::where('key', 'id_soal_klasifikasi_aktif')->value('value');
+
+        $headerSoalQuery = \App\Models\HeaderSoal::whereHas('pertanyaans', function ($query) {
             $query->where('jenis_soal', 'klasifikasi')
                   ->where('status', 'aktif');
-        })->latest('id_soal')->first();
+        });
+
+        if ($idSoalAktif) {
+            $headerSoal = $headerSoalQuery->find($idSoalAktif)
+                ?? $headerSoalQuery->latest('id_soal')->first();
+        } else {
+            $headerSoal = $headerSoalQuery->latest('id_soal')->first();
+        }
 
         if (!$headerSoal) {
             return response()->json([
