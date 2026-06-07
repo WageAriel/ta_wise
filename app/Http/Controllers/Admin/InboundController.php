@@ -37,6 +37,25 @@ class InboundController extends Controller
     }
 
     /**
+     * Get inbound items by id_inbound (Dummy for now)
+     */
+    public function getInboundItems($id_inbound)
+    {
+        return response()->json([
+            [
+                'id_barang' => 1,
+                'nama_barang' => 'Barang A',
+                'qty' => 10
+            ],
+            [
+                'id_barang' => 2,
+                'nama_barang' => 'Barang B',
+                'qty' => 25
+            ]
+        ]);
+    }
+
+    /**
      * Store a new layout.
      */
     public function storeLayout(Request $request)

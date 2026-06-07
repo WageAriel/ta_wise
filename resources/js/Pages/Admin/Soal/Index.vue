@@ -6,6 +6,7 @@ import axios from 'axios';
 
 const props = defineProps({
     initialHeaderSoals: Array,
+    initialIdSoalAktif: Number,
 });
 
 const activeTab = ref('header'); // 'header' or 'pertanyaan'
@@ -93,6 +94,8 @@ const deletePertanyaan = async (id) => {
 
 // --- Modal & Form Header Soal ---
 const headers = ref(props.initialHeaderSoals || []);
+const aktifSoalId = ref(props.initialIdSoalAktif || null);
+const isSettingAktif = ref(false);
 const isModalHeaderOpen = ref(false);
 const formHeader = useForm({
     id_soal: null,
@@ -136,7 +139,9 @@ const openHeaderModal = async (item = null) => {
 const loadHeaders = async () => {
     try {
         const res = await axios.get(route('admin.soal.header.index'), { headers: { 'Accept': 'application/json' }});
-        headers.value = res.data;
+        // API now returns { data: [...], id_soal_aktif: ... }
+        headers.value = res.data.data ?? res.data;
+        aktifSoalId.value = res.data.id_soal_aktif ?? null;
     } catch(e) {
         console.error(e);
     }
@@ -163,6 +168,25 @@ const deleteHeader = async (id) => {
     if (confirm('Yakin ingin menghapus paket soal ini?')) {
         await axios.delete(route('admin.soal.header.destroy', id));
         loadHeaders();
+    }
+};
+
+const setAktifSoal = async (item) => {
+    if (item.jenis_soal !== 'klasifikasi') {
+        alert('Fitur ini hanya untuk paket soal berjenis Klasifikasi.');
+        return;
+    }
+    if (!confirm(`Jadikan "${item.nama_soal}" sebagai paket soal klasifikasi aktif?`)) return;
+    isSettingAktif.value = true;
+    try {
+        const res = await axios.patch(route('admin.soal.header.setAktif', item.id_soal));
+        aktifSoalId.value = res.data.id_soal_aktif;
+        alert(`Berhasil! Paket soal "${item.nama_soal}" kini aktif untuk pengajuan klasifikasi.`);
+    } catch (e) {
+        alert('Gagal mengubah paket soal aktif.');
+        console.error(e);
+    } finally {
+        isSettingAktif.value = false;
     }
 };
 </script>
@@ -194,6 +218,24 @@ const deleteHeader = async (id) => {
 
                     <!-- TAB 1: Header Soal -->
                     <div v-if="activeTab === 'header'" class="p-6">
+                        <!-- Info banner soal aktif -->
+                        <div v-if="aktifSoalId" class="mb-4 flex items-center gap-3 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3">
+                            <svg class="w-5 h-5 text-emerald-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <p class="text-emerald-800 text-sm font-medium">
+                                Paket soal klasifikasi aktif: 
+                                <strong>{{ headers.find(h => h.id_soal === aktifSoalId)?.nama_soal ?? `#${aktifSoalId}` }}</strong>
+                                — digunakan untuk pengajuan klasifikasi supplier saat ini.
+                            </p>
+                        </div>
+                        <div v-else class="mb-4 flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+                            <svg class="w-5 h-5 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                            </svg>
+                            <p class="text-amber-800 text-sm font-medium">Belum ada paket soal klasifikasi yang dipilih sebagai aktif. Sistem akan menggunakan paket soal klasifikasi terbaru secara otomatis.</p>
+                        </div>
+
                         <div class="flex justify-end mb-4">
                             <button @click="openHeaderModal()" class="px-4 py-2 bg-blue-600 text-white font-bold rounded-lg text-sm hover:bg-blue-700">
                                 + Buat Paket Soal
@@ -204,16 +246,46 @@ const deleteHeader = async (id) => {
                                 <tr>
                                     <th class="px-6 py-3 text-xs font-bold text-slate-400 uppercase">ID</th>
                                     <th class="px-6 py-3 text-xs font-bold text-slate-400 uppercase">Nama Paket Soal</th>
+                                    <th class="px-6 py-3 text-xs font-bold text-slate-400 uppercase">Jenis</th>
                                     <th class="px-6 py-3 text-xs font-bold text-slate-400 uppercase">Jml Pertanyaan</th>
                                     <th class="px-6 py-3 text-xs font-bold text-slate-400 uppercase text-right">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-50">
-                                <tr v-for="item in headers" :key="item.id_soal">
+                                <tr v-for="item in headers" :key="item.id_soal"
+                                    :class="item.id_soal === aktifSoalId && item.jenis_soal === 'klasifikasi' ? 'bg-emerald-50/40' : ''"
+                                >
                                     <td class="px-6 py-4 font-mono font-bold text-slate-600">#{{ item.id_soal }}</td>
-                                    <td class="px-6 py-4 font-bold text-slate-800">{{ item.nama_soal }}</td>
+                                    <td class="px-6 py-4 font-bold text-slate-800">
+                                        <div class="flex items-center gap-2">
+                                            {{ item.nama_soal }}
+                                            <span
+                                                v-if="item.id_soal === aktifSoalId && item.jenis_soal === 'klasifikasi'"
+                                                class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700"
+                                            >
+                                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                                                AKTIF
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <span
+                                            class="px-2 py-0.5 rounded text-xs font-bold uppercase"
+                                            :class="item.jenis_soal === 'seleksi' ? 'bg-indigo-100 text-indigo-700' : 'bg-emerald-100 text-emerald-700'"
+                                        >{{ item.jenis_soal }}</span>
+                                    </td>
                                     <td class="px-6 py-4">{{ item.pertanyaans_count || 0 }} Pertanyaan</td>
                                     <td class="px-6 py-4 text-right">
+                                        <button
+                                            v-if="item.jenis_soal === 'klasifikasi' && item.id_soal !== aktifSoalId"
+                                            @click="setAktifSoal(item)"
+                                            :disabled="isSettingAktif"
+                                            class="text-emerald-600 font-bold hover:underline mr-3 text-sm disabled:opacity-50"
+                                        >Jadikan Aktif</button>
+                                        <span
+                                            v-else-if="item.jenis_soal === 'klasifikasi' && item.id_soal === aktifSoalId"
+                                            class="text-emerald-600 font-bold mr-3 text-sm opacity-60 cursor-default"
+                                        >✓ Aktif</span>
                                         <button @click="openHeaderModal(item)" class="text-blue-600 font-bold hover:underline mr-3">Edit</button>
                                         <button @click="deleteHeader(item.id_soal)" class="text-red-600 font-bold hover:underline">Hapus</button>
                                     </td>

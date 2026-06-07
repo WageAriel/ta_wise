@@ -231,6 +231,10 @@ const icons = {
                 <div class="space-y-1">
                     <Link
                         v-for="(val, rName) in {
+                            'admin.barang.index': {
+                                label: 'Setting Barang',
+                                icon: 'inventory',
+                            },
                             'admin.inbound': {
                                 label: 'Inbound',
                                 icon: 'inbound',

@@ -3,32 +3,46 @@ import { ref, computed } from 'vue';
 import { Head, Link } from '@inertiajs/vue3';
 import SidebarAdmin from "@/Components/SidebarAdmin.vue";
 
-// Dummy data
-const inventoryData = ref([
-    { id: 'INV-001', name: 'Premium Coffee Beans', category: 'Raw Materials', currentStock: 150, unit: 'Kg', minStock: 200, maxStock: 500, location: 'Layout A - Rak 1', status: 'normal' },
-    { id: 'INV-002', name: 'Minyak Goreng Sawit', category: 'Raw Materials', currentStock: 80, unit: 'Pcs', minStock: 100, maxStock: 300, location: 'Layout A - Rak 2', status: 'low' },
-    { id: 'INV-003', name: 'Kopi Arabica Premium', category: 'Raw Materials', currentStock: 20, unit: 'Kg', minStock: 100, maxStock: 500, location: 'Layout A - Rak 3', status: 'critical' },
-    { id: 'INV-004', name: 'Susu UHT', category: 'Raw Materials', currentStock: 450, unit: 'L', minStock: 200, maxStock: 800, location: 'Layout B - Rak 1', status: 'normal' },
-]);
+const props = defineProps({
+    inventories: { type: Array, default: () => [] }
+});
+
+const inventoryData = ref(props.inventories);
 
 const activeTab = ref('overview');
 const searchQuery = ref('');
 const entriesPerPage = ref(10);
 const yearFilter = ref('2026');
 
-const totalItems = computed(() => inventoryData.value.length);
-const criticalStock = computed(() => inventoryData.value.filter(item => item.status === 'critical').length);
-const lowStock = computed(() => inventoryData.value.filter(item => item.status === 'low').length);
+// Computed property untuk menghitung status secara dinamis
+const processedInventory = computed(() => {
+    return inventoryData.value.map(item => {
+        let status = 'normal';
+        // Fleksibel: Critical jika stok <= 50% dari batas minimal
+        if (item.currentStock <= (item.minStock * 0.5)) {
+            status = 'critical';
+        } 
+        // Low Stock jika stok <= batas minimal (tapi > 50% minStock)
+        else if (item.currentStock <= item.minStock) {
+            status = 'low';
+        }
+        return { ...item, status };
+    });
+});
+
+const totalItems = computed(() => processedInventory.value.length);
+const criticalStock = computed(() => processedInventory.value.filter(item => item.status === 'critical').length);
+const lowStock = computed(() => processedInventory.value.filter(item => item.status === 'low').length);
 
 const filteredInventory = computed(() => {
-    return inventoryData.value.filter(item => {
+    return processedInventory.value.filter(item => {
         return item.name.toLowerCase().includes(searchQuery.value.toLowerCase()) || 
                item.id.toLowerCase().includes(searchQuery.value.toLowerCase());
     });
 });
 
 const alertItems = computed(() => {
-    return inventoryData.value.filter(item => item.status === 'low' || item.status === 'critical');
+    return processedInventory.value.filter(item => item.status === 'low' || item.status === 'critical');
 });
 
 </script>
