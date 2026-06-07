@@ -7,6 +7,7 @@ use App\Http\Controllers\KlasifikasiController;
 use App\Http\Controllers\Petugas\JadwalController;
 use App\Http\Controllers\Petugas\VerifikasiController;
 use App\Http\Controllers\Admin\ReturnController; 
+use App\Http\Controllers\Admin\InboundController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -148,9 +149,16 @@ Route::middleware('auth')->group(function () {
         
         
         Route::get('/inbound', fn() => Inertia::render('Admin/Inbound/Index'))->name('inbound');
+        Route::get('/inbound/data', [InboundController::class, 'getLayoutLocations'])->name('inbound.data');
+        Route::get('/inbound/items/{id}', [InboundController::class, 'getInboundItems'])->name('inbound.items');
+        Route::post('/inbound/layout', [InboundController::class, 'storeLayout'])->name('inbound.layout.store');
+        Route::post('/inbound/location', [InboundController::class, 'storeLocation'])->name('inbound.location.store');
+        Route::post('/inbound/inventory', [InboundController::class, 'storeInventory'])->name('inbound.inventory.store');
         Route::get('/inventory', fn() => Inertia::render('Admin/Inventory/InventoryView'))->name('inventory');
         Route::get('/return-management', [ReturnController::class, 'index'])->name('return-management');
+        Route::get('/return-management/data', [ReturnController::class, 'data'])->name('return-management.data');
         Route::post('/return-management', [ReturnController::class, 'store'])->name('return-management.store');
+        Route::delete('/return-management/{id}', [ReturnController::class, 'destroy'])->name('return-management.destroy');
         Route::get('/outbound', fn() => Inertia::render('Admin/Outbound'))->name('outbound');
         Route::get('/user-management', [\App\Http\Controllers\Admin\UserController::class, 'index'])->name('user-management');
         Route::delete('/user-management/{id}', [\App\Http\Controllers\Admin\UserController::class, 'destroy'])->name('user-management.destroy');

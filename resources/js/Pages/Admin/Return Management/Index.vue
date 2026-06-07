@@ -1,5 +1,6 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
+import axios from 'axios';
 import { Head, Link, router } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 
@@ -12,6 +13,23 @@ const props = defineProps({
         type: Object,
         default: () => ({})
     }
+});
+
+// Local state for returns
+const localReturns = ref([]);
+
+// Fetch Returns
+const fetchReturns = async () => {
+    try {
+        const response = await axios.get(route('admin.return-management.data'));
+        localReturns.value = response.data;
+    } catch (error) {
+        console.error("Error fetching returns:", error);
+    }
+};
+
+onMounted(() => {
+    fetchReturns();
 });
 
 // State
@@ -27,7 +45,7 @@ const years = computed(() => {
 
 // Logic Filter: Memproses data returns berdasarkan input user
 const filteredReturns = computed(() => {
-    let data = props.returns.length > 0 ? props.returns : [];
+    let data = localReturns.value.length > 0 ? localReturns.value : [];
 
     // Filter Berdasarkan Search (ID Return atau ID Inbound)
     if (searchQuery.value) {
@@ -110,14 +128,30 @@ const handleAddReturn = () => {
     showAddModal.value = true;
 };
 
-const submitReturn = () => {
-    router.post(route('admin.return-management.store'), returnForm.value, {
-        onSuccess: () => {
-            showAddModal.value = false;
-            returnForm.value = { id_inbound: "", items: [] };
-            alert("Data berhasil disimpan!");
-        },
-    });
+const deleteReturn = async (id) => {
+    if (confirm('Yakin ingin menghapus data return ini?')) {
+        try {
+            await axios.delete(route('admin.return-management.destroy', id));
+            alert("Data return berhasil dihapus!");
+            fetchReturns(); // refresh data
+        } catch (error) {
+            console.error("Error deleting return:", error);
+            alert("Terjadi kesalahan saat menghapus data!");
+        }
+    }
+};
+
+const submitReturn = async () => {
+    try {
+        await axios.post(route('admin.return-management.store'), returnForm.value);
+        showAddModal.value = false;
+        returnForm.value = { id_inbound: "", items: [] };
+        alert("Data berhasil disimpan!");
+        fetchReturns();
+    } catch (error) {
+        console.error("Error submitting return:", error);
+        alert("Terjadi kesalahan saat menyimpan data!");
+    }
 };
 </script>
 
@@ -247,9 +281,9 @@ const submitReturn = () => {
                                 {{ item.notes || '-' }}
                             </td>
                             <td class="py-4 px-6 text-center">
-                                <button class="p-2 bg-gray-50 text-gray-400 rounded-xl hover:bg-indigo-50 hover:text-indigo-600 transition-all">
+                                <button @click="deleteReturn(item.id_return)" class="p-2 bg-gray-50 text-red-400 rounded-xl hover:bg-red-50 hover:text-red-600 transition-all">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0zM2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                     </svg>
                                 </button>
                             </td>

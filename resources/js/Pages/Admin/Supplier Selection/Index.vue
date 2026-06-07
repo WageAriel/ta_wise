@@ -181,6 +181,14 @@ const getStatusBadge = (status) => {
         default: return 'bg-gray-100 text-gray-700 border-gray-200';
     }
 };
+const formatDate = (dateString) => {
+    if (!dateString) return '-';
+    const date = new Date(dateString);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}-${month}-${year}`;
+};
 </script>
 
 <template>
@@ -288,7 +296,7 @@ const getStatusBadge = (status) => {
                                     {{ item.status === 'process' ? 'Menunggu Review' : (item.status === 'lolos' ? 'Lolos' : 'Tidak Lolos') }}
                                 </span>
                             </td>
-                            <td class="py-4 px-6 text-center text-xs font-bold text-gray-500">{{ item.tanggal || '-' }}</td>
+                            <td class="py-4 px-6 text-center text-xs font-bold text-gray-500">{{ formatDate(item.tanggal) }}</td>
                             <td class="py-4 px-6">
                                 <div class="flex items-center justify-center gap-2">
                                     <!-- Jika Tab Menunggu Validasi -->
@@ -382,7 +390,7 @@ const getStatusBadge = (status) => {
                             <svg class="w-2.5 h-2.5 mr-1 text-blue-500" fill="currentColor" viewBox="0 0 20 20"><path d="M10.394 2.827a1 1 0 00-.788 0L2.606 6A1 1 0 001 6.91v9.18a1 1 0 00.553.894l8 4a1 1 0 00.894 0l8-4A1 1 0 0019 16.09V6.91a1 1 0 00-.606-.883l-8-3.127z"/></svg>
                             {{ detailData?.supplier?.nama_perusahaan }}
                         </span>
-                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{{ detailData?.tanggal }}</span>
+                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{{ formatDate(detailData?.tanggal) }}</span>
                     </div>
                 </div>
                 <button @click="showValidationModal = false" class="p-1.5 hover:bg-gray-200 rounded-lg transition-colors">
@@ -453,7 +461,7 @@ const getStatusBadge = (status) => {
                                 <svg class="w-2.5 h-2.5 mr-1 text-blue-500" fill="currentColor" viewBox="0 0 20 20"><path d="M10.394 2.827a1 1 0 00-.788 0L2.606 6A1 1 0 001 6.91v9.18a1 1 0 00.553.894l8 4a1 1 0 00.894 0l8-4A1 1 0 0019 16.09V6.91a1 1 0 00-.606-.883l-8-3.127z"/></svg>
                                 {{ detailData?.supplier?.nama_perusahaan }}
                             </span>
-                            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{{ detailData?.tanggal }}</span>
+                            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{{ formatDate(detailData?.tanggal) }}</span>
                         </div>
                     </div>
                     <button @click="showModal = false" class="p-1.5 hover:bg-gray-200 rounded-lg transition-colors">

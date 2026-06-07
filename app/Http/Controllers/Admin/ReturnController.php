@@ -19,6 +19,12 @@ class ReturnController extends Controller
         ]);
     }
 
+    public function data()
+    {
+        $returns = ReturnBarang::with('barang')->latest()->get();
+        return response()->json($returns);
+    }
+
     public function store(Request $request)
     {
         $request->validate([
@@ -30,11 +36,10 @@ class ReturnController extends Controller
             'items.*.alasan' => 'required',
         ]);
 
-        // Karena satu modal bisa berisi banyak barang, kita loop dan simpan satu-satu
         foreach ($request->items as $item) {
             ReturnBarang::create([
                 'id_inbound' => $request->id_inbound,
-                'tanggal'    => now(), // Atau ambil dari input jika ada
+                'tanggal'    => now(),
                 'id_barang'  => $item['id_barang'],
                 'qty'        => $item['qty'],
                 'kondisi'    => $item['kondisi'],
@@ -43,6 +48,14 @@ class ReturnController extends Controller
             ]);
         }
 
-        return redirect()->back()->with('success', 'Data return berhasil disimpan!');
+        return response()->json(['message' => 'Data return berhasil disimpan!']);
+    }
+
+    public function destroy($id)
+    {
+        $return = ReturnBarang::findOrFail($id);
+        $return->delete();
+
+        return response()->json(['message' => 'Data return berhasil dihapus!']);
     }
 }

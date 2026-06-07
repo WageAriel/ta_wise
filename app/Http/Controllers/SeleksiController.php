@@ -253,17 +253,14 @@ class SeleksiController extends Controller
         }
 
         // Filter Status
-        if ($request->status) {
-            $statusValue = $request->status;
-            // Jika dikirim dari tab (pending/validated), kita sesuaikan
-            if ($statusValue === 'pending') {
-                $query->where('status_seleksi', 'Menunggu Validasi');
-            } elseif ($statusValue === 'validated') {
-                $query->whereIn('status_seleksi', ['Lolos', 'Tidak Lolos']);
-            } else {
-                $statusLabel = $statusValue === 'lolos' ? 'Lolos' : ($statusValue === 'tidak_lolos' ? 'Tidak Lolos' : 'Menunggu Validasi');
-                $query->where('status_seleksi', $statusLabel);
-            }
+        $statusValue = $request->status ?? 'pending';
+        if ($statusValue === 'pending') {
+            $query->where('status_seleksi', 'Menunggu Validasi');
+        } elseif ($statusValue === 'validated') {
+            $query->whereIn('status_seleksi', ['Lolos', 'Tidak Lolos']);
+        } else {
+            $statusLabel = $statusValue === 'lolos' ? 'Lolos' : ($statusValue === 'tidak_lolos' ? 'Tidak Lolos' : 'Menunggu Validasi');
+            $query->where('status_seleksi', $statusLabel);
         }
 
         // Filter Tahun

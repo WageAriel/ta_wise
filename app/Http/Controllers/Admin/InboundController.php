@@ -29,6 +29,13 @@ class InboundController extends Controller
         ]);
     }
 
+    public function getInboundItems($id)
+    {
+        // Return an empty array or dummy items for testing
+        // This is a placeholder since we don't have real logic for Inbound Items retrieval yet.
+        return response()->json([]);
+    }
+
     /**
      * Store a new layout.
      */
