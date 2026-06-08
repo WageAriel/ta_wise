@@ -148,7 +148,7 @@ Route::middleware('auth')->group(function () {
         
         
         
-        Route::get('/inbound', fn() => Inertia::render('Admin/Inbound/Index'))->name('inbound');
+        Route::get('/inbound', [\App\Http\Controllers\Admin\InboundController::class, 'index'])->name('inbound');
         Route::get('/inbound/data', [\App\Http\Controllers\Admin\InboundController::class, 'getLayoutLocations'])->name('inbound.data');
         Route::get('/inbound/items/{id_inbound}', [\App\Http\Controllers\Admin\InboundController::class, 'getInboundItems'])->name('inbound.items');
         Route::post('/inbound/layout', [\App\Http\Controllers\Admin\InboundController::class, 'storeLayout'])->name('inbound.layout.store');

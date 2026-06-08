@@ -16,12 +16,8 @@ const selectedType = ref("");
 const selectedYear = ref("");
 const perPage = ref(10); // Tambahkan ini
 
-// Data Dummy (Akan otomatis terganti jika ada data dari backend)
-const inbounds = ref(props.inboundData.length > 0 ? props.inboundData : [
-    { id: 1, id_inbound: "INB-001", id_po: "PO-2026-001", jumlah: 150, tgl: "2026-05-20" },
-    { id: 2, id_inbound: "INB-002", id_po: "PO-2026-045", jumlah: 50, tgl: "2026-05-21" },
-    { id: 3, id_inbound: "INB-003", id_po: "PO-2026-088", jumlah: 240, tgl: "2026-05-22" },
-]);
+// Data dari backend
+const inbounds = ref(props.inboundData);
 
 // Helper Format Tanggal (Indonesia)
 const formatDate = (dateString) => {

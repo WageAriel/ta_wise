@@ -9,11 +9,35 @@ use App\Models\Location;
 use App\Models\Inventory;
 use App\Models\Barang;
 use App\Models\PutAway;
+use App\Models\Inbound;
+use App\Models\InboundItem;
 use Illuminate\Support\Facades\DB; 
 use Inertia\Inertia;
 
 class InboundController extends Controller
 {
+    /**
+     * Display the Inbound index page.
+     */
+    public function index()
+    {
+        $inboundsRaw = Inbound::with(['purchaseOrder', 'items'])->get();
+
+        $inbounds = $inboundsRaw->map(function ($inb) {
+            return [
+                'id' => $inb->id_inbound, // Using id_inbound as string
+                'id_inbound' => $inb->id_inbound,
+                'id_po' => $inb->purchaseOrder ? $inb->purchaseOrder->po_number : '-',
+                'jumlah' => $inb->items->sum('qty'),
+                'tgl' => $inb->tanggal,
+            ];
+        });
+
+        return Inertia::render('Admin/Inbound/Index', [
+            'inboundData' => $inbounds
+        ]);
+    }
+
     /**
      * Get all layouts and locations for the dropdowns.
      */
@@ -29,30 +53,22 @@ class InboundController extends Controller
         ]);
     }
 
-    public function getInboundItems($id)
-    {
-        // Return an empty array or dummy items for testing
-        // This is a placeholder since we don't have real logic for Inbound Items retrieval yet.
-        return response()->json([]);
-    }
-
     /**
      * Get inbound items by id_inbound (Dummy for now)
      */
     public function getInboundItems($id_inbound)
     {
-        return response()->json([
-            [
-                'id_barang' => 1,
-                'nama_barang' => 'Barang A',
-                'qty' => 10
-            ],
-            [
-                'id_barang' => 2,
-                'nama_barang' => 'Barang B',
-                'qty' => 25
-            ]
-        ]);
+        $items = InboundItem::with('barang')->where('id_inbound', $id_inbound)->get();
+
+        $formattedItems = $items->map(function ($item) {
+            return [
+                'id_barang' => $item->id_barang,
+                'nama_barang' => $item->barang ? $item->barang->nama_barang : 'Unknown',
+                'qty' => $item->qty
+            ];
+        });
+
+        return response()->json($formattedItems);
     }
 
     /**
