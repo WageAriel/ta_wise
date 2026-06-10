@@ -16,56 +16,69 @@ class InboundSeeder extends Seeder
      */
     public function run(): void
     {
-        // Pastikan ada setidaknya 2 barang
-        if (Barang::count() < 2) {
-            Barang::create(['nama_barang' => 'Laptop ASUS ROG', 'satuan' => 'Unit', 'status' => 'Aktif', 'min_stock' => 5, 'max_stock' => 50]);
-            Barang::create(['nama_barang' => 'Keyboard Mechanical', 'satuan' => 'Pcs', 'status' => 'Aktif', 'min_stock' => 10, 'max_stock' => 100]);
+        $barangNames = [
+            'Laptop ASUS ROG',
+            'Keyboard Mechanical',
+            'Mouse Logitech Master',
+            'Monitor Dell UltraSharp',
+            'RAM Corsair 16GB',
+            'SSD Samsung 1TB',
+            'Motherboard MSI B550',
+            'Power Supply 750W',
+            'Casing PC NZXT',
+            'Headset HyperX'
+        ];
+
+        foreach ($barangNames as $name) {
+            if (!Barang::where('nama_barang', $name)->exists()) {
+                Barang::create([
+                    'nama_barang' => $name,
+                    'satuan' => 'Pcs',
+                    'status' => 'Aktif',
+                    'min_stock' => rand(5, 15),
+                    'max_stock' => rand(50, 150)
+                ]);
+            }
         }
 
-        $barang1 = Barang::first();
-        $barang2 = Barang::skip(1)->first();
+        $barangs = Barang::take(10)->get();
 
         // Cari atau buat Purchase Order Dummy
         $po = PurchaseOrder::first();
-        if (!$po) {
-            // Kita coba buat PO dummy secara sederhana jika belum ada (tanpa banyak relasi untuk simplisitas)
-            $poId = null; 
-        } else {
-            $poId = $po->id;
+        $poId = $po ? $po->id : null;
+
+        // Buat Inbound 1-10
+        for ($i = 1; $i <= 10; $i++) {
+            $inboundId = 'INB-' . date('Ym') . '-' . str_pad($i, 3, '0', STR_PAD_LEFT);
+            
+            // Cek jika sudah ada agar tidak error duplikat
+            $inbound = Inbound::where('id_inbound', $inboundId)->first();
+            if (!$inbound) {
+                $inbound = Inbound::create([
+                    'id_inbound' => $inboundId,
+                    'purchase_order_id' => $poId,
+                    'tanggal' => now()->subDays(rand(1, 30))->toDateString(),
+                    'status' => 'Pending',
+                ]);
+            }
+
+            // Pilih beberapa barang acak untuk tiap inbound
+            $numItems = rand(2, 5);
+            $randomBarangs = $barangs->random($numItems);
+
+            foreach ($randomBarangs as $barang) {
+                // Cek agar tidak ada duplicate id_inbound & id_barang jika seeder di run ulang
+                $exists = InboundItem::where('id_inbound', $inbound->id_inbound)
+                                     ->where('id_barang', $barang->id_barang)
+                                     ->exists();
+                if (!$exists) {
+                    InboundItem::create([
+                        'id_inbound' => $inbound->id_inbound,
+                        'id_barang' => $barang->id_barang,
+                        'qty' => rand(10, 50)
+                    ]);
+                }
+            }
         }
-
-        // Buat Inbound 1
-        $inbound1 = Inbound::create([
-            'id_inbound' => 'INB-' . date('Ym') . '-001',
-            'purchase_order_id' => $poId,
-            'tanggal' => now()->subDays(2)->toDateString(),
-            'status' => 'Pending',
-        ]);
-
-        InboundItem::create([
-            'id_inbound' => $inbound1->id_inbound,
-            'id_barang' => $barang1->id_barang ?? 1,
-            'qty' => 50
-        ]);
-
-        InboundItem::create([
-            'id_inbound' => $inbound1->id_inbound,
-            'id_barang' => $barang2->id_barang ?? 2,
-            'qty' => 100
-        ]);
-
-        // Buat Inbound 2
-        $inbound2 = Inbound::create([
-            'id_inbound' => 'INB-' . date('Ym') . '-002',
-            'purchase_order_id' => $poId,
-            'tanggal' => now()->subDays(1)->toDateString(),
-            'status' => 'Pending',
-        ]);
-
-        InboundItem::create([
-            'id_inbound' => $inbound2->id_inbound,
-            'id_barang' => $barang1->id_barang ?? 1,
-            'qty' => 20
-        ]);
     }
 }

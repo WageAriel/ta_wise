@@ -156,10 +156,14 @@ Route::middleware('auth')->group(function () {
         Route::post('/inbound/inventory', [\App\Http\Controllers\Admin\InboundController::class, 'storeInventory'])->name('inbound.inventory.store');
         Route::get('/inventory', [\App\Http\Controllers\Admin\InventoryController::class, 'index'])->name('inventory');
         Route::resource('barang', \App\Http\Controllers\Admin\BarangController::class)->except(['create', 'show', 'edit']);
+
+        // Return - Admin
         Route::get('/return-management', [ReturnController::class, 'index'])->name('return-management');
         Route::get('/return-management/data', [ReturnController::class, 'data'])->name('return-management.data');
         Route::post('/return-management', [ReturnController::class, 'store'])->name('return-management.store');
         Route::delete('/return-management/{id}', [ReturnController::class, 'destroy'])->name('return-management.destroy');
+        Route::get('/return-management/{id}/pdf', [ReturnController::class, 'downloadPdf'])->name('return-management.pdf');
+
         Route::get('/outbound', fn() => Inertia::render('Admin/Outbound'))->name('outbound');
         Route::get('/user-management', [\App\Http\Controllers\Admin\UserController::class, 'index'])->name('user-management');
         Route::delete('/user-management/{id}', [\App\Http\Controllers\Admin\UserController::class, 'destroy'])->name('user-management.destroy');

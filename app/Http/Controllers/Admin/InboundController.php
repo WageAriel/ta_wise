@@ -60,13 +60,48 @@ class InboundController extends Controller
     {
         $items = InboundItem::with('barang')->where('id_inbound', $id_inbound)->get();
 
-        $formattedItems = $items->map(function ($item) {
-            return [
-                'id_barang' => $item->id_barang,
-                'nama_barang' => $item->barang ? $item->barang->nama_barang : 'Unknown',
-                'qty' => $item->qty
-            ];
-        });
+        // Calculate how much has already been put away for this inbound per barang
+        $putAways = PutAway::with('inventory')->where('id_inbound', $id_inbound)->get();
+        
+        $putAwayQtyPerBarang = [];
+        foreach ($putAways as $pa) {
+            if ($pa->inventory) {
+                $id_barang = $pa->inventory->id_barang;
+                if (!isset($putAwayQtyPerBarang[$id_barang])) {
+                    $putAwayQtyPerBarang[$id_barang] = 0;
+                }
+                $putAwayQtyPerBarang[$id_barang] += $pa->qty;
+            }
+        }
+
+        // Calculate how much has already been returned for this inbound per barang
+        $returns = \App\Models\ReturnBarang::where('id_inbound', $id_inbound)->get();
+        $returnQtyPerBarang = [];
+        foreach ($returns as $ret) {
+            $id_barang = $ret->id_barang;
+            if (!isset($returnQtyPerBarang[$id_barang])) {
+                $returnQtyPerBarang[$id_barang] = 0;
+            }
+            $returnQtyPerBarang[$id_barang] += $ret->qty;
+        }
+
+        $formattedItems = [];
+        foreach ($items as $item) {
+            $id_barang = $item->id_barang;
+            $inboundQty = $item->qty;
+            $putAwayQty = $putAwayQtyPerBarang[$id_barang] ?? 0;
+            $returnQty = $returnQtyPerBarang[$id_barang] ?? 0;
+            $remainingQty = $inboundQty - $putAwayQty - $returnQty;
+
+            if ($remainingQty > 0) {
+                $formattedItems[] = [
+                    'id_barang' => $id_barang,
+                    'nama_barang' => $item->barang ? $item->barang->nama_barang : 'Unknown',
+                    'qty' => $remainingQty,
+                    'max_qty' => $remainingQty
+                ];
+            }
+        }
 
         return response()->json($formattedItems);
     }
@@ -146,23 +181,7 @@ class InboundController extends Controller
                     'qty'          => $item['qty'],
                 ]);
 
-                // 4. Logika Return Otomatis
-                // Return = Barang Inbound dikurangi Barang Put Away
-                $inboundQty = $item['max_qty'] ?? $item['qty'];
-                $putAwayQty = $item['qty'];
-                $returnQty = $inboundQty - $putAwayQty;
-
-                if ($returnQty > 0) {
-                    \App\Models\ReturnBarang::create([
-                        'id_inbound' => $request->id_inbound,
-                        'tanggal'    => now(),
-                        'id_barang'  => $item['id_barang'],
-                        'qty'        => $returnQty,
-                        'kondisi'    => 'Tidak Sesuai / Rusak',
-                        'alasan'     => 'Kekurangan saat put away otomatis: Inbound (' . $inboundQty . ') - Put Away (' . $putAwayQty . ') = ' . $returnQty,
-                        'status'     => 'Pending',
-                    ]);
-                }
+                // Return dilakukan secara manual melalui halaman Return Management
             }
 
             DB::commit();

@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue';
 import axios from 'axios';
 import { Head, Link, router } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
+import Swal from 'sweetalert2';
 
 const props = defineProps({
     returns: {
@@ -12,6 +13,10 @@ const props = defineProps({
     filters: {
         type: Object,
         default: () => ({})
+    },
+    inboundsList: {
+        type: Array,
+        default: () => []
     }
 });
 
@@ -75,17 +80,18 @@ const displayReturns = computed(() => {
 
 // --- MODAL & FORM LOGIC ---
 const showAddModal = ref(false);
+const showViewModal = ref(false);
+const viewData = ref({});
+
+const openViewModal = (item) => {
+    viewData.value = item;
+    showViewModal.value = true;
+};
+
 const returnForm = ref({
     id_inbound: "",
     items: [] // { id_barang, nama_barang, qty, kondisi, alasan, max_qty }
 });
-
-// Dummy data Inbound (Idealnya dikirim via props atau fetch API)
-const inboundsList = ref([
-    { id_inbound: "INB-001" },
-    { id_inbound: "INB-002" },
-    { id_inbound: "INB-003" }
-]);
 
 const conditions = [
     { label: "Rusak", value: "Rusak" },
@@ -97,31 +103,20 @@ const conditions = [
 const handleInboundChange = async () => {
     if (!returnForm.value.id_inbound) return;
     
-    // Logika Return: Jumlah Inbound dikurangi Jumlah Put Away
-    // Contoh dari user: Inbound 20, Put Away 15 -> Return = 5
-    // Disini saya buatkan dummy mapping untuk contoh sesuai request
-    returnForm.value.items = [
-        { 
-            id_barang: 1, 
-            nama_barang: "Semen Tiga Roda", 
-            inbound_qty: 20, 
-            put_away_qty: 15, 
-            qty: 5, // 20 - 15 = 5 (Return)
-            max_qty: 5, 
-            kondisi: "Tidak Sesuai", 
-            alasan: "Barang tidak sesuai/diterima" 
-        },
-        { 
-            id_barang: 2, 
-            nama_barang: "Paku Beton", 
-            inbound_qty: 30, 
-            put_away_qty: 28, 
-            qty: 2, // 30 - 28 = 2 (Return)
-            max_qty: 2, 
-            kondisi: "Cacat", 
-            alasan: "Rusak di perjalanan" 
-        }
-    ].filter(item => item.qty > 0); // Hanya yang ada selisih yang bisa direturn
+    try {
+        const response = await axios.get(route('admin.inbound.items', returnForm.value.id_inbound));
+        returnForm.value.items = response.data.map(item => ({
+            id_barang: item.id_barang,
+            nama_barang: item.nama_barang,
+            qty: item.qty,
+            max_qty: item.max_qty || item.qty,
+            kondisi: "", // Let user select
+            alasan: ""   // Let user input
+        }));
+    } catch (error) {
+        console.error("Gagal mengambil detail item inbound", error);
+        returnForm.value.items = [];
+    }
 };
 
 const handleAddReturn = () => {
@@ -129,30 +124,51 @@ const handleAddReturn = () => {
 };
 
 const deleteReturn = async (id) => {
-    if (confirm('Yakin ingin menghapus data return ini?')) {
+    const result = await Swal.fire({
+        title: 'Konfirmasi',
+        text: "Yakin ingin menghapus data return ini?",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#9ca3af',
+        confirmButtonText: 'Ya, Hapus!'
+    });
+
+    if (result.isConfirmed) {
         try {
             await axios.delete(route('admin.return-management.destroy', id));
-            alert("Data return berhasil dihapus!");
+            Swal.fire("Berhasil", "Data return berhasil dihapus!", "success");
             fetchReturns(); // refresh data
         } catch (error) {
             console.error("Error deleting return:", error);
-            alert("Terjadi kesalahan saat menghapus data!");
+            Swal.fire("Error", "Terjadi kesalahan saat menghapus data!", "error");
         }
     }
 };
 
 const submitReturn = async () => {
+    // Custom validation to allow submit attempt but fail with SweetAlert
+    const hasInvalidQty = returnForm.value.items.some(item => item.qty > item.max_qty);
+    if (hasInvalidQty) {
+        Swal.fire("Gagal", "Jumlah barang tidak boleh melebihi batas stok Inbound!", "error");
+        return;
+    }
+
     try {
         await axios.post(route('admin.return-management.store'), returnForm.value);
         showAddModal.value = false;
         returnForm.value = { id_inbound: "", items: [] };
-        alert("Data berhasil disimpan!");
+        Swal.fire("Berhasil", "Data berhasil disimpan!", "success");
         fetchReturns();
     } catch (error) {
         console.error("Error submitting return:", error);
-        alert("Terjadi kesalahan saat menyimpan data!");
+        Swal.fire("Error", "Terjadi kesalahan saat menyimpan data!", "error");
     }
 };
+
+//const downloadPdf = (id_return) => {
+   // window.open(route('admin.return-management.pdf', id_return), '_blank');
+//};
 </script>
 
 <template>
@@ -261,6 +277,7 @@ const submitReturn = async () => {
                             <th class="py-5 px-6 text-xs font-bold text-gray-400 uppercase text-center">Tanggal Return</th>
                             <th class="py-5 px-6 text-xs font-bold text-gray-400 uppercase text-center">Jumlah Item</th>
                             <th class="py-5 px-6 text-xs font-bold text-gray-400 uppercase">Notes</th>
+                            <th class="py-5 px-6 text-xs font-bold text-gray-400 uppercase">Surat Return</th>
                             <th class="py-5 px-6 text-xs font-bold text-gray-400 uppercase text-center w-24">Aksi</th>
                         </tr>
                     </thead>
@@ -270,7 +287,7 @@ const submitReturn = async () => {
                             <td class="py-4 px-6">
                                 <span class="text-xs font-black text-gray-900 leading-none">RET-{{ item.id_return }}</span>
                             </td>
-                            <td class="py-4 px-6 text-xs font-bold text-gray-600">INB-{{ item.id_inbound }}</td>
+                            <td class="py-4 px-6 text-xs font-bold text-gray-600">{{ item.id_inbound }}</td>
                             <td class="py-4 px-6 text-center text-xs font-bold text-gray-500">{{ item.tanggal_return }}</td>
                             <td class="py-4 px-6 text-center">
                                 <span class="bg-indigo-50 text-indigo-700 px-3 py-1 rounded-lg text-[10px] font-black shadow-sm border border-indigo-100">
@@ -280,8 +297,25 @@ const submitReturn = async () => {
                             <td class="py-4 px-6 text-xs text-gray-500 font-medium italic">
                                 {{ item.notes || '-' }}
                             </td>
-                            <td class="py-4 px-6 text-center">
-                                <button @click="deleteReturn(item.id_return)" class="p-2 bg-gray-50 text-red-400 rounded-xl hover:bg-red-50 hover:text-red-600 transition-all">
+                            <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                                <a
+                                    :href="route('admin.return-management.pdf', item.id_return)"
+                                    class="inline-flex items-center px-4 py-1.5 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-lg text-xs font-bold hover:bg-indigo-100 transition shadow-sm"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                    Download PDF
+                                </a>
+                            </td>
+                            <td class="py-4 px-6 text-center flex">
+                                <button @click="openViewModal(item)" class="p-2 bg-gray-50 text-indigo-400 rounded-xl hover:bg-indigo-50 hover:text-indigo-600 transition-all mr-2" title="Detail Return">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    </svg>
+                                </button>
+                                <button @click="deleteReturn(item.id_return)" class="p-2 bg-gray-50 text-red-400 rounded-xl hover:bg-red-50 hover:text-red-600 transition-all" title="Hapus Return">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                     </svg>
@@ -319,9 +353,9 @@ const submitReturn = async () => {
 
         <!-- MODAL ADD RETURN -->
         <div v-if="showAddModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <div class="bg-white rounded-[32px] shadow-2xl w-full max-w-5xl overflow-hidden border border-gray-100 transform transition-all">
+            <div class="bg-white rounded-[32px] shadow-2xl w-full max-w-5xl overflow-hidden border border-gray-100 transform transition-all flex flex-col max-h-[90vh]">
                 <!-- Header -->
-                <div class="px-8 py-6 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
+                <div class="px-8 py-6 bg-gray-50 border-b border-gray-100 flex justify-between items-center shrink-0">
                     <div>
                         <h3 class="text-xl font-black text-gray-800 uppercase tracking-tight">Add New Return</h3>
                         <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Form Pengembalian Barang ke Supplier</p>
@@ -331,8 +365,8 @@ const submitReturn = async () => {
                     </button>
                 </div>
 
-                <div class="p-8">
-                    <form @submit.prevent="submitReturn" class="space-y-6">
+                <div class="p-8 overflow-y-auto flex-1">
+                    <form @submit.prevent="submitReturn" id="add-return-form" class="space-y-6">
                         <!-- ID Inbound Selection -->
                         <div class="max-w-xs">
                             <label class="block text-sm font-medium text-gray-400 mb-2">ID Inbound</label>
@@ -371,14 +405,18 @@ const submitReturn = async () => {
                                                 <p class="text-xs text-gray-400 font-medium mt-0.5">Stok Inbound: {{ item.max_qty }}</p>
                                             </td>
                                             <td class="py-4 px-6 text-center">
-                                                <input 
-                                                    type="number" 
-                                                    v-model="item.qty"
-                                                    :max="item.max_qty"
-                                                    min="1"
-                                                    class="w-20 text-center py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all font-medium text-xs"
-                                                    required
-                                                />
+                                                <div class="space-y-1">
+                                                    <input 
+                                                        type="number" 
+                                                        v-model="item.qty"
+                                                        min="1"
+                                                        class="w-20 text-center py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all font-medium text-xs"
+                                                        :class="item.qty > item.max_qty ? 'border-rose-300 text-rose-600 focus:border-rose-500 focus:ring-rose-500/20' : ''"
+                                                        required
+                                                    />
+                                                    <p v-if="item.qty > item.max_qty" class="text-xs font-medium text-rose-500">Maks: {{ item.max_qty }}</p>
+                                                    <p v-else class="text-xs font-medium text-gray-400">Batas: {{ item.max_qty }}</p>
+                                                </div>
                                             </td>
                                             <td class="py-4 px-6">
                                                 <select 
@@ -413,21 +451,66 @@ const submitReturn = async () => {
                             </div>
                             <p class="text-xs font-bold uppercase tracking-widest">Silakan pilih ID Inbound terlebih dahulu</p>
                         </div>
-
-                        <!-- Footer Actions -->
-                        <div class="pt-6 border-t border-gray-100 flex justify-end gap-3">
-                            <button type="button" @click="showAddModal = false" class="px-8 py-4 rounded-xl bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all active:scale-95">
-                                Cancel
-                            </button>
-                            <button 
-                                type="submit" 
-                                :disabled="!returnForm.id_inbound"
-                                class="px-8 py-4 rounded-xl bg-red-600 text-white hover:bg-red-700 shadow-lg shadow-red-100 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                Save Return
-                            </button>
-                        </div>
                     </form>
+                </div>
+                
+                <!-- Footer Actions -->
+                <div class="px-8 py-6 bg-white border-t border-gray-100 flex justify-end gap-3 shrink-0">
+                    <button type="button" @click="showAddModal = false" class="px-8 py-4 rounded-xl bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all active:scale-95">
+                        Cancel
+                    </button>
+                    <button 
+                        form="add-return-form"
+                        type="submit" 
+                        :disabled="!returnForm.id_inbound"
+                        class="px-8 py-4 rounded-xl bg-red-600 text-white hover:bg-red-700 shadow-lg shadow-red-100 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        Save Return
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL VIEW RETURN -->
+        <div v-if="showViewModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div class="bg-white rounded-[32px] shadow-2xl w-full max-w-4xl overflow-hidden border border-gray-100 transform transition-all">
+                <!-- Header -->
+                <div class="px-8 py-6 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
+                    <div>
+                        <h3 class="text-xl font-black text-gray-800 uppercase tracking-tight">Detail Return {{ viewData.id_inbound }}</h3>
+                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Tanggal Return: {{ viewData.tanggal_return }}</p>
+                    </div>
+                    <button @click="showViewModal = false" class="p-2 hover:bg-gray-200 rounded-xl transition-colors text-gray-400">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+
+                <div class="p-8">
+                    <div class="border border-gray-100 rounded-lg overflow-hidden shadow-sm">
+                        <table class="w-full text-left text-xs border-collapse">
+                            <thead class="bg-gray-50/50 border-b border-gray-100">
+                                <tr>
+                                    <th class="py-4 px-6 font-medium text-gray-400 w-16 text-center">No</th>
+                                    <th class="py-4 px-6 font-medium text-gray-400">Nama Barang</th>
+                                    <th class="py-4 px-6 font-medium text-gray-400 text-center">Qty</th>
+                                    <th class="py-4 px-6 font-medium text-gray-400">Kondisi</th>
+                                    <th class="py-4 px-6 font-medium text-gray-400">Alasan</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-50 bg-white">
+                                <tr v-for="(detail, idx) in viewData.items" :key="idx" class="hover:bg-gray-50/50 transition-colors">
+                                    <td class="py-4 px-6 text-center font-semibold text-gray-400">{{ idx + 1 }}</td>
+                                    <td class="py-4 px-6 font-medium text-gray-900">{{ detail.nama_barang }}</td>
+                                    <td class="py-4 px-6 text-center font-bold text-red-600">{{ detail.qty }}</td>
+                                    <td class="py-4 px-6"><span class="bg-gray-100 text-gray-600 px-2 py-1 rounded text-[10px] font-bold">{{ detail.kondisi }}</span></td>
+                                    <td class="py-4 px-6 text-gray-500 italic">{{ detail.alasan }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="mt-8 flex justify-end">
+                        <button @click="showViewModal = false" class="px-8 py-3 rounded-xl bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all font-bold text-sm">Tutup</button>
+                    </div>
                 </div>
             </div>
         </div>

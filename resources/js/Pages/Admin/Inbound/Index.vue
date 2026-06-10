@@ -371,16 +371,16 @@ const availableLocations = computed(() => {
 
         <!-- MODAL ADD INVENTORY -->
         <div v-if="showInventoryModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <div class="bg-white rounded-lg shadow-2xl w-full max-w-4xl overflow-hidden border border-gray-100">
+            <div class="bg-white rounded-lg shadow-2xl w-full max-w-4xl overflow-hidden border border-gray-100 flex flex-col" style="max-height: 90vh;">
                 <!-- Header -->
-                <div class="px-4 py-2 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
+                <div class="px-4 py-2 bg-gray-50 border-b border-gray-100 flex justify-between items-center shrink-0">
                     <div>
                         <h3 class="text-center text-xl font-semibold text-gray-800">Add Inventory</h3>
                     </div>
                 </div>
 
-                <div class="p-8">
-                    <form @submit.prevent="submitInventory" class="space-y-6">
+                <div class="p-8 overflow-y-auto flex-1 min-h-0">
+                    <form @submit.prevent="submitInventory" id="add-inventory-form" class="space-y-6">
                         <!-- ID Inbound Dropdown -->
                         <div class="max-w-xs">
                             <label class="block text-sm font-medium text-gray-700 mb-2">ID Inbound</label>
@@ -442,6 +442,14 @@ const availableLocations = computed(() => {
                                                 </select>
                                             </td>
                                         </tr>
+                                        <tr v-if="inventoryForm.items.length === 0">
+                                            <td colspan="4" class="py-8 px-6 text-center text-gray-500 font-medium">
+                                                <div class="flex flex-col items-center justify-center space-y-2">
+                                                    <svg class="w-8 h-8 text-gray-300" fill="none" viewBox="0 0 24 24" v-html="icons.package"></svg>
+                                                    <p>Semua barang pada Inbound ini sudah selesai di put-away.</p>
+                                                </div>
+                                            </td>
+                                        </tr>
                                     </tbody>
                                 </table>
                             </div>
@@ -452,21 +460,22 @@ const availableLocations = computed(() => {
                             <svg class="w-12 h-12 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" v-html="icons.package"></svg>
                             <p class="text-xs font-bold uppercase tracking-widest">Pilih ID Inbound untuk melihat detail barang</p>
                         </div>
-
-                        <!-- Footer Actions -->
-                        <div class="pt-6 border-t border-gray-100 flex justify-end gap-3">
-                            <button type="button" @click="showInventoryModal = false" class="px-8 py-4 rounded-xl bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all active:scale-95">
-                                Batal
-                            </button>
-                            <button 
-                                type="submit" 
-                                :disabled="!isInventoryFormValid"
-                                class="px-8 py-4 rounded-xl bg-green-600 text-white hover:bg-green-700 shadow-lg shadow-green-100 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                Simpan Inventory
-                            </button>
-                        </div>
                     </form>
+                </div>
+
+                <!-- Footer Actions -->
+                <div class="px-8 py-6 bg-white border-t border-gray-100 flex justify-end gap-3 shrink-0">
+                    <button type="button" @click="showInventoryModal = false" class="px-8 py-4 rounded-xl bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all active:scale-95">
+                        Batal
+                    </button>
+                    <button 
+                        form="add-inventory-form"
+                        type="submit" 
+                        :disabled="!isInventoryFormValid"
+                        class="px-8 py-4 rounded-xl bg-green-600 text-white hover:bg-green-700 shadow-lg shadow-green-100 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        Simpan Inventory
+                    </button>
                 </div>
             </div>
         </div>
