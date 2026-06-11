@@ -52,7 +52,7 @@
             @foreach($items as $index => $item)
             <tr>
                 <td class="text-center">{{ $index + 1 }}</td>
-                <td>{{ $item->barang ? $item->barang->nama_barang : 'Unknown' }}</td>
+                <td>{{ $item->display_name ?? ($item->barang ? $item->barang->nama_barang : 'Unknown') }}</td>
                 <td class="text-center">{{ $item->qty }}</td>
                 <td>{{ $item->kondisi }}</td>
                 <td>{{ $item->alasan }}</td>

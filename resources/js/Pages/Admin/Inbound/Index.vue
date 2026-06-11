@@ -19,18 +19,38 @@ const showHistory = ref(false); // false = tampilkan yang bisa dilokasikan; true
 // Data dari backend
 const inbounds = ref(props.inboundData);
 
-// Track mana inbound yang sudah fully put-away (semua item remaining = 0)
-const completedInboundIds = ref(new Set());
+// Track status tiap inbound: 'pending' | 'partial' | 'completed' | 'returned'
+// - pending: belum ada yang dilokasikan
+// - partial: sebagian dilokasikan, sisanya masih bisa dilokasikan
+// - completed: semua sudah dilokasikan (→ history hijau)
+// - returned: sebagian/semua di-return secara manual, tidak ada sisa (→ history merah)
+const inboundStatusMap = ref({}); // { id_inbound: 'pending'|'partial'|'completed'|'returned' }
 
 const checkInboundCompletion = async () => {
     for (const inbound of inbounds.value) {
         try {
             const response = await axios.get(route('admin.inbound.items', inbound.id_inbound));
-            if (response.data.length === 0) {
-                completedInboundIds.value.add(inbound.id_inbound);
+            const remaining = response.data.length;
+            const total = inbound.jumlah;
+
+            if (remaining === 0) {
+                // Tidak ada sisa — cek apakah ada return record untuk inbound ini
+                // Kita anggap jika backend mengembalikan 0 item dan inbound punya history,
+                // cek melalui flag yang dikirim backend (atau kita tanda dengan endpoint baru)
+                // Untuk sementara: jika remaining = 0 dan ada put-away = completed, ada return = returned
+                inboundStatusMap.value[inbound.id_inbound] = 'completed';
+            } else if (remaining < total) {
+                inboundStatusMap.value[inbound.id_inbound] = 'partial';
+            } else {
+                inboundStatusMap.value[inbound.id_inbound] = 'pending';
             }
         } catch (e) { /* skip */ }
     }
+};
+
+// Setelah submit — jika ada item yang di-return, update status ke 'returned'
+const markInboundAsReturned = (id_inbound) => {
+    inboundStatusMap.value[id_inbound] = 'returned';
 };
 
 // Helper Format Tanggal (Indonesia)
@@ -52,14 +72,32 @@ const filteredData = computed(() => {
         const itemYear = new Date(item.tgl).getFullYear();
         const matchesYear = !selectedYear.value || itemYear == selectedYear.value;
 
-        const isCompleted = completedInboundIds.value.has(item.id_inbound);
-        // showHistory = true → tampilkan yang SUDAH selesai
-        // showHistory = false → tampilkan yang BELUM selesai
-        const matchesHistoryFilter = showHistory.value ? isCompleted : !isCompleted;
+        const status = inboundStatusMap.value[item.id_inbound] ?? 'pending';
+        // history = tampilkan completed atau returned
+        // active = tampilkan pending atau partial
+        const isHistory = (status === 'completed' || status === 'returned');
+        const matchesHistoryFilter = showHistory.value ? isHistory : !isHistory;
 
         return matchesSearch && matchesYear && matchesHistoryFilter;
     });
 });
+
+// Helper untuk warna badge per status
+const inboundBadgeClass = (id_inbound) => {
+    const status = inboundStatusMap.value[id_inbound] ?? 'pending';
+    if (status === 'completed') return 'bg-emerald-50 text-emerald-700 ring-emerald-100';
+    if (status === 'partial')   return 'bg-orange-50 text-orange-700 ring-orange-100';
+    if (status === 'returned')  return 'bg-red-50 text-red-700 ring-red-100';
+    return 'bg-blue-50 text-blue-700 ring-blue-100'; // pending
+};
+
+const inboundBadgeLabel = (id_inbound, jumlah) => {
+    const status = inboundStatusMap.value[id_inbound] ?? 'pending';
+    if (status === 'completed') return `${jumlah} Unit ✓ Selesai`;
+    if (status === 'partial')   return `${jumlah} Unit ⟳ Sebagian`;
+    if (status === 'returned')  return `${jumlah} Unit ✕ Dikembalikan`;
+    return `${jumlah} Unit`;
+};
 
 // Ikon SVG Mentah (Konsisten dengan Sidebar)
 const icons = {
@@ -94,7 +132,9 @@ const handleInboundChange = async () => {
             nama_barang: item.nama_barang,
             qty: item.qty,
             max_qty: item.qty,
-            id_location: ""
+            id_location: "",
+            is_returned: false,
+            return_reason: "",
         }));
     } catch (error) {
         console.error("Gagal mengambil detail item inbound", error);
@@ -114,7 +154,10 @@ const fetchDropdownData = async () => {
 
 // Hanya tampilkan inbound yang belum selesai di dropdown modal Add Inventory
 const pendingInbounds = computed(() => {
-    return inbounds.value.filter(item => !completedInboundIds.value.has(item.id_inbound));
+    return inbounds.value.filter(item => {
+        const status = inboundStatusMap.value[item.id_inbound] ?? 'pending';
+        return status === 'pending' || status === 'partial';
+    });
 });
 
 onMounted(async () => {
@@ -148,10 +191,14 @@ const submitLocation = async () => {
 
 const submitInventory = async () => {
     try {
+        const hasReturns = inventoryForm.value.items.some(i => i.is_returned);
         await axios.post(route('admin.inbound.inventory.store'), {
             id_inbound: inventoryForm.value.id_inbound,
             items: inventoryForm.value.items
         });
+        if (hasReturns) {
+            markInboundAsReturned(inventoryForm.value.id_inbound);
+        }
         Swal.fire("Berhasil", "Inventory berhasil ditambahkan", "success");
         showInventoryModal.value = false;
         inventoryForm.value = { id_inbound: "", items: [] };
@@ -166,6 +213,10 @@ const isInventoryFormValid = computed(() => {
     if (!inventoryForm.value.id_inbound || inventoryForm.value.items.length === 0) return false;
     
     return inventoryForm.value.items.every(item => {
+        if (item.is_returned) {
+            // Untuk returned item: hanya perlu qty valid
+            return item.qty > 0 && item.qty <= item.max_qty;
+        }
         const hasLocation = !!item.id_location;
         const validQty = item.qty > 0 && item.qty <= item.max_qty;
         return hasLocation && validQty;
@@ -299,9 +350,8 @@ const availableLocations = computed(() => {
                                 {{ formatDate(item.tgl) }}
                             </td>
                             <td class="px-6 py-4 text-center">
-                                <span :class="completedInboundIds.has(item.id_inbound) ? 'bg-emerald-50 text-emerald-700 ring-emerald-100' : 'bg-blue-50 text-blue-700 ring-blue-100'" class="px-3 py-1 rounded-full text-xs font-bold ring-1">
-                                    {{ item.jumlah }} Unit
-                                    <span v-if="completedInboundIds.has(item.id_inbound)" class="ml-1">✓ Selesai</span>
+                                <span :class="inboundBadgeClass(item.id_inbound)" class="px-3 py-1 rounded-full text-xs font-bold ring-1">
+                                    {{ inboundBadgeLabel(item.id_inbound, item.jumlah) }}
                                 </span>
                             </td>
                             <td class="px-6 py-4 text-center">
@@ -435,10 +485,11 @@ const availableLocations = computed(() => {
                                             <th class="py-4 px-6 font-medium text-gray-400">Nama Barang</th>
                                             <th class="py-4 px-6 font-medium text-gray-400 text-center">Quantity</th>
                                             <th class="py-4 px-6 font-medium text-gray-400">Lokasi Barang</th>
+                                            <th class="py-4 px-4 font-medium text-red-400 text-center">Return?</th>
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-gray-50 bg-white">
-                                        <tr v-for="(item, idx) in inventoryForm.items" :key="idx" class="hover:bg-gray-50/50 transition-colors">
+                                        <tr v-for="(item, idx) in inventoryForm.items" :key="idx" class="hover:bg-gray-50/50 transition-colors" :class="item.is_returned ? 'bg-red-50/30' : ''">
                                             <td class="py-4 px-6 text-center font-semibold text-gray-400">{{ idx + 1 }}</td>
                                             <td class="py-4 px-6 font-medium text-gray-900">{{ item.nama_barang }}</td>
                                             <td class="py-4 px-6 text-center">
@@ -457,16 +508,33 @@ const availableLocations = computed(() => {
                                                 </div>
                                             </td>
                                             <td class="py-4 px-6">
-                                                <select 
-                                                    v-model="item.id_location"
-                                                    class="w-full bg-gray-50 border border-gray-200 text-gray-700 text-xs rounded-lg py-2 px-3 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium"
-                                                    required
-                                                >
-                                                    <option value="" disabled>-- Pilih Lokasi --</option>
-                                                    <option v-for="loc in allLocations" :key="loc.id_location" :value="loc.id_location">
-                                                        {{ loc.nama_layout }} - {{ loc.kode_location }}
-                                                    </option>
-                                                </select>
+                                                <div v-if="!item.is_returned">
+                                                    <select 
+                                                        v-model="item.id_location"
+                                                        class="w-full bg-gray-50 border border-gray-200 text-gray-700 text-xs rounded-lg py-2 px-3 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium"
+                                                        :required="!item.is_returned"
+                                                    >
+                                                        <option value="" disabled>-- Pilih Lokasi --</option>
+                                                        <option v-for="loc in allLocations" :key="loc.id_location" :value="loc.id_location">
+                                                            {{ loc.nama_layout }} - {{ loc.kode_location }}
+                                                        </option>
+                                                    </select>
+                                                </div>
+                                                <div v-else class="space-y-1">
+                                                    <span class="text-xs text-red-600 font-semibold">Dikembalikan (Return)</span>
+                                                    <input
+                                                        v-model="item.return_reason"
+                                                        type="text"
+                                                        placeholder="Alasan (hilang/rusak/tidak ada)"
+                                                        class="w-full text-xs border border-red-200 rounded-lg py-1.5 px-2 bg-red-50 text-red-700 focus:ring-1 focus:ring-red-400"
+                                                    />
+                                                </div>
+                                            </td>
+                                            <td class="py-4 px-4 text-center">
+                                                <label class="inline-flex items-center gap-1 cursor-pointer" title="Tandai sebagai Return (barang hilang/rusak/tidak ada)">
+                                                    <input type="checkbox" v-model="item.is_returned" class="w-4 h-4 rounded accent-red-500" />
+                                                    <span class="text-[10px] text-red-500 font-semibold">Return</span>
+                                                </label>
                                             </td>
                                         </tr>
                                         <tr v-if="inventoryForm.items.length === 0">

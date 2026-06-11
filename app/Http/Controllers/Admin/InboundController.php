@@ -144,44 +144,56 @@ class InboundController extends Controller
 
     /**
      * Store a new inventory record.
+     * Supports: regular put-away items AND returned items (marked as lost/damaged).
      */
     public function storeInventory(Request $request)
     {
-         // 1. Validasi Input
         $request->validate([
             'id_inbound' => 'required|string',
             'items' => 'required|array|min:1',
             'items.*.id_barang' => 'required|exists:barang,id_barang',
             'items.*.qty' => 'required|integer|min:1',
             'items.*.max_qty' => 'sometimes|integer|min:1',
-            'items.*.id_location' => 'required|exists:location,id_location',
+            'items.*.id_location' => 'required_unless:items.*.is_returned,true|nullable|exists:location,id_location',
+            'items.*.is_returned' => 'sometimes|boolean',
+            'items.*.return_reason' => 'nullable|string|max:500',
         ]);
 
         try {
             DB::beginTransaction();
 
             foreach ($request->items as $item) {
-                // 2. Update atau Create data di tabel Inventory (Stok di Rak)
-                // Kita cari dulu apakah barang yang sama sudah ada di lokasi tersebut
-                $inventory = Inventory::updateOrCreate(
-                    [
-                        'id_barang'   => $item['id_barang'],
-                        'id_location' => $item['id_location'],
-                    ],
-                    [
-                        // Jika sudah ada, tambahkan Qty lama dengan Qty baru
-                        'qty' => DB::raw("qty + " . $item['qty']) 
-                    ]
-                );
+                $isReturned = (bool) ($item['is_returned'] ?? false);
 
-                // 3. Catat histori ke tabel Put Away
-                PutAway::create([
-                    'id_inbound'   => $request->id_inbound,
-                    'id_inventory' => $inventory->id_inventory,
-                    'qty'          => $item['qty'],
-                ]);
+                if ($isReturned) {
+                    // Catat sebagai Return (barang tidak ada / rusak / hilang)
+                    \App\Models\ReturnBarang::create([
+                        'tanggal'    => now()->toDateString(),
+                        'qty'        => $item['qty'],
+                        'kondisi'    => 'tidak layak',
+                        'alasan'     => $item['return_reason'] ?? 'Barang tidak tersedia/rusak/hilang sebelum diterima',
+                        'status'     => 'returned',
+                        'id_barang'  => $item['id_barang'],
+                        'id_inbound' => $request->id_inbound,
+                    ]);
+                } else {
+                    // Regular Put Away
+                    $inventory = Inventory::updateOrCreate(
+                        [
+                            'id_barang'   => $item['id_barang'],
+                            'id_location' => $item['id_location'],
+                        ],
+                        [
+                            'qty' => DB::raw("qty + " . $item['qty'])
+                        ]
+                    );
 
-                // Return dilakukan secara manual melalui halaman Return Management
+                    PutAway::create([
+                        'id_inbound'   => $request->id_inbound,
+                        'id_inventory' => $inventory->id_inventory,
+                        'qty'          => $item['qty'],
+                    ]);
+                }
             }
 
             DB::commit();
@@ -200,3 +212,4 @@ class InboundController extends Controller
         }
     }
 }
+

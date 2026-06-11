@@ -111,8 +111,27 @@ class ReturnController extends Controller
                                 ->where('created_at', $return->created_at)
                                 ->get();
 
-        $inbound = \App\Models\Inbound::with('purchaseOrder.supplier')->where('id_inbound', $return->id_inbound)->first();
+        $inbound = \App\Models\Inbound::with(['purchaseOrder.supplier', 'purchaseOrder.items.barang', 'purchaseOrder.items.subtype', 'purchaseOrder.items.itemType'])
+                        ->where('id_inbound', $return->id_inbound)
+                        ->first();
         
+        // Build a lookup map: barang_id => subtype/type name from PO items
+        $subtypeMap = [];
+        if ($inbound && $inbound->purchaseOrder) {
+            foreach ($inbound->purchaseOrder->items as $poItem) {
+                $subtypeName = $poItem->subtype->subtype_name ?? $poItem->itemType->type_name ?? null;
+                $subtypeMap[$poItem->barang_id] = $subtypeName;
+            }
+        }
+
+        // Enrich each return item with the full name including subtype
+        $enrichedItems = $siblings->map(function ($item) use ($subtypeMap) {
+            $baseName = $item->barang ? $item->barang->nama_barang : 'Unknown';
+            $subtypeName = $subtypeMap[$item->id_barang] ?? null;
+            $item->display_name = $subtypeName ? "{$baseName} - {$subtypeName}" : $baseName;
+            return $item;
+        });
+
         $supplierName = $inbound && $inbound->purchaseOrder && $inbound->purchaseOrder->supplier 
             ? $inbound->purchaseOrder->supplier->nama_perusahaan 
             : 'Unknown Supplier';
@@ -126,7 +145,7 @@ class ReturnController extends Controller
             'supplier_name' => $supplierName,
             'inbound_date' => $inboundDate,
             'return_date' => $returnDate,
-            'items' => $siblings
+            'items' => $enrichedItems
         ];
 
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.return', $data);

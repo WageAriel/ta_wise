@@ -27,9 +27,11 @@ Route::get('/', function () {
     return redirect()->route('login');
 });
 
-Route::get('/dashboard', function () {
-    return Inertia::render('Dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+Route::get('/dashboard', [\App\Http\Controllers\Admin\DashboardController::class, 'index'])
+    ->middleware(['auth', 'verified'])->name('dashboard');
+
+Route::get('/admin/api/stats', [\App\Http\Controllers\Admin\DashboardController::class, 'stats'])
+    ->middleware(['auth'])->name('admin.stats');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -192,30 +194,8 @@ Route::middleware('auth')->group(function () {
 
     // Manajer Gudang Routes (Phase 5)
     Route::middleware(['role:manajer'])->prefix('manajer')->name('manajer.')->group(function () {
-        Route::get('/dashboard', function () {
-            $totalPo = \App\Models\PurchaseOrder::count();
-            $activePo = \App\Models\PurchaseOrder::whereIn('status', [
-                \App\Models\PurchaseOrder::STATUS_RFQ,
-                \App\Models\PurchaseOrder::STATUS_VERIFICATION,
-                \App\Models\PurchaseOrder::STATUS_REQUEST,
-                \App\Models\PurchaseOrder::STATUS_COMPLETENESS,
-                \App\Models\PurchaseOrder::STATUS_APPROVED,
-                \App\Models\PurchaseOrder::STATUS_SHIPMENT,
-            ])->count();
-            $completedPo = \App\Models\PurchaseOrder::where('status', \App\Models\PurchaseOrder::STATUS_COMPLETED)->count();
-            $totalSuppliers = \App\Models\Supplier::count();
-            $totalItemTypes = \App\Models\POItemType::count();
-
-            return Inertia::render('Manajer/Dashboard', [
-                'stats' => [
-                    'totalPo' => $totalPo,
-                    'activePo' => $activePo,
-                    'completedPo' => $completedPo,
-                    'totalSuppliers' => $totalSuppliers,
-                    'totalItemTypes' => $totalItemTypes,
-                ],
-            ]);
-        })->name('dashboard');
+        Route::get('/dashboard', [\App\Http\Controllers\Manajer\DashboardController::class, 'index'])->name('dashboard');
+        Route::get('/api/stats', [\App\Http\Controllers\Manajer\DashboardController::class, 'stats'])->name('stats');
         Route::get('/purchase-order-controller', [\App\Http\Controllers\PurchaseOrderDefault::class, 'page'])->name('purchase-order-controller.index');
         Route::put('/purchase-order-controller/settings', [\App\Http\Controllers\PurchaseOrderDefault::class, 'updateSettings'])->name('purchase-order-controller.settings.update');
         // Purchase Order (manajer control over POs)
