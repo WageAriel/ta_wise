@@ -12,12 +12,26 @@ const props = defineProps({
 
 // State untuk Filter & Pencarian
 const searchQuery = ref("");
-const selectedType = ref("");
 const selectedYear = ref("");
-const perPage = ref(10); // Tambahkan ini
+const perPage = ref(10);
+const showHistory = ref(false); // false = tampilkan yang bisa dilokasikan; true = tampilkan riwayat yang sudah selesai
 
 // Data dari backend
 const inbounds = ref(props.inboundData);
+
+// Track mana inbound yang sudah fully put-away (semua item remaining = 0)
+const completedInboundIds = ref(new Set());
+
+const checkInboundCompletion = async () => {
+    for (const inbound of inbounds.value) {
+        try {
+            const response = await axios.get(route('admin.inbound.items', inbound.id_inbound));
+            if (response.data.length === 0) {
+                completedInboundIds.value.add(inbound.id_inbound);
+            }
+        } catch (e) { /* skip */ }
+    }
+};
 
 // Helper Format Tanggal (Indonesia)
 const formatDate = (dateString) => {
@@ -29,7 +43,7 @@ const formatDate = (dateString) => {
     });
 };
 
-// Logika Filtering
+// Logika Filtering berdasarkan toggle history
 const filteredData = computed(() => {
     return inbounds.value.filter(item => {
         const matchesSearch = item.id_inbound.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
@@ -38,7 +52,12 @@ const filteredData = computed(() => {
         const itemYear = new Date(item.tgl).getFullYear();
         const matchesYear = !selectedYear.value || itemYear == selectedYear.value;
 
-        return matchesSearch && matchesYear;
+        const isCompleted = completedInboundIds.value.has(item.id_inbound);
+        // showHistory = true → tampilkan yang SUDAH selesai
+        // showHistory = false → tampilkan yang BELUM selesai
+        const matchesHistoryFilter = showHistory.value ? isCompleted : !isCompleted;
+
+        return matchesSearch && matchesYear && matchesHistoryFilter;
     });
 });
 
@@ -69,23 +88,17 @@ const handleInboundChange = async () => {
     if (!inventoryForm.value.id_inbound) return;
     
     try {
-        // Asumsi endpoint untuk mengambil detail item berdasarkan ID Inbound
-        // Jika belum ada, kita bisa menggunakan data dummy atau menunggu integrasi
         const response = await axios.get(route('admin.inbound.items', inventoryForm.value.id_inbound));
         inventoryForm.value.items = response.data.map(item => ({
             id_barang: item.id_barang,
             nama_barang: item.nama_barang,
             qty: item.qty,
-            max_qty: item.qty, // Simpan batas maksimum asli
+            max_qty: item.qty,
             id_location: ""
         }));
     } catch (error) {
         console.error("Gagal mengambil detail item inbound", error);
-        // Fallback dummy data jika API belum tersedia
-        inventoryForm.value.items = [
-            { id_barang: 1, nama_barang: "Barang A", qty: 10, max_qty: 10, id_location: "" },
-            { id_barang: 2, nama_barang: "Barang B", qty: 25, max_qty: 25, id_location: "" }
-        ];
+        inventoryForm.value.items = [];
     }
 };
 
@@ -99,8 +112,14 @@ const fetchDropdownData = async () => {
     }
 };
 
-onMounted(() => {
-    fetchDropdownData();
+// Hanya tampilkan inbound yang belum selesai di dropdown modal Add Inventory
+const pendingInbounds = computed(() => {
+    return inbounds.value.filter(item => !completedInboundIds.value.has(item.id_inbound));
+});
+
+onMounted(async () => {
+    await fetchDropdownData();
+    await checkInboundCompletion();
 });
 
 const submitLayout = async () => {
@@ -136,6 +155,8 @@ const submitInventory = async () => {
         Swal.fire("Berhasil", "Inventory berhasil ditambahkan", "success");
         showInventoryModal.value = false;
         inventoryForm.value = { id_inbound: "", items: [] };
+        // Re-check completion after put-away
+        await checkInboundCompletion();
     } catch (error) {
         Swal.fire("Error", "Gagal menambahkan inventory", "error");
     }
@@ -222,17 +243,22 @@ const availableLocations = computed(() => {
 
             <!-- Right Filters -->
             <div class="flex flex-wrap items-center gap-3">
-                <div class="flex items-center gap-2">
-                    <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Tampilkan:</span>
-                    <select
-                        v-model="perPage"
-                        class="bg-white border border-gray-200 text-gray-700 text-sm rounded-xl py-2.5 px-3 pr-8 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-semibold shadow-sm appearance-none"
+                <!-- History Toggle -->
+                <div class="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2 shadow-sm">
+                    <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">History</span>
+                    <button
+                        @click="showHistory = !showHistory"
+                        :class="showHistory ? 'bg-indigo-600' : 'bg-gray-200'"
+                        class="relative inline-flex h-5 w-10 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none"
                     >
-                        <option :value="10">10 Data</option>
-                        <option :value="25">25 Data</option>
-                        <option :value="50">50 Data</option>
-                        <option :value="100">100 Data</option>
-                    </select>
+                        <span
+                            :class="showHistory ? 'translate-x-5' : 'translate-x-0'"
+                            class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+                        />
+                    </button>
+                    <span class="text-xs font-medium" :class="showHistory ? 'text-indigo-600' : 'text-gray-400'">
+                        {{ showHistory ? 'Riwayat Selesai' : 'Dapat Dilokasikan' }}
+                    </span>
                 </div>
 
                 <div class="flex items-center gap-2">
@@ -273,8 +299,9 @@ const availableLocations = computed(() => {
                                 {{ formatDate(item.tgl) }}
                             </td>
                             <td class="px-6 py-4 text-center">
-                                <span class="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs font-bold ring-1 ring-blue-100">
+                                <span :class="completedInboundIds.has(item.id_inbound) ? 'bg-emerald-50 text-emerald-700 ring-emerald-100' : 'bg-blue-50 text-blue-700 ring-blue-100'" class="px-3 py-1 rounded-full text-xs font-bold ring-1">
                                     {{ item.jumlah }} Unit
+                                    <span v-if="completedInboundIds.has(item.id_inbound)" class="ml-1">✓ Selesai</span>
                                 </span>
                             </td>
                             <td class="px-6 py-4 text-center">
@@ -391,7 +418,7 @@ const availableLocations = computed(() => {
                                 required
                             >
                                 <option value="" disabled>-- Pilih ID Inbound --</option>
-                                <option v-for="item in inbounds" :key="item.id_inbound" :value="item.id_inbound">
+                                <option v-for="item in pendingInbounds" :key="item.id_inbound" :value="item.id_inbound">
                                     {{ item.id_inbound }} ({{ item.id_po }})
                                 </option>
                             </select>

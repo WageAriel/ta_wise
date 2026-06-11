@@ -68,11 +68,14 @@ Route::middleware('auth')->group(function () {
         Route::get('/timeline', fn() => Inertia::render('Supplier/Timeline'))->name('timeline');
         Route::get('/purchase-orders', [\App\Http\Controllers\SupplierPurchaseOrdersController::class, 'index'])->name('purchase-orders.index');
         
-        // Purchase Order - Supplier can submit verification and update
+        // Purchase Order - Supplier actions
         Route::middleware('supplier.approved')->group(function () {
-            Route::post('/purchase-orders/submit-verification', [\App\Http\Controllers\SupplierPurchaseOrdersController::class, 'submitVerification'])->name('purchase-orders.submit-verification');
-            Route::put('/purchase-orders/{id}/update-verification', [\App\Http\Controllers\SupplierPurchaseOrdersController::class, 'updateVerification'])->name('purchase-orders.update-verification');
+            Route::post('/purchase-orders/{id}/accept-request', [\App\Http\Controllers\SupplierPurchaseOrdersController::class, 'acceptRequest'])->name('purchase-orders.accept-request');
+            Route::post('/purchase-orders/{id}/decline-request', [\App\Http\Controllers\SupplierPurchaseOrdersController::class, 'declineRequest'])->name('purchase-orders.decline-request');
+            Route::post('/purchase-orders/{id}/request-verification', [\App\Http\Controllers\SupplierPurchaseOrdersController::class, 'requestVerification'])->name('purchase-orders.request-verification');
+            Route::post('/purchase-orders/{id}/completeness', [\App\Http\Controllers\SupplierPurchaseOrdersController::class, 'storeCompleteness'])->name('purchase-orders.completeness.store');
             Route::post('/purchase-orders/{id}/shipment', [\App\Http\Controllers\SupplierPurchaseOrdersController::class, 'storeShipment'])->name('purchase-orders.shipment.store');
+            Route::get('/purchase-orders/{id}/download-doc', [\App\Http\Controllers\SupplierPurchaseOrdersController::class, 'downloadTemplate'])->name('purchase-orders.download-doc');
         });
     });
 
@@ -132,12 +135,11 @@ Route::middleware('auth')->group(function () {
         Route::prefix('purchase-orders')->group(function () {
             Route::post('/order-request', [\App\Http\Controllers\OrderRequestController::class, 'store'])->name('order-request.store');
             Route::put('{id}/order-request', [\App\Http\Controllers\OrderRequestController::class, 'update'])->name('order-request.update');
-            Route::post('{id}/promote-request', [\App\Http\Controllers\OrderRequestController::class, 'promote'])->name('order-request.promote');
             Route::delete('{id}/order-request', [\App\Http\Controllers\OrderRequestController::class, 'destroy'])->name('order-request.destroy');
             
-            // Waiting List (Phase 2 - Supplier verification & completeness check)
+            // Waiting List (Phase 2 - Negotiation & completeness check)
             Route::get('{id}/verification-details', [\App\Http\Controllers\WaitingListController::class, 'verificationDetails'])->name('verification-details');
-            Route::post('{id}/approve-verification', [\App\Http\Controllers\WaitingListController::class, 'approveVerification'])->name('approve-verification');
+            Route::post('{id}/accept-supplier-offer', [\App\Http\Controllers\WaitingListController::class, 'acceptSupplierOffer'])->name('accept-supplier-offer');
             Route::post('{id}/counter-offer', [\App\Http\Controllers\WaitingListController::class, 'submitCounterOffer'])->name('counter-offer');
             Route::get('{id}/completeness-check', [\App\Http\Controllers\WaitingListController::class, 'completenessCheck'])->name('completeness-check');
             Route::post('{id}/confirm-completeness', [\App\Http\Controllers\WaitingListController::class, 'confirmCompleteness'])->name('confirm-completeness');
