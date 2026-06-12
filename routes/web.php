@@ -42,6 +42,7 @@ Route::middleware('auth')->group(function () {
     // SUPPLIER ROUTES
     // ===================================================
     Route::middleware(['role:supplier'])->prefix('supplier')->name('supplier.')->group(function () {
+        Route::get('/dashboard', [\App\Http\Controllers\Supplier\DashboardController::class, 'index'])->name('dashboard');
         Route::get('/data', [\App\Http\Controllers\DataSupplierController::class, 'index'])->name('data');
         Route::post('/data', [\App\Http\Controllers\DataSupplierController::class, 'store'])->name('data.store');
         Route::get('/selection', [\App\Http\Controllers\SeleksiController::class, 'index'])->name('selection');// Halaman Utama Seleksi (Daftar Pengajuan)
@@ -168,7 +169,10 @@ Route::middleware('auth')->group(function () {
         Route::delete('/return-management/{id}', [ReturnController::class, 'destroy'])->name('return-management.destroy');
         Route::get('/return-management/{id}/pdf', [ReturnController::class, 'downloadPdf'])->name('return-management.pdf');
 
-        Route::get('/outbound', fn() => Inertia::render('Admin/Outbound'))->name('outbound');
+        Route::get('/outbound', [\App\Http\Controllers\Admin\OutboundController::class, 'index'])->name('outbound');
+        Route::post('/outbound', [\App\Http\Controllers\Admin\OutboundController::class, 'store'])->name('outbound.store');
+        Route::get('/outbound/{id}', [\App\Http\Controllers\Admin\OutboundController::class, 'show'])->name('outbound.show');
+        Route::delete('/outbound/{id}', [\App\Http\Controllers\Admin\OutboundController::class, 'destroy'])->name('outbound.destroy');
         Route::get('/user-management', [\App\Http\Controllers\Admin\UserController::class, 'index'])->name('user-management');
         Route::delete('/user-management/{id}', [\App\Http\Controllers\Admin\UserController::class, 'destroy'])->name('user-management.destroy');
     });

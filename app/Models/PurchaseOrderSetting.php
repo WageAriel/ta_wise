@@ -59,6 +59,6 @@ class PurchaseOrderSetting extends Model
 
     public static function defaultUomOptions(): array
     {
-        return ['pcs', 'box', 'pack', 'karton', 'lusin', 'kg', 'gram', 'liter', 'ml', 'roll'];
+        return ['pcs', 'box', 'pack', 'karton', 'lusin', 'kg', 'gram', 'liter', 'unit'];
     }
 }

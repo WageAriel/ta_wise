@@ -25,4 +25,9 @@ class Barang extends Model
     {
         return $this->hasMany(Inventory::class, 'id_barang', 'id_barang');
     }
+
+    public function itemType()
+    {
+        return $this->belongsTo(POItemType::class, 'id_item_type', 'id_item_type');
+    }
 }

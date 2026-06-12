@@ -37,10 +37,19 @@ const monthOptions = [
   { value: 12, label: 'Desember' },
 ];
 
-const defaultUomOptions = ['pcs', 'box', 'pack', 'karton', 'lusin', 'kg', 'gram', 'liter', 'ml', 'roll'];
+const defaultUomOptions = ['pcs', 'box', 'pack', 'karton', 'lusin', 'kg', 'gram', 'liter', 'unit'];
 const uomOptions = computed(() => (props.uomOptions?.length ? props.uomOptions : defaultUomOptions));
 
 const normalize = (value) => String(value || '').trim().toLowerCase();
+
+const formatPreviewUrl = (path) => {
+  if (!path) return '#';
+  const trimmed = path.trim();
+  if (/^(https?:\/\/|\/|#)/i.test(trimmed)) {
+    return trimmed;
+  }
+  return `https://${trimmed}`;
+};
 
 const findItemTypeById = (typeId) => props.itemTypes.find((type) => String(type.id_item_type) === String(typeId));
 const findBarangById = (barangId) => props.itemsCatalog.find((barang) => String(barang.id_barang) === String(barangId));
@@ -947,7 +956,7 @@ const confirmArrival = () => {
               <!-- Tautan Kelengkapan Dokumen -->
               <div v-if="activeViewPo.document_path" class="rounded-xl border border-blue-100 bg-blue-50 p-4">
                 <p class="text-xs font-semibold text-blue-800 mb-1">Dokumen Kelengkapan (Supplier)</p>
-                <a :href="activeViewPo.document_path" target="_blank" class="text-xs text-blue-600 underline break-all hover:text-blue-800">
+                <a :href="formatPreviewUrl(activeViewPo.document_path)" target="_blank" class="text-xs text-blue-600 underline break-all hover:text-blue-800">
                   Lihat Dokumen
                 </a>
               </div>
@@ -959,10 +968,10 @@ const confirmArrival = () => {
               <!-- Tautan Shipment -->
               <div v-if="activeViewPo.weighing_note_path || activeViewPo.delivery_note_path" class="rounded-xl border border-emerald-100 bg-emerald-50 p-4 flex flex-col gap-2">
                 <p class="text-xs font-semibold text-emerald-800 mb-1">Dokumen Pengiriman</p>
-                <a v-if="activeViewPo.weighing_note_path" :href="activeViewPo.weighing_note_path" target="_blank" class="text-xs text-emerald-600 underline hover:text-emerald-800 flex items-center gap-1">
+                <a v-if="activeViewPo.weighing_note_path" :href="formatPreviewUrl(activeViewPo.weighing_note_path)" target="_blank" class="text-xs text-emerald-600 underline hover:text-emerald-800 flex items-center gap-1">
                   📄 Nota Timbang
                 </a>
-                <a v-if="activeViewPo.delivery_note_path" :href="activeViewPo.delivery_note_path" target="_blank" class="text-xs text-emerald-600 underline hover:text-emerald-800 flex items-center gap-1">
+                <a v-if="activeViewPo.delivery_note_path" :href="formatPreviewUrl(activeViewPo.delivery_note_path)" target="_blank" class="text-xs text-emerald-600 underline hover:text-emerald-800 flex items-center gap-1">
                   📄 Surat Jalan
                 </a>
               </div>
@@ -1053,7 +1062,7 @@ const confirmArrival = () => {
           <div class="grid gap-4 md:grid-cols-2">
             <a
               v-if="activeShipmentPo.weighing_note_path"
-              :href="activeShipmentPo.weighing_note_path"
+              :href="formatPreviewUrl(activeShipmentPo.weighing_note_path)"
               target="_blank"
               class="rounded-xl border border-slate-100 p-4 text-sm font-semibold text-blue-600"
             >
@@ -1061,7 +1070,7 @@ const confirmArrival = () => {
             </a>
             <a
               v-if="activeShipmentPo.delivery_note_path"
-              :href="activeShipmentPo.delivery_note_path"
+              :href="formatPreviewUrl(activeShipmentPo.delivery_note_path)"
               target="_blank"
               class="rounded-xl border border-slate-100 p-4 text-sm font-semibold text-blue-600"
             >

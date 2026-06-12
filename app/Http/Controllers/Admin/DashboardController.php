@@ -15,6 +15,19 @@ class DashboardController extends Controller
 {
     public function index(Request $request)
     {
+        $user = $request->user();
+        if ($user) {
+            if ($user->role === 'supplier') {
+                return redirect()->route('supplier.dashboard');
+            }
+            if ($user->role === 'manajer') {
+                return redirect()->route('manajer.dashboard');
+            }
+            if ($user->role === 'petugas_lapangan') {
+                return redirect()->route('petugas.dashboard.petugas');
+            }
+        }
+
         $today = Carbon::today();
         $thisMonth = Carbon::now()->startOfMonth();
 

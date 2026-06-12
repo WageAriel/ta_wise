@@ -111,6 +111,33 @@ const icons = {
 const showLayoutModal = ref(false);
 const showLocationModal = ref(false);
 const showInventoryModal = ref(false);
+const showDetailModal = ref(false);
+
+const detailInboundId = ref("");
+const detailItems = ref([]);
+
+const openDetailFor = async (id_inbound) => {
+    detailInboundId.value = id_inbound;
+    detailItems.value = [];
+    showDetailModal.value = true;
+    try {
+        const response = await axios.get(route('admin.inbound.items', id_inbound));
+        detailItems.value = response.data;
+    } catch (error) {
+        console.error("Gagal mengambil detail item inbound", error);
+    }
+};
+
+const openAddInventoryFor = async (id_inbound) => {
+    const status = inboundStatusMap.value[id_inbound] ?? 'pending';
+    if (status === 'completed' || status === 'returned') {
+        Swal.fire("Informasi", "Inbound ini sudah selesai diproses atau dikembalikan.", "info");
+        return;
+    }
+    inventoryForm.value.id_inbound = id_inbound;
+    await handleInboundChange();
+    showInventoryModal.value = true;
+};
 
 const layouts = ref([]);
 const barangs = ref([]);
@@ -350,12 +377,18 @@ const availableLocations = computed(() => {
                                 {{ formatDate(item.tgl) }}
                             </td>
                             <td class="px-6 py-4 text-center">
-                                <span :class="inboundBadgeClass(item.id_inbound)" class="px-3 py-1 rounded-full text-xs font-bold ring-1">
+                                <span 
+                                    @click="openAddInventoryFor(item.id_inbound)"
+                                    :class="inboundBadgeClass(item.id_inbound)" 
+                                    class="px-3 py-1 rounded-full text-xs font-bold ring-1 cursor-pointer hover:opacity-80 transition-opacity"
+                                    title="Klik untuk Add Inventory"
+                                >
                                     {{ inboundBadgeLabel(item.id_inbound, item.jumlah) }}
                                 </span>
                             </td>
                             <td class="px-6 py-4 text-center">
                                 <button 
+                                    @click="openDetailFor(item.id_inbound)"
                                     class="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all group"
                                     title="Detail Inbound"
                                 >
@@ -571,6 +604,52 @@ const availableLocations = computed(() => {
                     >
                         Simpan Inventory
                     </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL DETAIL PREVIEW INBOUND -->
+        <div v-if="showDetailModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                    <div>
+                        <h3 class="font-bold text-gray-800">Detail Item Inbound - {{ detailInboundId }}</h3>
+                        <p class="text-xs text-gray-500 mt-0.5">Daftar sisa barang yang dapat dilokasikan (put-away).</p>
+                    </div>
+                    <button @click="showDetailModal = false" class="text-gray-400 hover:text-red-500 text-xl font-bold">&times;</button>
+                </div>
+                <div class="p-6">
+                    <div class="border border-gray-100 rounded-lg overflow-hidden shadow-sm">
+                        <table class="w-full text-left text-xs border-collapse">
+                            <thead class="bg-gray-50/50 border-b border-gray-100">
+                                <tr>
+                                    <th class="py-4 px-6 font-medium text-gray-400 w-16 text-center">No</th>
+                                    <th class="py-4 px-6 font-medium text-gray-400">Nama Barang</th>
+                                    <th class="py-4 px-6 font-medium text-gray-400 text-center">Remaining Quantity</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-50 bg-white">
+                                <tr v-for="(item, idx) in detailItems" :key="idx" class="hover:bg-gray-50/50 transition-colors">
+                                    <td class="py-4 px-6 text-center font-semibold text-gray-400">{{ idx + 1 }}</td>
+                                    <td class="py-4 px-6 font-semibold text-gray-900 text-sm">{{ item.nama_barang }}</td>
+                                    <td class="py-4 px-6 text-center font-bold text-indigo-600 text-sm">{{ item.qty }}</td>
+                                </tr>
+                                <tr v-if="detailItems.length === 0">
+                                    <td colspan="3" class="py-12 text-center text-gray-500 font-medium">
+                                        <div class="flex flex-col items-center justify-center space-y-2">
+                                            <svg class="w-8 h-8 text-gray-300" fill="none" viewBox="0 0 24 24" v-html="icons.package"></svg>
+                                            <p>Semua barang pada Inbound ini sudah selesai di put-away.</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="flex justify-end gap-3 mt-6">
+                        <button type="button" @click="showDetailModal = false" class="px-6 py-2.5 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg font-semibold text-xs transition-all">
+                            Tutup
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

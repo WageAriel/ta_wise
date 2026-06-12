@@ -79,10 +79,10 @@ const icons = {
             <!-- Dashboard -->
             <div>
                 <Link
-                    :href="route('dashboard')"
+                    :href="route('supplier.dashboard')"
                     class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 group"
                     :class="
-                        isActive('dashboard')
+                        isActive('supplier.dashboard')
                             ? 'text-blue-600 bg-blue-50'
                             : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
                     "
@@ -90,7 +90,7 @@ const icons = {
                     <svg
                         class="w-5 h-5 transition-colors"
                         :class="
-                            isActive('dashboard')
+                            isActive('supplier.dashboard')
                                 ? 'text-blue-600'
                                 : 'text-gray-400 group-hover:text-blue-600'
                         "
