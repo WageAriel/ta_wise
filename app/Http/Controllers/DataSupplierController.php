@@ -18,7 +18,9 @@ class DataSupplierController extends Controller
     // 1. Tampil form data supplier
     public function index()
     {
-        $supplier = auth()->user()->supplier()->with('documents')->first();
+        /** @var \App\Models\User $user */
+        $user = auth()->user();
+        $supplier = $user->supplier()->with('documents')->first();
 
         return Inertia::render('Supplier/DataSupplier', [
             'supplier' => $supplier,

@@ -16,15 +16,7 @@ return new class extends Migration
             $table->id('id_return'); 
             
             $table->date('tanggal');
-            $table->integer('qty');
-            $table->string('kondisi'); 
-            $table->text('alasan');
             $table->string('status')->default('Pending'); // Default status
-            
-            // Foreign Key ke tabel barang (sesuaikan dengan nama PK di tabel barang Anda)
-            $table->foreignId('id_barang')
-                  ->constrained('barang', 'id_barang')
-                  ->onDelete('cascade');
             
             // id_inbound (bisa berupa string kode atau foreignId jika ada tabel inbounds)
             $table->string('id_inbound'); 

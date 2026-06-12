@@ -157,6 +157,12 @@ Route::middleware('auth')->group(function () {
         Route::get('/inventory', [\App\Http\Controllers\Admin\InventoryController::class, 'index'])->name('inventory');
         Route::resource('barang', \App\Http\Controllers\Admin\BarangController::class)->except(['create', 'show', 'edit']);
 
+        // Outbound Routes
+        Route::get('/outbound/items', [\App\Http\Controllers\Admin\OutboundController::class, 'getItems'])->name('outbound.items');
+        Route::post('/outbound', [\App\Http\Controllers\Admin\OutboundController::class, 'store'])->name('outbound.store');
+        Route::delete('/outbound/{id}', [\App\Http\Controllers\Admin\OutboundController::class, 'destroy'])->name('outbound.destroy');
+        Route::get('/outbound/{id}/pdf', [\App\Http\Controllers\Admin\OutboundController::class, 'downloadPdf'])->name('outbound.pdf');
+
         // Return - Admin
         Route::get('/return-management', [ReturnController::class, 'index'])->name('return-management');
         Route::get('/return-management/data', [ReturnController::class, 'data'])->name('return-management.data');
@@ -164,7 +170,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('/return-management/{id}', [ReturnController::class, 'destroy'])->name('return-management.destroy');
         Route::get('/return-management/{id}/pdf', [ReturnController::class, 'downloadPdf'])->name('return-management.pdf');
 
-        Route::get('/outbound', fn() => Inertia::render('Admin/Outbound'))->name('outbound');
+        Route::get('/outbound', [\App\Http\Controllers\Admin\OutboundController::class, 'index'])->name('outbound');
         Route::get('/user-management', [\App\Http\Controllers\Admin\UserController::class, 'index'])->name('user-management');
         Route::delete('/user-management/{id}', [\App\Http\Controllers\Admin\UserController::class, 'destroy'])->name('user-management.destroy');
     });

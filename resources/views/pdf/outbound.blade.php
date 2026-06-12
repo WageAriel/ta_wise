@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Surat Retur Barang</title>
+    <title>Surat Jalan / Pengeluaran Barang</title>
     <style>
         body {
             font-family: 'Times New Roman', Times, serif;
@@ -94,48 +94,46 @@
         <p>Telp: (021) 1234567 | Email: info@tunasartha.com</p>
     </div>
 
-    <div class="title">SURAT PENGEMBALIAN BARANG (RETUR)</div>
-    <div class="subtitle">Nomor: RET-{{ str_pad($id_return, 4, '0', STR_PAD_LEFT) }}</div>
+    <div class="title">SURAT JALAN / PENGELUARAN BARANG</div>
+    <div class="subtitle">Nomor: OUT-{{ str_pad($outbound->id_outbound, 4, '0', STR_PAD_LEFT) }}</div>
 
     <table class="info-table">
         <tr>
-            <td class="label">Tanggal Retur</td>
-            <td>: {{ \Carbon\Carbon::parse($return_date)->translatedFormat('d F Y') }}</td>
-            <td class="label">Penerima (Supplier)</td>
-            <td>: {{ $supplier_name }}</td>
+            <td class="label">Tanggal Keluar</td>
+            <td>: {{ \Carbon\Carbon::parse($outbound->tanggal)->translatedFormat('d F Y') }}</td>
+            <td class="label">Tujuan (Penerima)</td>
+            <td>: {{ $outbound->tujuan }}</td>
         </tr>
         <tr>
-            <td class="label">Referensi Inbound</td>
-            <td>: {{ str_pad($id_inbound, 4, '0', STR_PAD_LEFT) }}</td>
-            <td class="label">Tanggal Inbound</td>
-            <td>: {{ \Carbon\Carbon::parse($inbound_date)->translatedFormat('d F Y') }}</td>
+            <td class="label">Status</td>
+            <td>: {{ $outbound->status }}</td>
+            <td class="label">Pembuat / Petugas</td>
+            <td>: {{ $outbound->user ? $outbound->user->username : 'Administrator' }}</td>
         </tr>
     </table>
 
     <table class="content-table">
         <thead>
             <tr>
-                <th style="width: 40px;">No.</th>
+                <th style="width: 50px;">No.</th>
                 <th>Nama Barang</th>
-                <th style="width: 80px;">Quantity</th>
-                <th style="width: 100px;">Kondisi</th>
-                <th>Alasan Retur</th>
+                <th>Lokasi</th>
+                <th style="width: 100px;">Quantity</th>
             </tr>
         </thead>
         <tbody>
-            @foreach($items as $index => $item)
+            @foreach($outbound->details as $index => $detail)
             <tr>
                 <td class="text-center">{{ $index + 1 }}</td>
-                <td>{{ $item->barang ? $item->barang->nama_barang : 'Unknown' }}</td>
-                <td class="text-center">{{ $item->qty }} {{ $item->barang ? $item->barang->satuan : '' }}</td>
-                <td class="text-center">{{ $item->kondisi }}</td>
-                <td>{{ $item->alasan }}</td>
+                <td>{{ $detail->barang ? $detail->barang->nama_barang : 'Unknown' }}</td>
+                <td>{{ ($detail->barang && $detail->barang->inventories->count() > 0 && $detail->barang->inventories[0]->location) ? $detail->barang->inventories[0]->location->kode_location : '-' }}</td>
+                <td class="text-center">{{ $detail->qty }} {{ $detail->barang ? $detail->barang->satuan : '' }}</td>
             </tr>
             @endforeach
         </tbody>
     </table>
 
-    <p>Demikian surat retur barang ini dibuat sebagai bukti pengembalian barang yang tidak sesuai / rusak kepada pihak supplier. Harap diterima dan ditindaklanjuti sebagaimana mestinya.</p>
+    <p>Demikian surat jalan / pengeluaran barang ini dibuat untuk dipergunakan sebagaimana mestinya. Barang telah diserahkan dan diterima dalam keadaan baik dan sesuai dengan rincian di atas.</p>
 
     <div class="footer">
         <table class="footer-table">
@@ -143,7 +141,7 @@
                 <td>
                     <strong>Pembuat (Warehouse)</strong>
                     <br><br><br><br>
-                    <span class="signature-line">{{ $user_name }}</span>
+                    <span class="signature-line">{{ $outbound->user ? $outbound->user->username : 'Petugas Gudang' }}</span>
                 </td>
             </tr>
         </table>

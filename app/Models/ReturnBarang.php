@@ -17,17 +17,13 @@ class ReturnBarang extends Model
 
     protected $fillable = [
         'tanggal',
-        'qty',
-        'kondisi',
-        'alasan',
         'status',
-        'id_barang',
         'id_inbound',
     ];
 
-    // Relasi ke Model Barang
-    public function barang()
+    // Relasi ke ReturnDetail
+    public function details()
     {
-        return $this->belongsTo(Barang::class, 'id_barang', 'id_barang');
+        return $this->hasMany(ReturnDetail::class, 'id_return', 'id_return');
     }
 }

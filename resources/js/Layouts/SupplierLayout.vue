@@ -35,11 +35,11 @@ onUnmounted(() => {
                 <div class="relative user-menu-container">
                     <button @click="showDropdown = !showDropdown" class="flex items-center gap-3 cursor-pointer hover:bg-gray-50 p-1.5 rounded-xl transition-colors focus:outline-none">
                         <div class="text-right hidden sm:block leading-tight">
-                            <p class="text-[13px] font-bold text-gray-800">{{ user?.name || 'Supplier' }}</p>
+                            <p class="text-[13px] font-bold text-gray-800">{{ user?.username || 'Supplier' }}</p>
                             <p class="text-[11px] font-medium text-gray-400">{{ user?.email || 'supplier@ta-wise.com' }}</p>
                         </div>
                         <div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-sm border-2 border-white shadow-sm uppercase">
-                            {{ (user?.name || 'S').charAt(0) }}
+                            {{ (user?.username || 'S').charAt(0) }}
                         </div>
                         <svg class="w-3.5 h-3.5 text-gray-400" :class="{'rotate-180': showDropdown}" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="transition: transform 0.2s;">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
@@ -57,7 +57,7 @@ onUnmounted(() => {
                     >
                         <div v-if="showDropdown" class="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden z-20">
                             <div class="p-3 border-b border-gray-50 block sm:hidden">
-                                <p class="text-sm font-bold text-gray-800">{{ user?.name || 'Supplier' }}</p>
+                                <p class="text-sm font-bold text-gray-800">{{ user?.username || 'Supplier' }}</p>
                                 <p class="text-xs font-medium text-gray-400">{{ user?.email || 'supplier@ta-wise.com' }}</p>
                             </div>
                             <Link :href="route('profile.edit')" class="px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-indigo-600 font-medium transition-colors flex items-center gap-2">

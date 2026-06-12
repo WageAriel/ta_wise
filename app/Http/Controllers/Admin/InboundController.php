@@ -9,6 +9,7 @@ use App\Models\Location;
 use App\Models\Inventory;
 use App\Models\Barang;
 use App\Models\PutAway;
+use App\Models\ReturnBarang;
 use App\Models\Inbound;
 use App\Models\InboundItem;
 use Illuminate\Support\Facades\DB; 
@@ -75,14 +76,16 @@ class InboundController extends Controller
         }
 
         // Calculate how much has already been returned for this inbound per barang
-        $returns = \App\Models\ReturnBarang::where('id_inbound', $id_inbound)->get();
+        $returns = ReturnBarang::with('details')->where('id_inbound', $id_inbound)->get();
         $returnQtyPerBarang = [];
         foreach ($returns as $ret) {
-            $id_barang = $ret->id_barang;
-            if (!isset($returnQtyPerBarang[$id_barang])) {
-                $returnQtyPerBarang[$id_barang] = 0;
+            foreach ($ret->details as $detail) {
+                $id_barang = $detail->id_barang;
+                if (!isset($returnQtyPerBarang[$id_barang])) {
+                    $returnQtyPerBarang[$id_barang] = 0;
+                }
+                $returnQtyPerBarang[$id_barang] += $detail->qty;
             }
-            $returnQtyPerBarang[$id_barang] += $ret->qty;
         }
 
         $formattedItems = [];
