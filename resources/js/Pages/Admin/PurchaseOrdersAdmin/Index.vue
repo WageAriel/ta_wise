@@ -37,10 +37,19 @@ const monthOptions = [
   { value: 12, label: 'Desember' },
 ];
 
-const defaultUomOptions = ['pcs', 'box', 'pack', 'karton', 'lusin', 'kg', 'gram', 'liter', 'ml', 'roll'];
+const defaultUomOptions = ['pcs', 'box', 'pack', 'karton', 'lusin', 'kg', 'gram', 'liter', 'unit'];
 const uomOptions = computed(() => (props.uomOptions?.length ? props.uomOptions : defaultUomOptions));
 
 const normalize = (value) => String(value || '').trim().toLowerCase();
+
+const formatPreviewUrl = (path) => {
+  if (!path) return '#';
+  const trimmed = path.trim();
+  if (/^(https?:\/\/|\/|#)/i.test(trimmed)) {
+    return trimmed;
+  }
+  return `https://${trimmed}`;
+};
 
 const findItemTypeById = (typeId) => props.itemTypes.find((type) => String(type.id_item_type) === String(typeId));
 const findBarangById = (barangId) => props.itemsCatalog.find((barang) => String(barang.id_barang) === String(barangId));
@@ -142,18 +151,17 @@ const formatCurrency = (value) => {
 
 const totalQuantity = (items = []) => items.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
 const itemNames = (items = []) => {
-  const names = items
-    .map((item) => {
-      const mainType = item.itemType?.type_name || item.item_type?.type_name || '';
-      const subtype = item.subtype?.subtype_name || item.subtype_name || '';
-      const barangName = item.barang?.nama_barang || '';
-      return [barangName, mainType, subtype].filter(Boolean).join(' / ');
-    })
-    .filter((value) => value && value.trim() !== '');
+  const barangNames = [...new Set(items
+    .map((item) => item.barang?.nama_barang || '')
+    .filter(Boolean)
+  )];
 
-  if (!names.length) return '-';
-  if (names.length <= 2) return names.join(', ');
-  return `${names.slice(0, 2).join(', ')} +${names.length - 2}`;
+  if (!barangNames.length) return '-';
+  return barangNames.join(', ');
+};
+
+const itemTypesCount = (items = []) => {
+  return items.length;
 };
 
 const itemUom = (items = []) => {
@@ -169,11 +177,11 @@ const statusLabel = (status) => {
     inquiry: 'Inquiry',
     submitted: 'Submitted',
     rfq: 'Request For Quotation',
-    verification: 'Verification',
-    request: 'Request',
-    completeness: 'Document Check',
+    verification: 'Menunggu Supplier',
+    request: 'Review Penawaran',
+    completeness: 'Kelengkapan Dokumen',
     approved: 'Approved',
-    shipment: 'Dalam Perjalanan',
+    shipment: 'Confirm Purchase Order',
     completed: 'Sudah Diterima',
     rejected: 'Rejected',
     cancelled: 'Cancelled',
@@ -230,6 +238,7 @@ const showShipmentModal = ref(false);
 const modalMode = ref('create');
 const activePoId = ref(null);
 const activeShipmentPo = ref(null);
+const activeViewPo = ref(null);
 
 
 const getSelectedItemType = () => {
@@ -284,6 +293,7 @@ const resetForm = () => {
   form.clearErrors();
   form.barang_id = '';
   form.types = [];
+  activeViewPo.value = null;
 };
 
 const openCreateModal = () => {
@@ -305,6 +315,7 @@ const openEditModal = (po) => {
     const itemType = findItemTypeById(item.id_item_type || item.item_type_id || item.itemType?.id_item_type);
     const forceUom = Boolean(itemType?.uomConfig?.force_uom);
     return {
+      id: item.id,
       item_type_id: item.id_item_type || item.item_type_id || item.itemType?.id_item_type || '',
       subtype_id: item.id_subtype || item.subtype_id || item.subtype?.id_subtype || '',
       quantity: item.quantity,
@@ -318,8 +329,9 @@ const openEditModal = (po) => {
 
 const openViewModal = (po) => {
   resetForm();
-  modalMode.value = 'view';
+  modalMode.value = po.status === 'request' ? 'review' : 'view';
   activePoId.value = po.id;
+  activeViewPo.value = po;
   form.supplier_id = po.supplier_id || '';
   form.description = po.description || '';
   form.is_draft = (po.status === 'inquiry' || po.status === 'draft');
@@ -327,13 +339,20 @@ const openViewModal = (po) => {
   form.types = po.items.map((item) => {
     const itemType = findItemTypeById(item.id_item_type || item.item_type_id || item.itemType?.id_item_type);
     const forceUom = Boolean(itemType?.uomConfig?.force_uom);
+    
+    const displayQuantity = item.supplier_offered_quantity ?? item.quantity;
+    const displayPrice = item.supplier_offered_price ?? item.unit_price;
+
     return {
+      id: item.id,
       item_type_id: item.id_item_type || item.item_type_id || item.itemType?.id_item_type || '',
       subtype_id: item.id_subtype || item.subtype_id || item.subtype?.id_subtype || '',
-      quantity: item.quantity,
-      unit_price: item.unit_price,
+      quantity: displayQuantity,
+      unit_price: displayPrice,
       uom: item.uom || '',
       uom_locked: forceUom,
+      original_quantity: item.quantity,
+      original_price: item.unit_price,
     };
   });
   showRequestModal.value = true;
@@ -356,6 +375,7 @@ const onBarangChange = () => {
 
   form.types = [
     {
+      id: null,
       item_type_id: itemType?.id_item_type || '',
       subtype_id: '',
       quantity: 1,
@@ -411,6 +431,7 @@ const submitRequest = () => {
     description: data.description || null,
     is_draft: data.is_draft,
     items: data.types.map((t) => ({
+      id: t.id,
       barang_id: data.barang_id,
       item_type_id: t.item_type_id || null,
       subtype_id: t.subtype_id || null,
@@ -428,14 +449,64 @@ const submitRequest = () => {
   transformed.post(route('admin.order-request.store'), options);
 };
 
+const acceptSupplierOffer = () => {
+  if (!activePoId.value || !confirm('Setujui penawaran dari supplier?')) return;
+  router.post(route('admin.accept-supplier-offer', activePoId.value), {}, { preserveScroll: true, onSuccess: () => (showRequestModal.value = false) });
+};
+
+const submitCounterOffer = () => {
+  if (!activePoId.value) return;
+
+  const options = {
+    preserveScroll: true,
+    onSuccess: () => (showRequestModal.value = false),
+  };
+
+  const transformed = form.transform((data) => ({
+    items: data.types.map((t) => ({
+      id: t.id,
+      counter_price: t.unit_price,
+      counter_quantity: t.quantity,
+    })),
+  }));
+
+  transformed.post(route('admin.counter-offer', activePoId.value), options);
+};
+
 const deleteRequest = (po) => {
   if (!confirm(`Hapus request ${po.po_number}?`)) return;
   router.delete(route('admin.order-request.destroy', po.id), { preserveScroll: true });
 };
 
-const promoteInquiryRequest = (po) => {
-  if (!confirm(`Ubah inquiry ${po.po_number} menjadi request PO?`)) return;
-  router.post(route('admin.order-request.promote', po.id), {}, { preserveScroll: true });
+/* ── Completeness Modal (Admin) ── */
+const showCompletenessModal = ref(false);
+const activeCompletenessPo = ref(null);
+const completenessForm = useForm({
+  documents_verified: {
+    surat_permohonan: false,
+    surat_penawaran: false,
+    purchase_order: false
+  }
+});
+
+const openCompletenessModal = (po) => {
+  activeCompletenessPo.value = po;
+  completenessForm.documents_verified = {
+    surat_permohonan: false,
+    surat_penawaran: false,
+    purchase_order: false
+  };
+  showCompletenessModal.value = true;
+};
+
+const confirmCompleteness = () => {
+  if (!activeCompletenessPo.value) return;
+  completenessForm.post(route('admin.confirm-completeness', activeCompletenessPo.value.id), {
+    preserveScroll: true,
+    onSuccess: () => {
+      showCompletenessModal.value = false;
+    },
+  });
 };
 
 const openShipmentModal = (po) => {
@@ -558,7 +629,7 @@ const confirmArrival = () => {
             <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
               <tr>
                 <th class="px-4 py-3 text-left">Supplier</th>
-                <th class="px-4 py-3 text-left">Item</th>
+                <th class="px-4 py-3 text-left">Nama Barang</th>
                 <th class="px-4 py-3 text-left">Total Quantity</th>
                 <th class="px-4 py-3 text-left">UoM</th>
                 <th class="px-4 py-3 text-left">Total Price</th>
@@ -577,7 +648,10 @@ const confirmArrival = () => {
                   {{ po.supplier?.nama_perusahaan || '-' }}
                 </td>
                 <td class="px-4 py-3">
-                  {{ itemNames(po.items || []) }}
+                  <span>{{ itemNames(po.items || []) }}</span>
+                  <span v-if="itemTypesCount(po.items || []) > 1" class="ml-1 inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-600">
+                    {{ itemTypesCount(po.items || []) }} jenis
+                  </span>
                 </td>
                 <td class="px-4 py-3">
                   {{ totalQuantity(po.items || []) }}
@@ -589,19 +663,56 @@ const confirmArrival = () => {
                   {{ formatCurrency(po.total_price) }}
                 </td>
                 <td class="px-4 py-3">
-                  {{ po.date }}
+                  {{ po.created_at }}
                 </td>
                 <td class="px-4 py-3">
+                  <!-- Order Request: Inquiry/Draft -->
                   <button
                     v-if="segment === 'order-request' && (po.status === 'inquiry' || po.status === 'draft')"
-                    class="rounded-full bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-700 transition hover:bg-amber-200"
-                    :title="po.supplier_id ? 'Klik untuk mengubah inquiry menjadi request PO' : 'Pilih supplier terlebih dahulu di form edit'"
-                    @click="promoteInquiryRequest(po)"
+                    class="rounded-full bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-700 hover:bg-amber-200 transition cursor-pointer"
+                    title="Klik untuk mengedit inquiry"
+                    @click="openEditModal(po)"
                   >
-                    {{ statusLabel(po.status) }}
+                    ● {{ statusLabel(po.status) }}
                   </button>
+                  <!-- RFQ: read only -->
+                  <span v-else-if="po.status === 'rfq'" class="rounded-full bg-blue-100 px-2 py-1 text-xs font-semibold text-blue-700">
+                    ● {{ statusLabel(po.status) }}
+                  </span>
+                  <!-- Verification: menunggu supplier, no action -->
+                  <span v-else-if="po.status === 'verification'" class="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-500">
+                    ● {{ statusLabel(po.status) }}
+                  </span>
+                  <!-- Request: admin can accept/counter — clickable -->
+                  <button
+                    v-else-if="po.status === 'request'"
+                    class="rounded-full bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-700 transition hover:bg-amber-200 cursor-pointer animate-pulse"
+                    @click="openViewModal(po)"
+                    title="Klik untuk review penawaran supplier"
+                  >
+                    ● {{ statusLabel(po.status) }}
+                  </button>
+                  <!-- Completeness: admin confirms docs — clickable -->
+                  <button
+                    v-else-if="po.status === 'completeness'"
+                    class="rounded-full bg-purple-100 px-2 py-1 text-xs font-semibold text-purple-700 transition hover:bg-purple-200 cursor-pointer"
+                    @click="openCompletenessModal(po)"
+                    title="Klik untuk verifikasi kelengkapan dokumen"
+                  >
+                    ● {{ statusLabel(po.status) }}
+                  </button>
+                  <!-- Shipment: admin can confirm arrival — clickable -->
+                  <button
+                    v-else-if="po.status === 'shipment'"
+                    class="rounded-full bg-indigo-100 px-2 py-1 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-200 cursor-pointer"
+                    @click="openShipmentModal(po)"
+                    title="Klik untuk konfirmasi kedatangan"
+                  >
+                    ● {{ statusLabel(po.status) }}
+                  </button>
+                  <!-- Other statuses: non-clickable -->
                   <span v-else class="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-600">
-                    {{ statusLabel(po.status) }}
+                    ● {{ statusLabel(po.status) }}
                   </span>
                 </td>
                 <td class="px-4 py-3">
@@ -694,7 +805,7 @@ const confirmArrival = () => {
               <button
                 class="relative inline-flex h-6 w-11 items-center rounded-full transition"
                 :class="form.is_draft ? 'bg-blue-600' : 'bg-slate-300'"
-                :disabled="modalMode === 'view' || modalMode === 'edit'"
+                :disabled="modalMode === 'view' || modalMode === 'review'"
                 @click="form.is_draft = !form.is_draft"
               >
                 <span
@@ -704,7 +815,6 @@ const confirmArrival = () => {
               </button>
               <span class="text-xs font-medium text-slate-500">Inquiry (Draft)</span>
             </div>
-            <p v-if="modalMode === 'edit'" class="mt-1 text-[11px] text-slate-400">Status inquiry tidak bisa diubah dari form ini.</p>
           </div>
         </div>
 
@@ -753,17 +863,17 @@ const confirmArrival = () => {
             <div class="flex items-center justify-between gap-2">
               <h3 class="text-sm font-semibold text-slate-700">Detail Order</h3>
               <button
-                class="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-semibold text-blue-600 hover:bg-blue-50"
+                class="inline-flex items-center gap-1 rounded px-3 py-1 text-xs font-semibold text-blue-600 hover:bg-blue-50"
                 @click="addTypeLine"
                 :disabled="modalMode === 'view' || !form.barang_id"
-                title="Tambah tipe item baru"
+                title="Tambah jenis item baru"
               >
-                <span>+</span>
+                <span>+ Tambah Jenis</span>
               </button>
             </div>
 
             <div>
-              <label class="text-xs font-semibold text-slate-500">Nama Item</label>
+              <label class="text-xs font-semibold text-slate-500">Nama Barang</label>
               <select
                 v-model="form.barang_id"
                 class="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
@@ -777,25 +887,25 @@ const confirmArrival = () => {
               </select>
             </div>
 
-            <div v-if="!form.barang_id" class="mt-2 text-xs text-slate-400">Pilih nama item terlebih dahulu untuk menambah tipe item.</div>
+            <div v-if="!form.barang_id" class="mt-2 text-xs text-slate-400">Pilih nama barang terlebih dahulu untuk menambah jenis item.</div>
 
             <div v-for="(t, idx) in form.types" :key="idx" class="rounded-xl border border-slate-100 bg-slate-50 p-4">
               <div class="flex items-center justify-between">
-                <span class="text-xs font-semibold uppercase tracking-wide text-slate-500">Tipe Item {{ idx + 1 }}</span>
-                <button class="text-xs font-semibold text-red-500" @click="removeTypeLine(idx)" :disabled="modalMode === 'view'">
+                <span class="text-xs font-semibold uppercase tracking-wide text-slate-500">Jenis Item {{ idx + 1 }}</span>
+                <button class="text-xs font-semibold text-red-500" @click="removeTypeLine(idx)" :disabled="modalMode === 'view' || modalMode === 'review'">
                   Hapus
                 </button>
               </div>
 
               <div class="mt-3">
-                <label class="text-xs font-semibold text-slate-500">Pilih Tipe Item</label>
+                <label class="text-xs font-semibold text-slate-500">Pilih Jenis Item</label>
                 <select
                   v-model="t.subtype_id"
                   class="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                  :disabled="modalMode === 'view' || !form.barang_id"
+                  :disabled="modalMode === 'view' || modalMode === 'review' || !form.barang_id"
                   @change="onSubtypeChange(t)"
                 >
-                  <option value="">Pilih Tipe</option>
+                  <option value="">Pilih Jenis</option>
                   <option v-for="st in typeSubtypes(t.item_type_id)" :key="st.id_subtype" :value="st.id_subtype">
                     {{ st.subtype_name }}
                   </option>
@@ -806,14 +916,20 @@ const confirmArrival = () => {
                 <div>
                   <label class="text-xs font-semibold text-slate-500">Price Request</label>
                   <input v-model.number="t.unit_price" type="number" min="0" class="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" :disabled="modalMode === 'view'" />
+                  <div v-if="modalMode === 'review' && t.unit_price !== t.original_price" class="mt-1 text-[10px] text-amber-600 font-medium">
+                    Semula: {{ formatCurrency(t.original_price) }}
+                  </div>
                 </div>
                 <div>
                   <label class="text-xs font-semibold text-slate-500">Quantity</label>
                   <input v-model.number="t.quantity" type="number" min="1" class="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" :disabled="modalMode === 'view'" />
+                  <div v-if="modalMode === 'review' && t.quantity !== t.original_quantity" class="mt-1 text-[10px] text-amber-600 font-medium">
+                    Semula: {{ t.original_quantity }}
+                  </div>
                 </div>
                 <div>
                   <label class="text-xs font-semibold text-slate-500">UoM</label>
-                  <select v-model="t.uom" class="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" :disabled="modalMode === 'view' || t.uom_locked">
+                  <select v-model="t.uom" class="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" :disabled="modalMode === 'view' || modalMode === 'review' || t.uom_locked">
                     <option value="">Pilih UoM</option>
                     <option v-for="uom in uomOptions" :key="uom" :value="uom">{{ uom }}</option>
                   </select>
@@ -821,7 +937,7 @@ const confirmArrival = () => {
               </div>
 
               <div class="mt-3 flex items-center justify-between text-xs text-slate-500">
-                <span>Subtotal Tipe: {{ formatCurrency(typeLineSubtotal(t)) }}</span>
+                <span>Subtotal Jenis: {{ formatCurrency(typeLineSubtotal(t)) }}</span>
                 <span class="text-xs text-slate-400">(Price Request × Quantity)</span>
               </div>
             </div>
@@ -831,20 +947,71 @@ const confirmArrival = () => {
             <span class="font-semibold text-slate-600">Total Price Request</span>
             <span class="text-lg font-bold text-slate-800">{{ formatCurrency(totalRequestValue) }}</span>
           </div>
+
+          <!-- Lampiran Section untuk Admin View Modal -->
+          <div v-if="(modalMode === 'view' || modalMode === 'review') && activeViewPo" class="mt-6 border-t border-slate-200 pt-4">
+            <h3 class="text-sm font-bold text-slate-800 mb-3">Lampiran Terkait</h3>
+            <div class="grid gap-3 md:grid-cols-2">
+              
+              <!-- Tautan Kelengkapan Dokumen -->
+              <div v-if="activeViewPo.document_path" class="rounded-xl border border-blue-100 bg-blue-50 p-4">
+                <p class="text-xs font-semibold text-blue-800 mb-1">Dokumen Kelengkapan (Supplier)</p>
+                <a :href="formatPreviewUrl(activeViewPo.document_path)" target="_blank" class="text-xs text-blue-600 underline break-all hover:text-blue-800">
+                  Lihat Dokumen
+                </a>
+              </div>
+              <div v-else class="rounded-xl border border-slate-100 bg-slate-50 p-4">
+                <p class="text-xs font-semibold text-slate-500 mb-1">Dokumen Kelengkapan</p>
+                <span class="text-xs text-slate-400">Belum ada lampiran</span>
+              </div>
+
+              <!-- Tautan Shipment -->
+              <div v-if="activeViewPo.weighing_note_path || activeViewPo.delivery_note_path" class="rounded-xl border border-emerald-100 bg-emerald-50 p-4 flex flex-col gap-2">
+                <p class="text-xs font-semibold text-emerald-800 mb-1">Dokumen Pengiriman</p>
+                <a v-if="activeViewPo.weighing_note_path" :href="formatPreviewUrl(activeViewPo.weighing_note_path)" target="_blank" class="text-xs text-emerald-600 underline hover:text-emerald-800 flex items-center gap-1">
+                  📄 Nota Timbang
+                </a>
+                <a v-if="activeViewPo.delivery_note_path" :href="formatPreviewUrl(activeViewPo.delivery_note_path)" target="_blank" class="text-xs text-emerald-600 underline hover:text-emerald-800 flex items-center gap-1">
+                  📄 Surat Jalan
+                </a>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="flex justify-end gap-2 border-t border-slate-100 px-6 py-3">
           <button class="rounded px-3 py-1.5 text-xs font-medium border border-slate-200 hover:bg-slate-50" @click="showRequestModal = false">
             Batal
           </button>
-          <button
-            v-if="modalMode !== 'view'"
-            class="rounded px-3 py-1.5 text-xs font-medium bg-blue-600 text-white hover:bg-blue-700"
-            @click="submitRequest"
-            :disabled="form.processing"
-          >
-            Simpan
-          </button>
+          
+          <template v-if="modalMode === 'create' || modalMode === 'edit'">
+            <button
+              class="rounded px-3 py-1.5 text-xs font-medium bg-blue-600 text-white hover:bg-blue-700"
+              @click="submitRequest"
+              :disabled="form.processing"
+            >
+              Simpan
+            </button>
+          </template>
+
+          <template v-else-if="modalMode === 'review'">
+            <button
+              class="rounded px-3 py-1.5 text-xs font-medium bg-amber-500 text-white hover:bg-amber-600"
+              @click="submitCounterOffer"
+              :disabled="form.processing"
+              title="Ajukan balik perubahan harga/kuantitas ke supplier"
+            >
+              Ajukan Perubahan
+            </button>
+            <button
+              class="rounded px-3 py-1.5 text-xs font-medium bg-emerald-600 text-white hover:bg-emerald-700"
+              @click="acceptSupplierOffer"
+              :disabled="form.processing"
+              title="Terima penawaran dari supplier saat ini"
+            >
+              Setujui Penawaran
+            </button>
+          </template>
         </div>
       </div>
     </div>
@@ -895,7 +1062,7 @@ const confirmArrival = () => {
           <div class="grid gap-4 md:grid-cols-2">
             <a
               v-if="activeShipmentPo.weighing_note_path"
-              :href="activeShipmentPo.weighing_note_path"
+              :href="formatPreviewUrl(activeShipmentPo.weighing_note_path)"
               target="_blank"
               class="rounded-xl border border-slate-100 p-4 text-sm font-semibold text-blue-600"
             >
@@ -903,7 +1070,7 @@ const confirmArrival = () => {
             </a>
             <a
               v-if="activeShipmentPo.delivery_note_path"
-              :href="activeShipmentPo.delivery_note_path"
+              :href="formatPreviewUrl(activeShipmentPo.delivery_note_path)"
               target="_blank"
               class="rounded-xl border border-slate-100 p-4 text-sm font-semibold text-blue-600"
             >
@@ -920,6 +1087,63 @@ const confirmArrival = () => {
             @click="confirmArrival"
           >
             Konfirmasi Kedatangan
+          </button>
+        </div>
+      </div>
+    </div>
+    <!-- ════════════════════════════════════════════════════ -->
+    <!-- Completeness Check Modal                             -->
+    <!-- ════════════════════════════════════════════════════ -->
+    <div v-if="showCompletenessModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div class="w-full max-w-xl rounded-2xl bg-white shadow-xl">
+        <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+          <div>
+            <h2 class="text-lg font-bold text-slate-800">Verifikasi Kelengkapan Dokumen</h2>
+            <p class="text-xs text-slate-500">Konfirmasi dokumen yang diunggah supplier untuk melanjutkan ke proses pengiriman.</p>
+          </div>
+          <button class="text-slate-400 hover:text-slate-600" @click="showCompletenessModal = false">✕</button>
+        </div>
+        <div class="px-6 py-4">
+          <div class="rounded-lg bg-blue-50 border border-blue-100 p-4 mb-4">
+            <h3 class="text-xs font-semibold text-blue-800 mb-2">Informasi Supplier:</h3>
+            <p class="text-sm text-blue-900 font-medium">{{ activeCompletenessPo?.supplier?.nama_perusahaan || '-' }}</p>
+            
+            <div v-if="activeCompletenessPo?.document_path" class="mt-3 border-t border-blue-200 pt-3">
+              <span class="text-xs font-semibold text-blue-800 block mb-1">Tautan Dokumen dari Supplier:</span>
+              <a :href="activeCompletenessPo.document_path" target="_blank" class="text-xs text-blue-600 underline break-all hover:text-blue-800">
+                {{ activeCompletenessPo.document_path }}
+              </a>
+            </div>
+            <div v-else class="mt-3 border-t border-blue-200 pt-3 text-xs text-amber-600">
+              Supplier belum atau tidak melampirkan tautan dokumen.
+            </div>
+          </div>
+          
+          <p class="text-xs font-semibold text-slate-500 mb-3">Checklist Dokumen</p>
+          <div class="space-y-3">
+            <label class="flex items-center gap-3 rounded-lg border border-slate-200 p-3 hover:bg-slate-50 cursor-pointer">
+              <input type="checkbox" v-model="completenessForm.documents_verified.surat_permohonan" class="h-4 w-4 rounded border-slate-300 text-purple-600" />
+              <span class="text-sm font-medium text-slate-700">Surat Permohonan</span>
+            </label>
+            <label class="flex items-center gap-3 rounded-lg border border-slate-200 p-3 hover:bg-slate-50 cursor-pointer">
+              <input type="checkbox" v-model="completenessForm.documents_verified.surat_penawaran" class="h-4 w-4 rounded border-slate-300 text-purple-600" />
+              <span class="text-sm font-medium text-slate-700">Surat Penawaran</span>
+            </label>
+            <label class="flex items-center gap-3 rounded-lg border border-slate-200 p-3 hover:bg-slate-50 cursor-pointer">
+              <input type="checkbox" v-model="completenessForm.documents_verified.purchase_order" class="h-4 w-4 rounded border-slate-300 text-purple-600" />
+              <span class="text-sm font-medium text-slate-700">Order Pembelian</span>
+            </label>
+          </div>
+        </div>
+        <div class="flex justify-end gap-2 border-t border-slate-100 px-6 py-4">
+          <button class="rounded-lg border border-slate-200 px-4 py-2 text-sm" @click="showCompletenessModal = false">Batal</button>
+          <button 
+            class="rounded-lg px-4 py-2 text-sm font-semibold text-white transition disabled:opacity-50"
+            :class="(completenessForm.documents_verified.surat_permohonan && completenessForm.documents_verified.surat_penawaran && completenessForm.documents_verified.purchase_order) ? 'bg-purple-600 hover:bg-purple-700' : 'bg-slate-400'"
+            :disabled="!(completenessForm.documents_verified.surat_permohonan && completenessForm.documents_verified.surat_penawaran && completenessForm.documents_verified.purchase_order) || completenessForm.processing"
+            @click="confirmCompleteness"
+          >
+            Konfirmasi Kelengkapan
           </button>
         </div>
       </div>

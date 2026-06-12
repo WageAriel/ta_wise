@@ -13,19 +13,44 @@ class Outbound extends Model
     protected $primaryKey = 'id_outbound';
 
     protected $fillable = [
-        'tanggal',
-        'status',
-        'tujuan',
-        'id_user'
+        'no_outbound',
+        'nama_penerima',
+        'alamat_tujuan',
+        'kota_tujuan',
+        'telepon_penerima',
+        'keterangan_tujuan',
+        'nama_driver',
+        'plat_nomor',
+        'carrier',
+        'no_resi',
+        'tanggal_keluar',
+        'catatan_pengiriman',
+        'nota_timbang_path',
+        'surat_jalan_path',
+        'created_by',
     ];
 
-    public function user()
+    protected $casts = [
+        'tanggal_keluar' => 'date',
+    ];
+
+    public function items()
     {
-        return $this->belongsTo(User::class, 'id_user', 'id');
+        return $this->hasMany(OutboundItem::class, 'id_outbound', 'id_outbound');
     }
 
-    public function details()
+    public function creator()
     {
-        return $this->hasMany(OutboundDetail::class, 'id_outbound', 'id_outbound');
+        return $this->belongsTo(\App\Models\User::class, 'created_by');
+    }
+
+    /**
+     * Generate nomor outbound unik: OB-YYYY-NNNNN
+     */
+    public static function generateNumber(): string
+    {
+        $year  = now()->format('Y');
+        $last  = static::whereYear('created_at', $year)->count() + 1;
+        return 'OB-' . $year . '-' . str_pad($last, 4, '0', STR_PAD_LEFT);
     }
 }

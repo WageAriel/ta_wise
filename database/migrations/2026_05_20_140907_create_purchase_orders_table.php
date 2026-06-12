@@ -49,6 +49,7 @@ return new class extends Migration
             $table->date('date');
             $table->string('status')->default('inquiry');
             $table->text('description')->nullable();
+            $table->string('document_path')->nullable(); // Ditambahkan untuk menyimpan link dokumen dari supplier
             $table->decimal('total_price', 15, 2)->default(0);
             $table->string('driver_name')->nullable();
             $table->string('vehicle_plate')->nullable();

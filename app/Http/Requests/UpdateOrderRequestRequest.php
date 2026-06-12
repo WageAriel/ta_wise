@@ -16,8 +16,12 @@ class UpdateOrderRequestRequest extends FormRequest
 
     public function rules(): array
     {
+        $isDraft = (bool) $this->input('is_draft', true);
+
         return [
+            'supplier_id' => $isDraft ? ['nullable', 'exists:suppliers,id'] : ['required', 'exists:suppliers,id'],
             'description' => ['nullable', 'string', 'max:500'],
+            'is_draft' => ['boolean'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.barang_id' => ['required', 'exists:barang,id_barang'],
             'items.*.item_type_id' => ['nullable', 'exists:po_item_types,id_item_type'],
@@ -31,8 +35,11 @@ class UpdateOrderRequestRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'items.required' => 'Minimal harus ada 1 item dalam order request',
-            // no distinct constraint: allow multiple type lines for the same barang
+            'supplier_id.required' => 'Supplier harus dipilih sebelum mengubah inquiry menjadi request PO.',
+            'supplier_id.exists' => 'Supplier tidak valid.',
+            'items.required' => 'Barang harus dipilih sebelum mengubah inquiry menjadi request PO.',
+            'items.min' => 'Barang harus dipilih sebelum mengubah inquiry menjadi request PO.',
+            'items.*.barang_id.exists' => 'Salah satu barang tidak valid.',
         ];
     }
 }

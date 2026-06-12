@@ -38,7 +38,7 @@ class AuthenticatedSessionController extends Controller
 
         // Redirect based on role to appropriate dashboard/area
         if ($user && $user->role === 'supplier') {
-            return redirect()->route('supplier.purchase-orders.index');
+            return redirect()->route('supplier.dashboard');
         }
 
         if ($user && $user->role === 'manajer') {
