@@ -35,7 +35,11 @@ class SupplierImport implements ToModel, WithHeadingRow
             'email_perusahaan' => $row['email_perusahaan'] ?? null,
             'nama_pic' => $row['nama_pic'] ?? null,
             'no_telp_pic' => $row['no_telp_pic'] ?? null,
-            'status' => $row['status'] ?? 'approved', // default approved saat import
+            'email_pic' => $row['email_pic'] ?? $row['email_perusahaan'] ?? 'pic@example.com',
+            'nama_bank' => $row['nama_bank'] ?? '-',
+            'no_rekening' => $row['no_rekening'] ?? '-',
+            'atas_nama' => $row['atas_nama'] ?? $row['nama_perusahaan'] ?? '-',
+            'status' => 'draft', // Diubah ke draft agar supplier harus melengkapi dokumen
             'tahun_periode' => $row['tahun_periode'] ?? date('Y'),
         ]);
     }

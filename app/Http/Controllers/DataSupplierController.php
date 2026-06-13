@@ -262,7 +262,13 @@ class DataSupplierController extends Controller
         return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\SupplierExport, 'data_supplier.xlsx');
     }
 
-    // 7. Import Excel
+    // 7. Download Import Template Excel
+    public function downloadImportTemplate()
+    {
+        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\SupplierImportTemplate, 'template_import_supplier.xlsx');
+    }
+
+    // 8. Import Excel
     public function import(Request $request)
     {
         $request->validate([

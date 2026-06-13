@@ -119,8 +119,8 @@ const confirmSubmit = async () => {
         <main class="flex-1 p-8">
             <div class="max-w-4xl mx-auto">
                 <div class="mb-8">
-                    <h1 class="text-3xl font-black text-slate-900 tracking-tight">Form Pengajuan Seleksi</h1>
-                    <p class="text-sm text-slate-500 mt-2 font-medium">Lengkapi Jawaban Anda untuk Tahap Seleksi Supplier</p>
+                    <h1 class="text-2xl font-black text-gray-900">Form Pengajuan Seleksi</h1>
+                    <p class="text-sm text-gray-500 mt-2 font-medium">Lengkapi Jawaban Anda untuk Tahap Seleksi Supplier</p>
                 </div>
 
                 <!-- Loading State -->
@@ -143,32 +143,32 @@ const confirmSubmit = async () => {
                 <div v-else class="bg-white rounded-[32px] shadow-sm border border-slate-200 overflow-hidden">
                     <div class="p-8 border-b border-slate-100 bg-slate-50/30 flex items-center justify-between">
                         <div>
-                            <span class="inline-block px-3 py-1 bg-blue-100 text-blue-700 text-[10px] font-black rounded-lg mb-2 uppercase tracking-widest">Bank Soal Aktif</span>
-                            <h2 class="text-lg font-black text-slate-900 tracking-tight uppercase">{{ paket_soal.nama_soal }}</h2>
+                            <span class="inline-block px-3 py-1 bg-blue-100 text-blue-700 text-sm font-semibold rounded-lg mb-2 uppercase">Bank Soal Aktif</span>
+                            <h2 class="text-sm font-semibold text-gray-900 uppercase">{{ paket_soal.nama_soal }}</h2>
                         </div>
                         <div class="text-right">
-                            <span class="text-[10px] font-black text-slate-400 block uppercase tracking-widest">Progress</span>
-                            <span class="text-xl font-black text-blue-600">{{ Object.keys(answers).length }}<span class="text-slate-300 mx-1">/</span>{{ paket_soal.pertanyaans.length }}</span>
+                            <span class="text-xs font-medium text-gray-600 block uppercase">Progress</span>
+                            <span class="text-xl font-medium text-blue-600">{{ Object.keys(answers).length }}<span class="text-gray-300 mx-1">/</span>{{ paket_soal.pertanyaans.length }}</span>
                         </div>
                     </div>
                     
                     <form @submit.prevent="submit" class="p-8 lg:p-12">
                         <div v-for="(pertanyaan, index) in paket_soal.pertanyaans" :key="pertanyaan.id_pertanyaan" class="mb-12 last:mb-6 group">
                             <div class="flex items-start gap-5 mb-6">
-                                <span class="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-white text-slate-900 border-2 border-slate-100 rounded-2xl text-sm font-black transition-all group-hover:border-blue-500 group-hover:text-blue-600 group-hover:shadow-lg group-hover:shadow-blue-50">
+                                <span class="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-white text-gray-900 border-2 border-slate-100 rounded-2xl text-sm font-black transition-all group-hover:border-blue-500 group-hover:text-blue-600 group-hover:shadow-lg group-hover:shadow-blue-50">
                                     {{ index + 1 }}
                                 </span>
-                                <p class="text-[15px] font-bold text-slate-800 pt-2 leading-relaxed">
+                                <p class="text-sm font-semibold text-gray-800 pt-1">
                                     {{ pertanyaan.teks_pertanyaan }}
                                 </p>
                             </div>
                             
                             <div class="grid grid-cols-1 gap-3 ml-14">
                                 <label v-for="opsi in pertanyaan.opsi" :key="opsi.id_opsi" 
-                                    class="relative flex items-center p-5 border-2 rounded-[22px] cursor-pointer transition-all duration-300"
+                                    class="relative flex items-center p-5 border-2 rounded-md cursor-pointer transition-all duration-300"
                                     :class="answers[pertanyaan.id_pertanyaan] === opsi.id_opsi 
                                         ? 'border-blue-600 bg-blue-50/50 ring-4 ring-blue-600/5 shadow-sm' 
-                                        : 'border-slate-50 bg-slate-50/30 hover:border-slate-200 hover:bg-white'">
+                                        : 'border-gray-100 bg-gray-50/30 hover:border-gray-200 hover:bg-white'">
                                     
                                     <div class="relative flex items-center justify-center w-5 h-5">
                                         <input type="radio" 
@@ -179,7 +179,7 @@ const confirmSubmit = async () => {
                                         <div class="w-5 h-5 border-2 border-slate-300 rounded-full peer-checked:border-blue-600 transition-all"></div>
                                         <div class="w-2.5 h-2.5 bg-blue-600 rounded-full scale-0 peer-checked:scale-100 transition-transform absolute"></div>
                                     </div>
-                                    <span class="ml-4 text-sm font-bold transition-colors"
+                                    <span class="ml-4 text-sm font-normal transition-colors"
                                         :class="answers[pertanyaan.id_pertanyaan] === opsi.id_opsi ? 'text-blue-700' : 'text-slate-600'">
                                         {{ opsi.teks_opsi }}
                                     </span>
@@ -196,11 +196,11 @@ const confirmSubmit = async () => {
 
                         <div class="flex items-center justify-between gap-4 pt-10 border-t border-slate-100 mt-16">
                             <Link :href="route('supplier.selection')"
-                                class="px-8 py-4 text-xs font-black tracking-widest text-slate-400 bg-white border border-slate-200 rounded-2xl hover:bg-slate-50 hover:text-slate-600 transition-all uppercase">
+                                class="px-8 py-4 text-xs font-semibold text-gray-400 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 hover:text-slate-600 transition-all">
                                 Batal & Kembali
                             </Link>
                             <button type="submit" :disabled="isSubmitting"
-                                class="px-12 py-4 text-xs font-black tracking-widest text-white bg-blue-600 rounded-2xl hover:bg-blue-700 shadow-2xl shadow-blue-600/20 active:scale-95 disabled:opacity-50 transition-all uppercase flex items-center gap-3">
+                                class="px-12 py-4 text-xs font-semibold text-white bg-blue-600 rounded-xl hover:bg-blue-700 shadow-2xl shadow-blue-600/20 active:scale-95 disabled:opacity-50 transition-all flex items-center gap-3">
                                 <span v-if="isSubmitting" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
                                 {{ isSubmitting ? 'Mengirim Data...' : 'Kirim Pengajuan' }}
                             </button>

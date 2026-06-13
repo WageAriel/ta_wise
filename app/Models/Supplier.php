@@ -14,6 +14,11 @@ class Supplier extends Model
         'nama_pic', 'no_telp_pic', 'email_pic', 'nama_bank', 'no_rekening', 'atas_nama',
         'tahun_periode', 'status', 'catatan_admin', 'submitted_at', 'reviewed_at',
     ];
+
+    protected $casts = [
+        'submitted_at' => 'datetime',
+        'reviewed_at' => 'datetime',
+    ];
     // relasi
     public function user() { return $this->belongsTo(User::class); }
     public function documents() { return $this->hasMany(SupplierDocument::class); }
