@@ -167,21 +167,41 @@ const handleExport = () => {
 };
 
 // Handle Import Excel via Axios + FormData
-const triggerFileInput = () =>
-    document.getElementById("excel-file-input").click();
+const selectedImportFile = ref(null);
 
-const onFileChange = async (e) => {
+const openImportModal = () => {
+    selectedImportFile.value = null;
+    showImportModal.value = true;
+};
+
+const handleFileSelect = (e) => {
     const file = e.target.files[0];
-    if (!file) return;
+    if (file) {
+        selectedImportFile.value = file;
+    }
+};
 
+const triggerFileInput = () => {
+    const el = document.getElementById("excel-file-input");
+    if (el) el.click();
+};
+
+const submitImport = async () => {
+    if (!selectedImportFile.value) {
+        triggerNotification("error", "Pilih file Excel terlebih dahulu!");
+        return;
+    }
+
+    isSubmitting.value = true;
     const formData = new FormData();
-    formData.append("file", file);
+    formData.append("file", selectedImportFile.value);
 
     try {
         const response = await axios.post("/admin/supplier/import", formData, {
             headers: { "Content-Type": "multipart/form-data" },
         });
         showImportModal.value = false;
+        selectedImportFile.value = null;
         triggerNotification(
             "success",
             response.data.message || "Data Excel berhasil diimport!",
@@ -192,7 +212,13 @@ const onFileChange = async (e) => {
             "error",
             err.response?.data?.message || "Gagal mengimport data.",
         );
+    } finally {
+        isSubmitting.value = false;
     }
+};
+
+const downloadTemplate = () => {
+    window.location.href = '/admin/supplier/import-template';
 };
 
 // Helper Fungsi untuk Deteksi Format Berkas
@@ -370,7 +396,7 @@ const systemRecommendation = computed(() => {
                 <!-- Action Buttons (Export & Import) -->
                 <div class="flex items-center gap-3">
                     <button
-                        @click="triggerFileInput"
+                        @click="openImportModal"
                         class="inline-flex items-center gap-2 px-5 py-3 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 active:scale-95 transition-all shadow-sm"
                     >
                         <svg
@@ -392,8 +418,8 @@ const systemRecommendation = computed(() => {
                         type="file"
                         id="excel-file-input"
                         class="hidden"
-                        accept=".xlsx, .xls"
-                        @change="onFileChange"
+                        accept=".xlsx, .xls, .csv"
+                        @change="handleFileSelect"
                     />
                     <button
                         @click="handleExport"
@@ -1721,6 +1747,79 @@ const systemRecommendation = computed(() => {
                     </div>
                 </div>
             </Transition>
+        </div>
+    </Transition>
+
+    <!-- Modal Import Excel Compact -->
+    <Transition enter-active-class="transition duration-300 ease-out" enter-from-class="opacity-0" enter-to-class="opacity-100" leave-active-class="transition duration-200 ease-in" leave-from-class="opacity-100" leave-to-class="opacity-0">
+        <div v-if="showImportModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <div class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity" @click="showImportModal = false"></div>
+
+            <div class="relative w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden flex flex-col transform transition-all border border-slate-100">
+                <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                    <h2 class="text-sm font-bold text-slate-800">Import Data Supplier</h2>
+                    <button @click="showImportModal = false" class="text-slate-400 hover:text-slate-600 transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+
+                <div class="p-5 overflow-y-auto">
+                    <!-- Panduan -->
+                    <div class="mb-5 bg-blue-50/50 border border-blue-100 rounded-xl p-4">
+                        <h3 class="text-[11px] font-bold text-blue-800 uppercase tracking-wider mb-2">Panduan Import:</h3>
+                        <ul class="list-disc pl-4 space-y-1 text-xs text-blue-700/80 marker:text-blue-400">
+                            <li>Format file: <strong>Excel (.xlsx, .xls)</strong> (Maks. 5MB).</li>
+                            <li>Kolom <strong>Email Perusahaan</strong> WAJIB diisi. Email ini akan didaftarkan sebagai akun login supplier secara otomatis.</li>
+                            <li>Data supplier yang di-import akan berstatus <strong>Draft</strong>.</li>
+                            <li>Supplier harus login (Password awal: <strong>password123</strong>) untuk melengkapi data rekening dan dokumen legalitas.</li>
+                        </ul>
+                    </div>
+
+                    <div class="flex justify-center mb-5">
+                        <button @click="downloadTemplate" class="inline-flex items-center gap-2 px-4 py-2 text-[11px] font-bold text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 active:scale-95 transition-all shadow-sm">
+                            <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                            Download Template Excel
+                        </button>
+                    </div>
+
+                    <!-- Area Upload -->
+                    <div 
+                        @click="triggerFileInput"
+                        class="cursor-pointer group relative rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/50 p-6 flex flex-col items-center justify-center transition-all hover:bg-slate-50 hover:border-indigo-300"
+                        :class="{'border-indigo-500 bg-indigo-50/30': selectedImportFile}"
+                    >
+                        <div class="w-12 h-12 mb-3 rounded-full bg-white shadow-sm border border-slate-100 flex items-center justify-center text-slate-400 group-hover:text-indigo-500 transition-colors" :class="{'text-indigo-600': selectedImportFile}">
+                            <svg v-if="!selectedImportFile" class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd"/></svg>
+                            <svg v-else class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        </div>
+                        
+                        <div v-if="!selectedImportFile" class="text-center">
+                            <p class="text-xs font-bold text-slate-700 mb-0.5">Pilih File untuk Diunggah</p>
+                            <p class="text-[10px] text-slate-500">Maks. 5MB</p>
+                        </div>
+                        <div v-else class="text-center">
+                            <p class="text-xs font-bold text-indigo-700 mb-0.5">{{ selectedImportFile.name }}</p>
+                            <p class="text-[10px] text-indigo-500/80 font-medium">{{ (selectedImportFile.size / 1024 / 1024).toFixed(2) }} MB</p>
+                            <p class="text-[10px] text-slate-400 mt-2 hover:text-rose-500 font-bold underline transition-colors" @click.stop="selectedImportFile = null">Batal Pilih</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="px-5 py-3 border-t border-slate-100 flex items-center justify-end gap-2 bg-slate-50/50">
+                    <button @click="showImportModal = false" class="px-4 py-2 rounded-lg text-xs font-bold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 active:scale-95 transition-all">
+                        Batal
+                    </button>
+                    <button 
+                        @click="submitImport" 
+                        :disabled="!selectedImportFile || isSubmitting"
+                        class="px-5 py-2 rounded-lg text-xs font-bold text-white transition-all active:scale-95 flex items-center gap-1.5"
+                        :class="selectedImportFile && !isSubmitting ? 'bg-indigo-600 hover:bg-indigo-700 shadow-md shadow-indigo-100' : 'bg-slate-300 text-slate-500 cursor-not-allowed'"
+                    >
+                        <svg v-if="isSubmitting" class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                        <span>{{ isSubmitting ? 'Proses...' : 'Import' }}</span>
+                    </button>
+                </div>
+            </div>
         </div>
     </Transition>
 </template>

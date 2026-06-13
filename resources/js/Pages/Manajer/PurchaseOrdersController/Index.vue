@@ -35,7 +35,7 @@ watch(
 const itemTypeList = computed(() => itemTypeState.value);
 const subtypeDrafts = ref({});
 const uomDrafts = ref({});
-const uomOptions = ['pcs', 'box', 'pack', 'karton', 'lusin', 'kg', 'gram', 'liter', 'ml', 'roll'];
+const uomOptions = ['pcs', 'box', 'pack', 'karton', 'lusin', 'kg', 'gram', 'liter', 'unit'];
 
 const ensureSubtypeDraft = (typeId) => {
   if (!subtypeDrafts.value[typeId]) {

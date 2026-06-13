@@ -6,8 +6,10 @@ use App\Models\Supplier;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
+use Maatwebsite\Excel\Concerns\WithStyles;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class SupplierExport implements FromCollection, WithHeadings, WithMapping
+class SupplierExport implements FromCollection, WithHeadings, WithMapping, WithStyles
 {
     public function collection()
     {
@@ -43,6 +45,19 @@ class SupplierExport implements FromCollection, WithHeadings, WithMapping
             $supplier->status,
             $supplier->catatan_admin,
             $supplier->tahun_periode,
+        ];
+    }
+
+    public function styles(Worksheet $sheet)
+    {
+        return [
+            1 => [
+                'font' => ['bold' => true, 'color' => ['argb' => 'FFFFFFFF']],
+                'fill' => [
+                    'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                    'startColor' => ['argb' => 'FF4F46E5'] // Indigo 600
+                ]
+            ],
         ];
     }
 }

@@ -290,7 +290,7 @@ const confirmSubmit = async () => {
                         <h3 class="font-bold text-slate-900 text-md">
                             Status:
                             <span class="uppercase tracking-widest">{{
-                                props.supplier.status
+                                props.supplier.status === 'submitted' ? 'Menunggu Review' : props.supplier.status
                             }}</span>
                         </h3>
                         <p class="text-slate-600 text-sm mt-1 leading-relaxed">

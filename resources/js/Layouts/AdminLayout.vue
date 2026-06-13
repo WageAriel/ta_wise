@@ -35,7 +35,7 @@ onUnmounted(() => {
                 <div class="relative user-menu-container">
                     <button @click="showDropdown = !showDropdown" class="flex items-center gap-3 cursor-pointer hover:bg-gray-50 p-1.5 rounded-xl transition-colors focus:outline-none">
                         <div class="text-right hidden sm:block leading-tight">
-                            <p class="text-[13px] font-bold text-gray-800">{{ user?.name || 'Administrator' }}</p>
+                            <p class="text-[13px] font-bold text-gray-800">{{ user?.username || 'Administrator' }}</p>
                             <p class="text-[11px] font-medium text-gray-400">{{ user?.email || 'admin@ta-wise.com' }}</p>
                         </div>
                         <div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-sm border-2 border-white shadow-sm uppercase">

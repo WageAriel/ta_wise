@@ -3,7 +3,7 @@ import { Head, router, useForm } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 import ManajerLayout from '@/Layouts/ManajerLayout.vue';
 
-const defaultUomOptions = ['pcs', 'box', 'pack', 'karton', 'lusin', 'kg', 'gram', 'liter', 'ml', 'roll'];
+const defaultUomOptions = ['pcs', 'box', 'pack', 'karton', 'lusin', 'kg', 'gram', 'liter', 'unit'];
 
 const props = defineProps({
   settings: { type: Object, default: () => ({}) },

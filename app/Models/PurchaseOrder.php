@@ -36,6 +36,7 @@ class PurchaseOrder extends Model
         'date',
         'status',
         'description',
+        'document_path',
         'total_price',
         'driver_name',
         'vehicle_plate',
@@ -54,6 +55,14 @@ class PurchaseOrder extends Model
         'shipped_at' => 'datetime',
         'delivered_at' => 'datetime',
     ];
+
+    /**
+     * Format the date automatically when serialized to JSON.
+     */
+    protected function serializeDate(\DateTimeInterface $date)
+    {
+        return $date->format('Y-m-d/H:i \W\I\B');
+    }
 
     public static function allowedStatuses(): array
     {

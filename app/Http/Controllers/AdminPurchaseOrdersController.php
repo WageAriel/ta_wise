@@ -118,10 +118,30 @@ class AdminPurchaseOrdersController extends Controller
             abort(422, 'PO belum siap dikonfirmasi');
         }
 
-        $po->update([
-            'status' => PurchaseOrder::STATUS_COMPLETED,
-            'delivered_at' => now(),
-        ]);
+        \Illuminate\Support\Facades\DB::transaction(function () use ($po) {
+            $po->update([
+                'status' => PurchaseOrder::STATUS_COMPLETED,
+                'delivered_at' => now(),
+            ]);
+
+            // Create Inbound Header
+            $inboundId = 'INB-' . strtoupper(uniqid());
+            \App\Models\Inbound::create([
+                'id_inbound' => $inboundId,
+                'purchase_order_id' => $po->id,
+                'tanggal' => now()->toDateString(),
+                'status' => 'Pending',
+            ]);
+
+            // Create Inbound Items based on PO Items
+            foreach ($po->items as $item) {
+                \App\Models\InboundItem::create([
+                    'id_inbound' => $inboundId,
+                    'id_barang' => $item->barang_id,
+                    'qty' => $item->quantity,
+                ]);
+            }
+        });
 
         return redirect('/admin/purchase-orders?segment=order-list')->with('success',
             "PO '{$po->po_number}' berhasil dikonfirmasi diterima."

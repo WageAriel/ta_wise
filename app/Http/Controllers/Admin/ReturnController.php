@@ -12,7 +12,7 @@ class ReturnController extends Controller
     public function index()
     {
         // Ambil data return beserta informasi barangnya
-        $returns = ReturnBarang::with('barang')->latest()->get();
+        $returns = ReturnBarang::with('details.barang')->latest()->get();
         $inboundsList = \App\Models\Inbound::select('id_inbound')->get();
 
         return Inertia::render('Admin/Return Management/Index', [
@@ -23,34 +23,30 @@ class ReturnController extends Controller
 
     private function getGroupedReturns()
     {
-        $returns = ReturnBarang::with('barang')->latest()->get();
-        // Group by inbound and the exact datetime it was created
-        $grouped = $returns->groupBy(function($item) {
-            return $item->id_inbound . '_' . $item->created_at->format('Y-m-d H:i:s');
-        });
+        $returns = ReturnBarang::with('details.barang')->latest()->get();
 
         $result = [];
-        foreach ($grouped as $group) {
-            $first = $group->first();
+        foreach ($returns as $return) {
+            $firstDetail = $return->details->first();
             $result[] = [
-                'id_return' => $first->id_return,
-                'id_inbound' => $first->id_inbound,
-                'tanggal_return' => \Carbon\Carbon::parse($first->tanggal)->format('d-M-Y'),
-                'jumlah_item' => $group->count(),
-                'notes' => $first->alasan,
-                'items' => $group->map(function($item) {
+                'id_return' => $return->id_return,
+                'id_inbound' => $return->id_inbound,
+                'tanggal_return' => \Carbon\Carbon::parse($return->tanggal)->format('d-M-Y'),
+                'jumlah_item' => $return->details->count(),
+                'notes' => $firstDetail ? $firstDetail->alasan : '-',
+                'items' => $return->details->map(function($detail) {
                     return [
-                        'id_return' => $item->id_return,
-                        'nama_barang' => $item->barang ? $item->barang->nama_barang : '-',
-                        'qty' => $item->qty,
-                        'kondisi' => $item->kondisi,
-                        'alasan' => $item->alasan,
+                        'id_return' => $detail->id_return,
+                        'nama_barang' => $detail->barang ? $detail->barang->nama_barang : '-',
+                        'qty' => $detail->qty,
+                        'kondisi' => $detail->kondisi,
+                        'alasan' => $detail->alasan,
                     ];
                 })
             ];
         }
 
-        return array_values($result);
+        return $result;
     }
 
     public function data()
@@ -70,17 +66,19 @@ class ReturnController extends Controller
         ]);
 
         $timestamp = now();
+        $returnHeader = ReturnBarang::create([
+            'id_inbound' => $request->id_inbound,
+            'tanggal'    => $timestamp,
+            'status'     => 'Success',
+        ]);
+
         foreach ($request->items as $item) {
-            ReturnBarang::create([
-                'id_inbound' => $request->id_inbound,
-                'tanggal'    => $timestamp,
-                'id_barang'  => $item['id_barang'],
-                'qty'        => $item['qty'],
-                'kondisi'    => $item['kondisi'],
-                'alasan'     => $item['alasan'],
-                'status'     => 'Success',
-                'created_at' => $timestamp,
-                'updated_at' => $timestamp,
+            \App\Models\ReturnDetail::create([
+                'id_return' => $returnHeader->id_return,
+                'id_barang' => $item['id_barang'],
+                'qty'       => $item['qty'],
+                'kondisi'   => $item['kondisi'],
+                'alasan'    => $item['alasan'],
             ]);
         }
 
@@ -90,29 +88,36 @@ class ReturnController extends Controller
     public function destroy($id)
     {
         $return = ReturnBarang::findOrFail($id);
-        
-        $siblings = ReturnBarang::where('id_inbound', $return->id_inbound)
-                                ->where('created_at', $return->created_at)
-                                ->get();
-                                
-        foreach ($siblings as $sibling) {
-            $sibling->delete();
-        }
+        $return->delete();
 
         return response()->json(['message' => 'Data return berhasil dihapus!']);
     }
 
     public function downloadPdf($id)
     {
-        $return = ReturnBarang::findOrFail($id);
-        
-        $siblings = ReturnBarang::with(['barang'])
-                                ->where('id_inbound', $return->id_inbound)
-                                ->where('created_at', $return->created_at)
-                                ->get();
+        $return = ReturnBarang::with('details.barang')->findOrFail($id);
 
-        $inbound = \App\Models\Inbound::with('purchaseOrder.supplier')->where('id_inbound', $return->id_inbound)->first();
+        $inbound = \App\Models\Inbound::with(['purchaseOrder.supplier', 'purchaseOrder.items.barang', 'purchaseOrder.items.subtype', 'purchaseOrder.items.itemType'])
+                        ->where('id_inbound', $return->id_inbound)
+                        ->first();
         
+        // Build a lookup map: barang_id => subtype/type name from PO items
+        $subtypeMap = [];
+        if ($inbound && $inbound->purchaseOrder) {
+            foreach ($inbound->purchaseOrder->items as $poItem) {
+                $subtypeName = $poItem->subtype->subtype_name ?? $poItem->itemType->type_name ?? null;
+                $subtypeMap[$poItem->barang_id] = $subtypeName;
+            }
+        }
+
+        // Enrich each return item with the full name including subtype
+        $enrichedItems = $siblings->map(function ($item) use ($subtypeMap) {
+            $baseName = $item->barang ? $item->barang->nama_barang : 'Unknown';
+            $subtypeName = $subtypeMap[$item->id_barang] ?? null;
+            $item->display_name = $subtypeName ? "{$baseName} - {$subtypeName}" : $baseName;
+            return $item;
+        });
+
         $supplierName = $inbound && $inbound->purchaseOrder && $inbound->purchaseOrder->supplier 
             ? $inbound->purchaseOrder->supplier->nama_perusahaan 
             : 'Unknown Supplier';
@@ -126,10 +131,11 @@ class ReturnController extends Controller
             'supplier_name' => $supplierName,
             'inbound_date' => $inboundDate,
             'return_date' => $returnDate,
-            'items' => $siblings
+            'items' => $return->details,
+            'user_name' => auth()->user() ? auth()->user()->username : 'Petugas Gudang',
         ];
 
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.return', $data);
-        return $pdf->download('Return-INB-' . $return->id_inbound . '.pdf');
+        return $pdf->download('Return-' . $return->id_inbound . '.pdf');
     }
 }

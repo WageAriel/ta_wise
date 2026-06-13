@@ -18,7 +18,9 @@ class DataSupplierController extends Controller
     // 1. Tampil form data supplier
     public function index()
     {
-        $supplier = auth()->user()->supplier()->with('documents')->first();
+        /** @var \App\Models\User $user */
+        $user = auth()->user();
+        $supplier = $user->supplier()->with('documents')->first();
 
         return Inertia::render('Supplier/DataSupplier', [
             'supplier' => $supplier,
@@ -260,7 +262,13 @@ class DataSupplierController extends Controller
         return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\SupplierExport, 'data_supplier.xlsx');
     }
 
-    // 7. Import Excel
+    // 7. Download Import Template Excel
+    public function downloadImportTemplate()
+    {
+        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\SupplierImportTemplate, 'template_import_supplier.xlsx');
+    }
+
+    // 8. Import Excel
     public function import(Request $request)
     {
         $request->validate([

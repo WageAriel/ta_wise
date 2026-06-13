@@ -27,9 +27,11 @@ Route::get('/', function () {
     return redirect()->route('login');
 });
 
-Route::get('/dashboard', function () {
-    return Inertia::render('Dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+Route::get('/dashboard', [\App\Http\Controllers\Admin\DashboardController::class, 'index'])
+    ->middleware(['auth', 'verified'])->name('dashboard');
+
+Route::get('/admin/api/stats', [\App\Http\Controllers\Admin\DashboardController::class, 'stats'])
+    ->middleware(['auth'])->name('admin.stats');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -40,6 +42,7 @@ Route::middleware('auth')->group(function () {
     // SUPPLIER ROUTES
     // ===================================================
     Route::middleware(['role:supplier'])->prefix('supplier')->name('supplier.')->group(function () {
+        Route::get('/dashboard', [\App\Http\Controllers\Supplier\DashboardController::class, 'index'])->name('dashboard');
         Route::get('/data', [\App\Http\Controllers\DataSupplierController::class, 'index'])->name('data');
         Route::post('/data', [\App\Http\Controllers\DataSupplierController::class, 'store'])->name('data.store');
         Route::get('/selection', [\App\Http\Controllers\SeleksiController::class, 'index'])->name('selection');// Halaman Utama Seleksi (Daftar Pengajuan)
@@ -68,11 +71,14 @@ Route::middleware('auth')->group(function () {
         Route::get('/timeline', fn() => Inertia::render('Supplier/Timeline'))->name('timeline');
         Route::get('/purchase-orders', [\App\Http\Controllers\SupplierPurchaseOrdersController::class, 'index'])->name('purchase-orders.index');
         
-        // Purchase Order - Supplier can submit verification and update
+        // Purchase Order - Supplier actions
         Route::middleware('supplier.approved')->group(function () {
-            Route::post('/purchase-orders/submit-verification', [\App\Http\Controllers\SupplierPurchaseOrdersController::class, 'submitVerification'])->name('purchase-orders.submit-verification');
-            Route::put('/purchase-orders/{id}/update-verification', [\App\Http\Controllers\SupplierPurchaseOrdersController::class, 'updateVerification'])->name('purchase-orders.update-verification');
+            Route::post('/purchase-orders/{id}/accept-request', [\App\Http\Controllers\SupplierPurchaseOrdersController::class, 'acceptRequest'])->name('purchase-orders.accept-request');
+            Route::post('/purchase-orders/{id}/decline-request', [\App\Http\Controllers\SupplierPurchaseOrdersController::class, 'declineRequest'])->name('purchase-orders.decline-request');
+            Route::post('/purchase-orders/{id}/request-verification', [\App\Http\Controllers\SupplierPurchaseOrdersController::class, 'requestVerification'])->name('purchase-orders.request-verification');
+            Route::post('/purchase-orders/{id}/completeness', [\App\Http\Controllers\SupplierPurchaseOrdersController::class, 'storeCompleteness'])->name('purchase-orders.completeness.store');
             Route::post('/purchase-orders/{id}/shipment', [\App\Http\Controllers\SupplierPurchaseOrdersController::class, 'storeShipment'])->name('purchase-orders.shipment.store');
+            Route::get('/purchase-orders/{id}/download-doc', [\App\Http\Controllers\SupplierPurchaseOrdersController::class, 'downloadTemplate'])->name('purchase-orders.download-doc');
         });
     });
 
@@ -84,6 +90,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/supplier/data', [\App\Http\Controllers\DataSupplierController::class, 'adminIndex'])->name('supplier.index');
         Route::delete('/supplier/data/{id}', [\App\Http\Controllers\DataSupplierController::class, 'destroy'])->name('supplier.destroy');
         Route::get('/supplier/export', [\App\Http\Controllers\DataSupplierController::class, 'export'])->name('supplier.export');
+        Route::get('/supplier/import-template', [\App\Http\Controllers\DataSupplierController::class, 'downloadImportTemplate'])->name('supplier.import-template');
         Route::post('/supplier/import', [\App\Http\Controllers\DataSupplierController::class, 'import'])->name('supplier.import');
         Route::get('/supplier/data/{supplier}', [\App\Http\Controllers\DataSupplierController::class, 'adminShow'])->name('supplier.show');
         Route::post('/supplier/data/{supplier}/approve', [\App\Http\Controllers\DataSupplierController::class, 'adminApprove'])->name('supplier.approve');
@@ -132,12 +139,11 @@ Route::middleware('auth')->group(function () {
         Route::prefix('purchase-orders')->group(function () {
             Route::post('/order-request', [\App\Http\Controllers\OrderRequestController::class, 'store'])->name('order-request.store');
             Route::put('{id}/order-request', [\App\Http\Controllers\OrderRequestController::class, 'update'])->name('order-request.update');
-            Route::post('{id}/promote-request', [\App\Http\Controllers\OrderRequestController::class, 'promote'])->name('order-request.promote');
             Route::delete('{id}/order-request', [\App\Http\Controllers\OrderRequestController::class, 'destroy'])->name('order-request.destroy');
             
-            // Waiting List (Phase 2 - Supplier verification & completeness check)
+            // Waiting List (Phase 2 - Negotiation & completeness check)
             Route::get('{id}/verification-details', [\App\Http\Controllers\WaitingListController::class, 'verificationDetails'])->name('verification-details');
-            Route::post('{id}/approve-verification', [\App\Http\Controllers\WaitingListController::class, 'approveVerification'])->name('approve-verification');
+            Route::post('{id}/accept-supplier-offer', [\App\Http\Controllers\WaitingListController::class, 'acceptSupplierOffer'])->name('accept-supplier-offer');
             Route::post('{id}/counter-offer', [\App\Http\Controllers\WaitingListController::class, 'submitCounterOffer'])->name('counter-offer');
             Route::get('{id}/completeness-check', [\App\Http\Controllers\WaitingListController::class, 'completenessCheck'])->name('completeness-check');
             Route::post('{id}/confirm-completeness', [\App\Http\Controllers\WaitingListController::class, 'confirmCompleteness'])->name('confirm-completeness');
@@ -164,7 +170,10 @@ Route::middleware('auth')->group(function () {
         Route::delete('/return-management/{id}', [ReturnController::class, 'destroy'])->name('return-management.destroy');
         Route::get('/return-management/{id}/pdf', [ReturnController::class, 'downloadPdf'])->name('return-management.pdf');
 
-        Route::get('/outbound', fn() => Inertia::render('Admin/Outbound'))->name('outbound');
+        Route::get('/outbound', [\App\Http\Controllers\Admin\OutboundController::class, 'index'])->name('outbound');
+        Route::post('/outbound', [\App\Http\Controllers\Admin\OutboundController::class, 'store'])->name('outbound.store');
+        Route::get('/outbound/{id}', [\App\Http\Controllers\Admin\OutboundController::class, 'show'])->name('outbound.show');
+        Route::delete('/outbound/{id}', [\App\Http\Controllers\Admin\OutboundController::class, 'destroy'])->name('outbound.destroy');
         Route::get('/user-management', [\App\Http\Controllers\Admin\UserController::class, 'index'])->name('user-management');
         Route::delete('/user-management/{id}', [\App\Http\Controllers\Admin\UserController::class, 'destroy'])->name('user-management.destroy');
     });
@@ -190,30 +199,8 @@ Route::middleware('auth')->group(function () {
 
     // Manajer Gudang Routes (Phase 5)
     Route::middleware(['role:manajer'])->prefix('manajer')->name('manajer.')->group(function () {
-        Route::get('/dashboard', function () {
-            $totalPo = \App\Models\PurchaseOrder::count();
-            $activePo = \App\Models\PurchaseOrder::whereIn('status', [
-                \App\Models\PurchaseOrder::STATUS_RFQ,
-                \App\Models\PurchaseOrder::STATUS_VERIFICATION,
-                \App\Models\PurchaseOrder::STATUS_REQUEST,
-                \App\Models\PurchaseOrder::STATUS_COMPLETENESS,
-                \App\Models\PurchaseOrder::STATUS_APPROVED,
-                \App\Models\PurchaseOrder::STATUS_SHIPMENT,
-            ])->count();
-            $completedPo = \App\Models\PurchaseOrder::where('status', \App\Models\PurchaseOrder::STATUS_COMPLETED)->count();
-            $totalSuppliers = \App\Models\Supplier::count();
-            $totalItemTypes = \App\Models\POItemType::count();
-
-            return Inertia::render('Manajer/Dashboard', [
-                'stats' => [
-                    'totalPo' => $totalPo,
-                    'activePo' => $activePo,
-                    'completedPo' => $completedPo,
-                    'totalSuppliers' => $totalSuppliers,
-                    'totalItemTypes' => $totalItemTypes,
-                ],
-            ]);
-        })->name('dashboard');
+        Route::get('/dashboard', [\App\Http\Controllers\Manajer\DashboardController::class, 'index'])->name('dashboard');
+        Route::get('/api/stats', [\App\Http\Controllers\Manajer\DashboardController::class, 'stats'])->name('stats');
         Route::get('/purchase-order-controller', [\App\Http\Controllers\PurchaseOrderDefault::class, 'page'])->name('purchase-order-controller.index');
         Route::put('/purchase-order-controller/settings', [\App\Http\Controllers\PurchaseOrderDefault::class, 'updateSettings'])->name('purchase-order-controller.settings.update');
         // Purchase Order (manajer control over POs)
