@@ -11,9 +11,6 @@ const props = defineProps({
     jawabanSupplier: Array,
 });
 
-// ─── State ───────────────────────────────────────────────────────
-// verifikasiJawaban: { id_jawaban -> id_opsi_verifikasi_pilihan_petugas }
-// Default: jika sudah pernah verifikasi gunakan opsi_verifikasi, jika belum pakai id_opsi (jawaban supplier)
 const verifikasiJawaban = ref(
     Object.fromEntries(
         props.jawabanSupplier.map(j => [

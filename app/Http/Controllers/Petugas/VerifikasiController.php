@@ -130,12 +130,6 @@ class VerifikasiController extends Controller
                     'id_user_petugas'    => Auth::id(),
                 ]
             );
-
-            // 4. Update setiap jawaban klasifikasi:
-            //    - id_opsi              TIDAK diubah (jawaban asli supplier tetap tersimpan)
-            //    - id_opsi_verifikasi   = pilihan petugas di lapangan
-            //    - jawaban_verifikasi   = 'valid' jika sama dengan jawaban supplier, 'invalid' jika beda
-            //    - catatan_verifikasi   = catatan petugas per item
             foreach ($request->jawaban as $item) {
                 $jawaban = JawabanKlasifikasi::find($item['id_jawaban']);
                 if (!$jawaban) continue;
@@ -152,7 +146,6 @@ class VerifikasiController extends Controller
                 ]);
             }
 
-            // 5. Update status jadwal menjadi selesai
             $jadwal->update(['status' => 'selesai']);
         });
 

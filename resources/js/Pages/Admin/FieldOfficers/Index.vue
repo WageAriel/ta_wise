@@ -28,6 +28,7 @@ const formJadwal = useForm({
 // State Modal Tambah Petugas
 const showModalPetugas = ref(false);
 const formPetugas = useForm({
+    nama_petugas: '',
     username: '',
     email: '',
     password: '',
@@ -37,14 +38,20 @@ const formPetugas = useForm({
 
 // Fitur Search
 const searchJadwal = ref(props.filters.search_jadwal || '');
-const searchPetugas = ref(props.filters.search_petugas || '');
-
 const submitSearchJadwal = () => {
-    router.get(route('admin.field-officers'), { search_jadwal: searchJadwal.value }, { preserveState: true, replace: true });
+    router.get
+        (route('admin.field-officers'),
+        { search_jadwal: searchJadwal.value },
+        { preserveState: true, replace: true }
+    );
 };
 
+const searchPetugas = ref(props.filters.search_petugas || '');
 const submitSearchPetugas = () => {
-    router.get(route('admin.field-officers'), { search_petugas: searchPetugas.value }, { preserveState: true, replace: true });
+    router.get(route('admin.field-officers'),
+        { search_petugas: searchPetugas.value },
+        { preserveState: true, replace: true }
+    );
 };
 
 // Fungsi Submit Form
@@ -66,6 +73,40 @@ const submitPetugas = () => {
     });
 };
 
+// State Modal Detail Jadwal
+const showModalDetailJadwal = ref(false);
+const selectedJadwal = ref(null);
+
+const openDetailJadwal = (jadwal) => {
+    selectedJadwal.value = jadwal;
+    showModalDetailJadwal.value = true;
+};
+
+// State Modal Edit Petugas
+const showModalEditPetugas = ref(false);
+const selectedPetugas = ref(null);
+const formEditPetugas = useForm({
+    nama_petugas: '',
+    posisi: '',
+    kontak: ''
+});
+
+const openEditPetugas = (petugas) => {
+    selectedPetugas.value = petugas;
+    formEditPetugas.nama_petugas = petugas.profil_petugas?.nama_petugas || '';
+    formEditPetugas.posisi = petugas.profil_petugas?.posisi || '';
+    formEditPetugas.kontak = petugas.profil_petugas?.kontak || '';
+    showModalEditPetugas.value = true;
+};
+
+const submitEditPetugas = () => {
+    formEditPetugas.put(route('admin.field-officers.petugas.update', selectedPetugas.value.id), {
+        onSuccess: () => {
+            showModalEditPetugas.value = false;
+        }
+    });
+};
+
 </script>
 
 <template>
@@ -78,7 +119,7 @@ const submitPetugas = () => {
             <div class="p-8 space-y-6">
                 <!-- Header -->
                 <div>
-                    <h1 class="text-2xl font-bold text-slate-900">Field Officers Management</h1>
+                    <h1 class="text-2xl font-bold text-slate-900">Manajemen Petugas Lapangan</h1>
                     <p class="text-slate-500 mt-1">Kelola petugas lapangan dan jadwal kunjungan verifikasi klasifikasi.</p>
                 </div>
 
@@ -175,7 +216,7 @@ const submitPetugas = () => {
                                 <tr v-for="(j, i) in jadwals.data" :key="j.id" class="hover:bg-slate-50 transition-colors">
                                     <td class="px-6 py-4">{{ (jadwals.current_page - 1) * jadwals.per_page + i + 1 }}</td>
                                     <td class="px-6 py-4 font-medium text-slate-900">{{ j.klasifikasi?.supplier?.nama_perusahaan || '-' }}</td>
-                                    <td class="px-6 py-4">{{ j.petugas?.username || '-' }}</td>
+                                    <td class="px-6 py-4">{{ j.petugas?.profil_petugas?.nama_petugas || j.petugas?.username || '-' }}</td>
                                     <td class="px-6 py-4">{{ j.tanggal_kunjungan }} {{ j.waktu_kunjungan }}</td>
                                     <td class="px-6 py-4">
                                         <span class="px-2.5 py-1 rounded-full text-xs font-semibold"
@@ -189,7 +230,7 @@ const submitPetugas = () => {
                                         </span>
                                     </td>
                                     <td class="px-6 py-4 text-right">
-                                        <button class="text-blue-600 hover:text-blue-800 text-sm font-semibold">Detail</button>
+                                        <button @click="openDetailJadwal(j)" class="text-blue-600 hover:text-blue-800 text-sm font-semibold">Detail</button>
                                     </td>
                                 </tr>
                                 <tr v-if="jadwals.data.length === 0">
@@ -242,8 +283,8 @@ const submitPetugas = () => {
                                 <tr v-for="(p, i) in petugass.data" :key="p.id" class="hover:bg-slate-50 transition-colors">
                                     <td class="px-6 py-4">{{ (petugass.current_page - 1) * petugass.per_page + i + 1 }}</td>
                                     <td class="px-6 py-4 font-medium text-slate-900">
-                                        {{ p.username }}<br>
-                                        <span class="text-xs text-slate-400 font-normal">{{ p.email }}</span>
+                                        {{ p.profil_petugas?.nama_petugas || p.username }}<br>
+                                        <span class="text-xs text-slate-400 font-normal">@{{ p.username }} &bull; {{ p.email }}</span>
                                     </td>
                                     <td class="px-6 py-4">{{ p.profil_petugas?.posisi || '-' }}</td>
                                     <td class="px-6 py-4">{{ p.profil_petugas?.kontak || '-' }}</td>
@@ -255,7 +296,7 @@ const submitPetugas = () => {
                                         </span>
                                     </td>
                                     <td class="px-6 py-4 text-right">
-                                        <button class="text-blue-600 hover:text-blue-800 text-sm font-semibold">Edit</button>
+                                        <button @click="openEditPetugas(p)" class="text-blue-600 hover:text-blue-800 text-sm font-semibold">Edit</button>
                                     </td>
                                 </tr>
                                 <tr v-if="petugass.data.length === 0">
@@ -344,7 +385,12 @@ const submitPetugas = () => {
                 <div class="p-6 overflow-y-auto">
                     <form @submit.prevent="submitPetugas" class="space-y-4">
                         <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1">Nama Petugas (Username)</label>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Nama Lengkap Petugas</label>
+                            <input type="text" v-model="formPetugas.nama_petugas" class="w-full bg-slate-50 border border-slate-200 rounded-lg text-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500" />
+                            <span class="text-red-500 text-xs mt-1" v-if="formPetugas.errors.nama_petugas">{{ formPetugas.errors.nama_petugas }}</span>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Username</label>
                             <input type="text" v-model="formPetugas.username" class="w-full bg-slate-50 border border-slate-200 rounded-lg text-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500" required />
                             <span class="text-red-500 text-xs mt-1" v-if="formPetugas.errors.username">{{ formPetugas.errors.username }}</span>
                         </div>
@@ -373,6 +419,95 @@ const submitPetugas = () => {
                 <div class="p-6 border-t border-slate-100 flex justify-end gap-3 shrink-0">
                     <button type="button" @click="showModalPetugas = false" class="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-50">Batal</button>
                     <button type="button" @click="submitPetugas" :disabled="formPetugas.processing" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 disabled:opacity-50">Simpan Petugas</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Edit Profil Petugas -->
+        <div v-if="showModalEditPetugas && selectedPetugas" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" @click="showModalEditPetugas = false"></div>
+            <div class="bg-white rounded-2xl w-full max-w-lg shadow-xl relative overflow-hidden flex flex-col max-h-[90vh]">
+                <div class="p-6 border-b border-slate-100 flex justify-between items-center shrink-0">
+                    <h3 class="text-lg font-bold text-slate-900">Edit Profil Petugas</h3>
+                    <button @click="showModalEditPetugas = false" class="text-slate-400 hover:text-slate-600">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                </div>
+                <div class="p-6 overflow-y-auto">
+                    <form @submit.prevent="submitEditPetugas" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Nama Lengkap Petugas</label>
+                            <input type="text" v-model="formEditPetugas.nama_petugas" class="w-full bg-slate-50 border border-slate-200 rounded-lg text-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500" />
+                            <span class="text-red-500 text-xs mt-1" v-if="formEditPetugas.errors.nama_petugas">{{ formEditPetugas.errors.nama_petugas }}</span>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Username (Akun)</label>
+                            <input type="text" :value="selectedPetugas.username" disabled class="w-full bg-slate-100 border border-slate-200 rounded-lg text-sm px-3 py-2 text-slate-500 cursor-not-allowed" />
+                            <p class="text-xs text-slate-400 mt-1">Akun (username/email/password) tidak dapat diubah di sini.</p>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Posisi</label>
+                                <input type="text" v-model="formEditPetugas.posisi" placeholder="Cth: Auditor Senior" class="w-full bg-slate-50 border border-slate-200 rounded-lg text-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500" />
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Kontak / No. HP</label>
+                                <input type="text" v-model="formEditPetugas.kontak" class="w-full bg-slate-50 border border-slate-200 rounded-lg text-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500" />
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="p-6 border-t border-slate-100 flex justify-end gap-3 shrink-0">
+                    <button type="button" @click="showModalEditPetugas = false" class="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-50">Batal</button>
+                    <button type="button" @click="submitEditPetugas" :disabled="formEditPetugas.processing" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 disabled:opacity-50">Simpan Perubahan</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Detail Jadwal -->
+        <div v-if="showModalDetailJadwal && selectedJadwal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" @click="showModalDetailJadwal = false"></div>
+            <div class="bg-white rounded-2xl w-full max-w-lg shadow-xl relative overflow-hidden flex flex-col max-h-[90vh]">
+                <div class="p-6 border-b border-slate-100 flex justify-between items-center shrink-0">
+                    <h3 class="text-lg font-bold text-slate-900">Detail Jadwal Kunjungan</h3>
+                    <button @click="showModalDetailJadwal = false" class="text-slate-400 hover:text-slate-600">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                </div>
+                <div class="p-6 overflow-y-auto space-y-4">
+                    <div>
+                        <p class="text-sm text-slate-500 font-medium">Supplier</p>
+                        <p class="text-base font-semibold text-slate-900">{{ selectedJadwal.klasifikasi?.supplier?.nama_perusahaan || '-' }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-slate-500 font-medium">Petugas Lapangan</p>
+                        <p class="text-base font-semibold text-slate-900">{{ selectedJadwal.petugas?.profil_petugas?.nama_petugas || selectedJadwal.petugas?.username || '-' }}</p>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-sm text-slate-500 font-medium">Tanggal</p>
+                            <p class="text-base font-semibold text-slate-900">{{ selectedJadwal.tanggal_kunjungan }}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-slate-500 font-medium">Waktu</p>
+                            <p class="text-base font-semibold text-slate-900">{{ selectedJadwal.waktu_kunjungan }}</p>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="text-sm text-slate-500 font-medium mb-1">Status</p>
+                        <span class="px-2.5 py-1 rounded-full text-xs font-semibold inline-block"
+                            :class="{
+                                'bg-amber-100 text-amber-700': selectedJadwal.status === 'menunggu',
+                                'bg-blue-100 text-blue-700': selectedJadwal.status === 'berlangsung',
+                                'bg-emerald-100 text-emerald-700': selectedJadwal.status === 'selesai',
+                                'bg-red-100 text-red-700': selectedJadwal.status === 'dibatalkan',
+                            }">
+                            {{ selectedJadwal.status }}
+                        </span>
+                    </div>
+                </div>
+                <div class="p-6 border-t border-slate-100 flex justify-end shrink-0">
+                    <button type="button" @click="showModalDetailJadwal = false" class="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-200">Tutup</button>
                 </div>
             </div>
         </div>

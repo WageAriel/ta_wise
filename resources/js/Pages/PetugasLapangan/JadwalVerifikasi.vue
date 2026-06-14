@@ -120,7 +120,7 @@ function hitungPoinJawaban(jawaban) {
         <SidebarPetugas class="flex-shrink-0 h-full overflow-y-auto border-r border-slate-200 shadow-sm" />
 
         <main class="flex-1 h-full overflow-y-auto">
-            <div class="max-w-5xl mx-auto px-6 py-10 lg:px-10 space-y-8">
+            <div class="max-w-8xl mx-auto px-6 py-10 lg:px-10 space-y-8">
 
                 <!-- ── Header ── -->
                 <div>
@@ -336,11 +336,14 @@ function hitungPoinJawaban(jawaban) {
                                         <Link
                                             v-if="jadwal.status !== 'selesai' && jadwal.status !== 'dibatalkan'"
                                             :href="route('petugas.verifikasi.form', jadwal.id)"
-                                            class="flex items-center gap-2 rounded-lg px-4 text-white font-semibold transition-all active:scale-95 hover:opacity-90"
-                                            style="height:36px; background:linear-gradient(135deg,#2563eb,#3b82f6); font-size:13px"
+                                            class="flex items-center gap-2 rounded-lg px-4 text-white font-semibold 
+                                            transition-all active:scale-95 hover:opacity-90"
+                                            style="height:36px; background:linear-gradient(135deg,#2563eb,#3b82f6); 
+                                            font-size:13px"
                                         >
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                             </svg>
                                             Mulai Verifikasi
                                         </Link>

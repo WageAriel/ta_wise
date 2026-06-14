@@ -155,7 +155,7 @@ const icons = {
                                 icon: 'classification',
                             },
                             'admin.field-officers': {
-                                label: 'Field Officers',
+                                label: 'Petugas Lapangan',
                                 icon: 'fieldOfficers',
                             },
                         }"

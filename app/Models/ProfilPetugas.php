@@ -13,6 +13,7 @@ class ProfilPetugas extends Model
 
     protected $fillable = [
         'user_id',
+        'nama_petugas',
         'posisi',
         'kontak',
     ];

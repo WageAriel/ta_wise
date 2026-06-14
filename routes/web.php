@@ -130,6 +130,7 @@ Route::middleware('auth')->group(function () {
         });
         Route::get('/field-officers', [\App\Http\Controllers\Admin\FieldOfficerController::class, 'index'])->name('field-officers');
         Route::post('/field-officers/petugas', [\App\Http\Controllers\Admin\FieldOfficerController::class, 'storePetugas'])->name('field-officers.petugas.store');
+        Route::put('/field-officers/petugas/{id}', [\App\Http\Controllers\Admin\FieldOfficerController::class, 'updatePetugasProfile'])->name('field-officers.petugas.update');
         Route::post('/field-officers/jadwal', [\App\Http\Controllers\Admin\FieldOfficerController::class, 'storeJadwal'])->name('field-officers.jadwal.store');
         
         // Purchase Order Routes - Admin view (index)
@@ -186,6 +187,11 @@ Route::middleware('auth')->group(function () {
         Route::get('/jadwal', [\App\Http\Controllers\Petugas\JadwalController::class, 'index'])->name('jadwal');
         Route::get('/verifikasi/riwayat', [\App\Http\Controllers\Petugas\RiwayatController::class, 'index'])->name('verifikasi.riwayat');
         Route::get('/laporan-kinerja', [\App\Http\Controllers\Petugas\LaporanController::class, 'index'])->name('laporan');
+        
+        // Profil Petugas Lapangan
+        Route::get('/profile', [\App\Http\Controllers\Petugas\ProfileController::class, 'edit'])->name('profile');
+        Route::put('/profile', [\App\Http\Controllers\Petugas\ProfileController::class, 'update'])->name('profile.update');
+        
         Route::get('/verifikasi/{jadwal}', [\App\Http\Controllers\Petugas\VerifikasiController::class, 'show'])->name('verifikasi.form');
         Route::post('/verifikasi/{jadwal}', [\App\Http\Controllers\Petugas\VerifikasiController::class, 'store'])->name('verifikasi.store');
         Route::get('/classification', fn() => Inertia::render('Petugas/Classification'))->name('classification');
