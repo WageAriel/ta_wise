@@ -48,9 +48,10 @@ class FieldOfficerController extends Controller
             ->whereIn('status_klasifikasi', ['pending', 'diproses'])
             ->get();  
         // Dropdown Petugas Aktif
-        $petugasList = User::where('role', 'petugas_lapangan')
+        $petugasList = User::with('profilPetugas')
+            ->where('role', 'petugas_lapangan')
             ->where('is_active', true)
-            ->get(['id', 'username']);
+            ->get();
 
         return Inertia::render('Admin/FieldOfficers/Index', [
             'stats' => $stats,

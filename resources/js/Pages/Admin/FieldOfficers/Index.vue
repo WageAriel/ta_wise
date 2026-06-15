@@ -2,6 +2,7 @@
 import { ref } from 'vue';
 import { Head, router, useForm } from '@inertiajs/vue3';
 import SidebarAdmin from '@/Components/SidebarAdmin.vue';
+import Swal from 'sweetalert2';
 // import Pagination from '@/Components/Pagination.vue'; // Asumsi ada komponen pagination
 
 const props = defineProps({
@@ -60,6 +61,13 @@ const submitJadwal = () => {
         onSuccess: () => {
             showModalJadwal.value = false;
             formJadwal.reset();
+            Swal.fire({
+                icon: 'success',
+                title: 'Berhasil',
+                text: 'Jadwal kunjungan berhasil ditambahkan!',
+                timer: 2000,
+                showConfirmButton: false
+            });
         }
     });
 };
@@ -347,7 +355,9 @@ const submitEditPetugas = () => {
                             <label class="block text-sm font-medium text-slate-700 mb-1">Pilih Petugas Lapangan</label>
                             <select v-model="formJadwal.id_user_petugas" class="w-full bg-slate-50 border border-slate-200 rounded-lg text-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500" required>
                                 <option value="" disabled>-- Pilih Petugas --</option>
-                                <option v-for="p in petugas_list" :key="p.id" :value="p.id">{{ p.username }}</option>
+                                <option v-for="p in petugas_list" :key="p.id" :value="p.id">
+                                    {{ p.profil_petugas?.nama_petugas ? p.profil_petugas.nama_petugas : p.username }}
+                                </option>
                             </select>
                             <span class="text-red-500 text-xs mt-1" v-if="formJadwal.errors.id_user_petugas">{{ formJadwal.errors.id_user_petugas }}</span>
                         </div>

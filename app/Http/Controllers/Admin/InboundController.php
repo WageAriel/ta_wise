@@ -174,15 +174,9 @@ class InboundController extends Controller
 
         $layout = Layout::create($validated);
 
-        return response()->json([
-            'message' => 'Layout created successfully',
-            'layout' => $layout
-        ]);
+        return redirect()->back()->with('success', 'Layout created successfully');
     }
 
-    /**
-     * Store a new location.
-     */
     public function storeLocation(Request $request)
     {
         $validated = $request->validate([
@@ -193,10 +187,83 @@ class InboundController extends Controller
 
         $location = Location::create($validated);
 
-        return response()->json([
-            'message' => 'Location created successfully',
-            'location' => $location
+        return redirect()->back()->with('success', 'Location created successfully');
+    }
+
+    /**
+     * Manage Layout & Location Page
+     */
+    public function manageLayoutLocation()
+    {
+        $layouts = Layout::with('locations')->get();
+        return Inertia::render('Admin/Inbound/LayoutLocationManager', [
+            'layouts' => $layouts
         ]);
+    }
+
+    /**
+     * Update Layout
+     */
+    public function updateLayout(Request $request, $id)
+    {
+        $request->validate([
+            'nama_layout' => 'required|string|max:255'
+        ]);
+
+        $layout = Layout::findOrFail($id);
+        $layout->update(['nama_layout' => $request->nama_layout]);
+
+        return redirect()->back()->with('success', 'Layout updated successfully');
+    }
+    
+    public function destroyLayout($id)
+    {
+        $layout = Layout::withCount('locations')->findOrFail($id);
+        
+        if ($layout->locations_count > 0) {
+            return redirect()->back()->with('error', 'Cannot delete layout because it has locations.');
+        }
+
+        $layout->delete();
+
+        return redirect()->back()->with('success', 'Layout deleted successfully');
+    }
+
+    /**
+     * Update Location
+     */
+    public function updateLocation(Request $request, $id)
+    {
+        $request->validate([
+            'kode_location' => 'required|string|max:255',
+            'kapasitas' => 'required|integer|min:1',
+            'id_layout' => 'required|exists:layout,id_layout'
+        ]);
+
+        $location = Location::findOrFail($id);
+        $location->update([
+            'kode_location' => $request->kode_location,
+            'kapasitas' => $request->kapasitas,
+            'id_layout' => $request->id_layout
+        ]);
+
+        return redirect()->back()->with('success', 'Location updated successfully');
+    }
+
+    /**
+     * Delete Location
+     */
+    public function destroyLocation($id)
+    {
+        $location = Location::withCount('inventories')->findOrFail($id);
+
+        if ($location->inventories_count > 0) {
+            return redirect()->back()->with('error', 'Cannot delete location because it has inventory items.');
+        }
+
+        $location->delete();
+
+        return redirect()->back()->with('success', 'Location deleted successfully');
     }
 
     /**
@@ -235,6 +302,17 @@ class InboundController extends Controller
                     ]);
                 } else {
                     // Regular Put Away
+                    $location = Location::findOrFail($item['id_location']);
+                    $currentUsed = $location->inventories()->sum('qty');
+                    $proposedQty = $currentUsed + $item['qty'];
+
+                    if ($proposedQty > $location->kapasitas) {
+                        return response()->json([
+                            'status' => 'error',
+                            'message' => "Kapasitas lokasi {$location->kode_location} tidak mencukupi. (Sisa kapasitas: " . max(0, $location->kapasitas - $currentUsed) . ")"
+                        ], 422);
+                    }
+
                     $inventory = Inventory::updateOrCreate(
                         [
                             'id_barang'   => $item['id_barang'],

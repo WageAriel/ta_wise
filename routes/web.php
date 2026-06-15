@@ -160,8 +160,19 @@ Route::middleware('auth')->group(function () {
         Route::get('/inbound/items/{id_inbound}', [\App\Http\Controllers\Admin\InboundController::class, 'getInboundItems'])->name('inbound.items');
         Route::post('/inbound/layout', [\App\Http\Controllers\Admin\InboundController::class, 'storeLayout'])->name('inbound.layout.store');
         Route::post('/inbound/location', [\App\Http\Controllers\Admin\InboundController::class, 'storeLocation'])->name('inbound.location.store');
+        
+        // Layout & Location Management Routes
+        Route::get('/inbound/layout-location', [\App\Http\Controllers\Admin\InboundController::class, 'manageLayoutLocation'])->name('inbound.layout-location');
+        Route::put('/inbound/layout/{id}', [\App\Http\Controllers\Admin\InboundController::class, 'updateLayout'])->name('inbound.layout.update');
+        Route::delete('/inbound/layout/{id}', [\App\Http\Controllers\Admin\InboundController::class, 'destroyLayout'])->name('inbound.layout.destroy');
+        Route::put('/inbound/location/{id}', [\App\Http\Controllers\Admin\InboundController::class, 'updateLocation'])->name('inbound.location.update');
+        Route::delete('/inbound/location/{id}', [\App\Http\Controllers\Admin\InboundController::class, 'destroyLocation'])->name('inbound.location.destroy');
+        
         Route::post('/inbound/inventory', [\App\Http\Controllers\Admin\InboundController::class, 'storeInventory'])->name('inbound.inventory.store');
+        
         Route::get('/inventory', [\App\Http\Controllers\Admin\InventoryController::class, 'index'])->name('inventory');
+        Route::get('/inventory/{id}/pdf', [\App\Http\Controllers\Admin\InventoryController::class, 'downloadPdf'])->name('inventory.pdf');
+        
         Route::resource('barang', \App\Http\Controllers\Admin\BarangController::class)->except(['create', 'show', 'edit']);
 
         // Return - Admin
