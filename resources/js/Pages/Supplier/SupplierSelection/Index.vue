@@ -36,7 +36,7 @@ const getStatusBadgeClass = (status) => {
         <div class="space-y-6 max-w-7xl mx-auto">
             <!-- Header Halaman -->
             <div class="flex items-center space-x-2 text-sm text-gray-500">
-                <span class="hover:text-indigo-600 transition-colors cursor-default">Seleksi Supplier</span>
+                <span class="text-2xl font-bold text-gray-800">Seleksi Supplier</span>
             </div>
 
             <!-- Div Seleksi Supplier & Button Tambah -->

@@ -154,8 +154,6 @@ const handleInboundChange = async () => {
             qty: item.qty,
             max_qty: item.qty,
             id_location: "",
-            is_returned: false,
-            return_reason: "",
         }));
     } catch (error) {
         console.error("Gagal mengambil detail item inbound", error);
@@ -190,14 +188,10 @@ onMounted(async () => {
 
 const submitInventory = async () => {
     try {
-        const hasReturns = inventoryForm.value.items.some(i => i.is_returned);
         await axios.post(route('admin.inbound.inventory.store'), {
             id_inbound: inventoryForm.value.id_inbound,
             items: inventoryForm.value.items
         });
-        if (hasReturns) {
-            markInboundAsReturned(inventoryForm.value.id_inbound);
-        }
         Swal.fire("Berhasil", "Inventory berhasil ditambahkan", "success");
         showInventoryModal.value = false;
         inventoryForm.value = { id_inbound: "", items: [] };
@@ -213,10 +207,6 @@ const isInventoryFormValid = computed(() => {
     if (!inventoryForm.value.id_inbound || inventoryForm.value.items.length === 0) return false;
     
     return inventoryForm.value.items.every(item => {
-        if (item.is_returned) {
-            // Untuk returned item: hanya perlu qty valid
-            return item.qty > 0 && item.qty <= item.max_qty;
-        }
         const hasLocation = !!item.id_location;
         const validQty = item.qty > 0 && item.qty <= item.max_qty;
         return hasLocation && validQty;
@@ -432,11 +422,10 @@ const availableLocations = computed(() => {
                                             <th class="py-4 px-6 font-medium text-gray-400">Nama Barang</th>
                                             <th class="py-4 px-6 font-medium text-gray-400 text-center">Quantity</th>
                                             <th class="py-4 px-6 font-medium text-gray-400">Lokasi Barang</th>
-                                            <th class="py-4 px-4 font-medium text-red-400 text-center">Return?</th>
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-gray-50 bg-white">
-                                        <tr v-for="(item, idx) in inventoryForm.items" :key="idx" class="hover:bg-gray-50/50 transition-colors" :class="item.is_returned ? 'bg-red-50/30' : ''">
+                                        <tr v-for="(item, idx) in inventoryForm.items" :key="idx" class="hover:bg-gray-50/50 transition-colors">
                                             <td class="py-4 px-6 text-center font-semibold text-gray-400">{{ idx + 1 }}</td>
                                             <td class="py-4 px-6 font-medium text-gray-900">{{ item.nama_barang }}</td>
                                             <td class="py-4 px-6 text-center">
@@ -455,33 +444,16 @@ const availableLocations = computed(() => {
                                                 </div>
                                             </td>
                                             <td class="py-4 px-6">
-                                                <div v-if="!item.is_returned">
-                                                    <select 
-                                                        v-model="item.id_location"
-                                                        class="w-full bg-gray-50 border border-gray-200 text-gray-700 text-xs rounded-lg py-2 px-3 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium"
-                                                        :required="!item.is_returned"
-                                                    >
-                                                        <option value="" disabled>-- Pilih Lokasi --</option>
-                                                        <option v-for="loc in allLocations" :key="loc.id_location" :value="loc.id_location">
-                                                            {{ loc.nama_layout }} - {{ loc.kode_location }}
-                                                        </option>
-                                                    </select>
-                                                </div>
-                                                <div v-else class="space-y-1">
-                                                    <span class="text-xs text-red-600 font-semibold">Dikembalikan (Return)</span>
-                                                    <input
-                                                        v-model="item.return_reason"
-                                                        type="text"
-                                                        placeholder="Alasan (hilang/rusak/tidak ada)"
-                                                        class="w-full text-xs border border-red-200 rounded-lg py-1.5 px-2 bg-red-50 text-red-700 focus:ring-1 focus:ring-red-400"
-                                                    />
-                                                </div>
-                                            </td>
-                                            <td class="py-4 px-4 text-center">
-                                                <label class="inline-flex items-center gap-1 cursor-pointer" title="Tandai sebagai Return (barang hilang/rusak/tidak ada)">
-                                                    <input type="checkbox" v-model="item.is_returned" class="w-4 h-4 rounded accent-red-500" />
-                                                    <span class="text-[10px] text-red-500 font-semibold">Return</span>
-                                                </label>
+                                                <select 
+                                                    v-model="item.id_location"
+                                                    class="w-full bg-gray-50 border border-gray-200 text-gray-700 text-xs rounded-lg py-2 px-3 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium"
+                                                    required
+                                                >
+                                                    <option value="" disabled>-- Pilih Lokasi --</option>
+                                                    <option v-for="loc in allLocations" :key="loc.id_location" :value="loc.id_location">
+                                                        {{ loc.nama_layout }} - {{ loc.kode_location }}
+                                                    </option>
+                                                </select>
                                             </td>
                                         </tr>
                                         <tr v-if="inventoryForm.items.length === 0">
