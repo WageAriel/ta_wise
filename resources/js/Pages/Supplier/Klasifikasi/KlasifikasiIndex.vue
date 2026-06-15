@@ -18,7 +18,6 @@ const perPage = ref(10);
 async function fetchData(page = 1) {
     try {
         currentPage.value = page;
-        // Panggil endpoint API untuk riwayat supplier yang login
         const response = await axios.get('/supplier/classification/data', {
             params: {
                 page: page,

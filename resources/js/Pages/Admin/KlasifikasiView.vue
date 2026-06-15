@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { ref, computed, onMounted } from "vue";
 import { Head, router } from "@inertiajs/vue3";
 import SidebarAdmin from "@/Components/SidebarAdmin.vue";
@@ -210,7 +210,8 @@ async function handleValidasi(kelas) {
         await axios.post(`/api/admin/klasifikasi/${selectedRow.value.id_klasifikasi}/validasi`, {
             keputusan_admin: kelas,
         });
-        Swal.fire({ icon: 'success', title: 'Berhasil!', text: `Supplier telah ditetapkan ke ${kelas}.`, timer: 2000, showConfirmButton: false });
+        Swal.fire({ icon: 'success', title: 'Berhasil!', text: `Supplier telah ditetapkan ke ${kelas}.`, 
+        timer: 2000, showConfirmButton: false });
         closeValidasiModal();
         fetchData(currentPage.value);
     } catch (err) {

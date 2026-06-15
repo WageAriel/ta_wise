@@ -6,7 +6,8 @@ import Swal from 'sweetalert2';
 import axios from 'axios';
 
 const props = defineProps({
-    inventories: { type: Array, default: () => [] }
+    inventories: { type: Array, default: () => [] },
+    locationsData: { type: Array, default: () => [] }
 });
 
 const inventoryData = ref(props.inventories);
@@ -16,25 +17,55 @@ const searchQuery = ref('');
 const entriesPerPage = ref(10);
 const yearFilter = ref('2026');
 
-// Computed property untuk menghitung status secara dinamis
+// Menghitung total stok per id_barang
+const totalStockByBarang = computed(() => {
+    const totals = {};
+    inventoryData.value.forEach(item => {
+        if (!totals[item.id_barang]) {
+            totals[item.id_barang] = 0;
+        }
+        totals[item.id_barang] += item.currentStock;
+    });
+    return totals;
+});
+
+// Computed property untuk menghitung status secara dinamis berdasarkan total stok gabungan
 const processedInventory = computed(() => {
     return inventoryData.value.map(item => {
         let status = 'normal';
-        // Fleksibel: Critical jika stok <= 50% dari batas minimal
-        if (item.currentStock <= (item.minStock * 0.5)) {
+        const totalStock = totalStockByBarang.value[item.id_barang];
+        
+        // Critical jika total stok <= 50% dari batas minimal
+        if (totalStock <= (item.minStock * 0.5)) {
             status = 'critical';
         } 
-        // Low Stock jika stok <= batas minimal (tapi > 50% minStock)
-        else if (item.currentStock <= item.minStock) {
+        // Low Stock jika total stok <= batas minimal (tapi > 50% minStock)
+        else if (totalStock <= item.minStock) {
             status = 'low';
         }
-        return { ...item, status };
+        return { ...item, status, totalStock };
     });
 });
 
-const totalItems = computed(() => processedInventory.value.length);
-const criticalStock = computed(() => processedInventory.value.filter(item => item.status === 'critical').length);
-const lowStock = computed(() => processedInventory.value.filter(item => item.status === 'low').length);
+// Mengelompokkan berdasarkan id_barang agar statistik & alert tidak double
+const uniqueBarangs = computed(() => {
+    const map = new Map();
+    processedInventory.value.forEach(item => {
+        if (!map.has(item.id_barang)) {
+            // Kita kumpulkan semua lokasi untuk barang ini
+            const locations = processedInventory.value
+                .filter(i => i.id_barang === item.id_barang)
+                .map(i => i.location);
+            
+            map.set(item.id_barang, { ...item, allLocations: locations });
+        }
+    });
+    return Array.from(map.values());
+});
+
+const totalItems = computed(() => inventoryData.value.length);
+const criticalStock = computed(() => uniqueBarangs.value.filter(item => item.status === 'critical').length);
+const lowStock = computed(() => uniqueBarangs.value.filter(item => item.status === 'low').length);
 
 const filteredInventory = computed(() => {
     return processedInventory.value.filter(item => {
@@ -44,7 +75,8 @@ const filteredInventory = computed(() => {
 });
 
 const alertItems = computed(() => {
-    return processedInventory.value.filter(item => item.status === 'low' || item.status === 'critical');
+    return uniqueBarangs.value.filter(item => 
+        item.status === 'low' || item.status === 'critical');
 });
 
 // Outbound Modal Logic
@@ -216,6 +248,10 @@ const submitOutbound = async () => {
                                 Stock Alert
                                 <span v-if="criticalStock + lowStock > 0" class="bg-red-600 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full shadow-sm">{{ criticalStock + lowStock }}</span>
                             </button>
+                            <button @click="activeTab = 'locations'" class="pb-4 font-bold flex items-center gap-2 border-b-2 transition-colors text-sm" :class="activeTab === 'locations' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-indigo-500'">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                                Kapasitas Lokasi
+                            </button>
                         </div>
                         <div class="pb-3">
                             <button @click="openOutboundModal" class="px-4 py-2 border border-slate-300 text-slate-700 bg-white rounded-lg text-sm font-bold shadow-sm hover:bg-slate-50 transition">
@@ -319,20 +355,19 @@ const submitOutbound = async () => {
                                         </div>
                                         <h4 class="text-slate-900 font-extrabold text-xl mb-2">{{ item.name }}</h4>
                                         <div class="text-[13px] text-slate-800 font-medium flex items-center gap-2 mb-1.5">
-                                            <span>Current Stock: <strong :class="item.status === 'critical' ? 'text-red-600' : 'text-orange-600'">{{ item.currentStock }} {{ item.unit }}</strong></span>
+                                            <span>Total Stock: <strong :class="item.status === 'critical' ? 'text-red-600' : 'text-orange-600'">{{ item.totalStock }} {{ item.unit }}</strong></span>
                                             <span class="text-black font-bold border-l-2 border-black/20 h-3 mx-1"></span>
                                             <span>Minimum Required: <strong class="text-slate-900">{{ item.minStock }} {{ item.unit }}</strong></span>
                                         </div>
-                                        <p class="text-[13px] text-slate-800 font-medium">Location: {{ item.location }}</p>
+                                        <p class="text-[13px] text-slate-800 font-medium">Locations: {{ item.allLocations.join(', ') }}</p>
                                     </div>
                                 </div>
 
-                                <!-- Button -->
                                 <div class="mt-2 sm:mt-0">
-                                    <button class="px-5 py-2.5 rounded-lg font-bold text-sm text-white shadow-md hover:brightness-110 transition border border-black/10"
+                                    <a :href="route('admin.inventory.pdf', item.id_barang)" target="_blank" class="inline-block px-5 py-2.5 rounded-lg font-bold text-sm text-white shadow-md hover:brightness-110 transition border border-black/10"
                                         :class="item.status === 'critical' ? 'bg-red-600' : 'bg-orange-500'">
                                         Cetak Dokumen
-                                    </button>
+                                    </a>
                                 </div>
                             </div>
                             
@@ -340,6 +375,53 @@ const submitOutbound = async () => {
                                 <svg class="w-12 h-12 text-emerald-500 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                                 <p class="text-slate-600 font-bold">Stok dalam keadaan aman. Tidak ada peringatan stok saat ini.</p>
                             </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Tab Content: Kapasitas Lokasi -->
+                    <div v-if="activeTab === 'locations'" class="p-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <div v-for="loc in locationsData" :key="loc.id_location" class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition">
+                                <div class="flex justify-between items-start mb-4">
+                                    <div>
+                                        <h3 class="text-lg font-bold text-slate-800">{{ loc.layout_name }} - {{ loc.kode_location }}</h3>
+                                        <p class="text-xs text-slate-500 font-medium mt-1">ID: LOC-{{ String(loc.id_location).padStart(3, '0') }}</p>
+                                    </div>
+                                    <span class="px-2.5 py-1 text-xs font-bold rounded-lg"
+                                        :class="{
+                                            'bg-emerald-100 text-emerald-700': loc.persentase < 50,
+                                            'bg-yellow-100 text-yellow-700': loc.persentase >= 50 && loc.persentase < 80,
+                                            'bg-red-100 text-red-700': loc.persentase >= 80
+                                        }">
+                                        {{ loc.persentase }}% Terisi
+                                    </span>
+                                </div>
+                                
+                                <!-- Progress Bar -->
+                                <div class="w-full bg-slate-100 rounded-full h-3 mb-3 overflow-hidden border border-slate-200/50">
+                                    <div class="h-full rounded-full transition-all duration-500"
+                                        :class="{
+                                            'bg-emerald-500': loc.persentase < 50,
+                                            'bg-yellow-500': loc.persentase >= 50 && loc.persentase < 80,
+                                            'bg-red-500': loc.persentase >= 80
+                                        }"
+                                        :style="'width: ' + loc.persentase + '%'">
+                                    </div>
+                                </div>
+                                
+                                <div class="flex justify-between items-center text-sm font-medium">
+                                    <div class="text-slate-600">
+                                        <span class="text-slate-900 font-bold">{{ loc.digunakan }}</span> / {{ loc.kapasitas }} Unit
+                                    </div>
+                                    <div class="text-slate-500 text-xs">
+                                        Sisa: <span class="font-bold" :class="loc.tersisa === 0 ? 'text-red-500' : 'text-slate-700'">{{ loc.tersisa }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div v-if="!locationsData || locationsData.length === 0" class="text-center py-10 bg-slate-50 rounded-xl border border-slate-200 border-dashed">
+                            <p class="text-slate-600 font-bold">Data lokasi penyimpanan tidak tersedia.</p>
                         </div>
                     </div>
                 </div>

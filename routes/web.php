@@ -130,6 +130,7 @@ Route::middleware('auth')->group(function () {
         });
         Route::get('/field-officers', [\App\Http\Controllers\Admin\FieldOfficerController::class, 'index'])->name('field-officers');
         Route::post('/field-officers/petugas', [\App\Http\Controllers\Admin\FieldOfficerController::class, 'storePetugas'])->name('field-officers.petugas.store');
+        Route::put('/field-officers/petugas/{id}', [\App\Http\Controllers\Admin\FieldOfficerController::class, 'updatePetugasProfile'])->name('field-officers.petugas.update');
         Route::post('/field-officers/jadwal', [\App\Http\Controllers\Admin\FieldOfficerController::class, 'storeJadwal'])->name('field-officers.jadwal.store');
         
         // Purchase Order Routes - Admin view (index)
@@ -159,8 +160,19 @@ Route::middleware('auth')->group(function () {
         Route::get('/inbound/items/{id_inbound}', [\App\Http\Controllers\Admin\InboundController::class, 'getInboundItems'])->name('inbound.items');
         Route::post('/inbound/layout', [\App\Http\Controllers\Admin\InboundController::class, 'storeLayout'])->name('inbound.layout.store');
         Route::post('/inbound/location', [\App\Http\Controllers\Admin\InboundController::class, 'storeLocation'])->name('inbound.location.store');
+        
+        // Layout & Location Management Routes
+        Route::get('/inbound/layout-location', [\App\Http\Controllers\Admin\InboundController::class, 'manageLayoutLocation'])->name('inbound.layout-location');
+        Route::put('/inbound/layout/{id}', [\App\Http\Controllers\Admin\InboundController::class, 'updateLayout'])->name('inbound.layout.update');
+        Route::delete('/inbound/layout/{id}', [\App\Http\Controllers\Admin\InboundController::class, 'destroyLayout'])->name('inbound.layout.destroy');
+        Route::put('/inbound/location/{id}', [\App\Http\Controllers\Admin\InboundController::class, 'updateLocation'])->name('inbound.location.update');
+        Route::delete('/inbound/location/{id}', [\App\Http\Controllers\Admin\InboundController::class, 'destroyLocation'])->name('inbound.location.destroy');
+        
         Route::post('/inbound/inventory', [\App\Http\Controllers\Admin\InboundController::class, 'storeInventory'])->name('inbound.inventory.store');
+        
         Route::get('/inventory', [\App\Http\Controllers\Admin\InventoryController::class, 'index'])->name('inventory');
+        Route::get('/inventory/{id}/pdf', [\App\Http\Controllers\Admin\InventoryController::class, 'downloadPdf'])->name('inventory.pdf');
+        
         Route::resource('barang', \App\Http\Controllers\Admin\BarangController::class)->except(['create', 'show', 'edit']);
 
         // Return - Admin
@@ -186,6 +198,11 @@ Route::middleware('auth')->group(function () {
         Route::get('/jadwal', [\App\Http\Controllers\Petugas\JadwalController::class, 'index'])->name('jadwal');
         Route::get('/verifikasi/riwayat', [\App\Http\Controllers\Petugas\RiwayatController::class, 'index'])->name('verifikasi.riwayat');
         Route::get('/laporan-kinerja', [\App\Http\Controllers\Petugas\LaporanController::class, 'index'])->name('laporan');
+        
+        // Profil Petugas Lapangan
+        Route::get('/profile', [\App\Http\Controllers\Petugas\ProfileController::class, 'edit'])->name('profile');
+        Route::put('/profile', [\App\Http\Controllers\Petugas\ProfileController::class, 'update'])->name('profile.update');
+        
         Route::get('/verifikasi/{jadwal}', [\App\Http\Controllers\Petugas\VerifikasiController::class, 'show'])->name('verifikasi.form');
         Route::post('/verifikasi/{jadwal}', [\App\Http\Controllers\Petugas\VerifikasiController::class, 'store'])->name('verifikasi.store');
         Route::get('/classification', fn() => Inertia::render('Petugas/Classification'))->name('classification');

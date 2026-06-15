@@ -107,9 +107,6 @@ const icons = {
     view: `<path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`
 };
 
-// --- LOGIKA MODAL & FORM ADDITIONS ---
-const showLayoutModal = ref(false);
-const showLocationModal = ref(false);
 const showInventoryModal = ref(false);
 const showDetailModal = ref(false);
 
@@ -141,9 +138,6 @@ const openAddInventoryFor = async (id_inbound) => {
 
 const layouts = ref([]);
 const barangs = ref([]);
-
-const layoutForm = ref({ nama_layout: "" });
-const locationForm = ref({ kode_location: "", kapasitas: 1, id_layout: "" });
 const inventoryForm = ref({ 
     id_inbound: "", 
     items: [] // { id_barang, nama_barang, qty, id_location }
@@ -192,29 +186,7 @@ onMounted(async () => {
     await checkInboundCompletion();
 });
 
-const submitLayout = async () => {
-    try {
-        await axios.post(route('admin.inbound.layout.store'), layoutForm.value);
-        Swal.fire("Berhasil", "Layout berhasil ditambahkan", "success");
-        showLayoutModal.value = false;
-        layoutForm.value.nama_layout = "";
-        fetchDropdownData();
-    } catch (error) {
-        Swal.fire("Error", "Gagal menambahkan layout", "error");
-    }
-};
 
-const submitLocation = async () => {
-    try {
-        await axios.post(route('admin.inbound.location.store'), locationForm.value);
-        Swal.fire("Berhasil", "Location berhasil ditambahkan", "success");
-        showLocationModal.value = false;
-        locationForm.value = { kode_location: "", kapasitas: 1, id_layout: "" };
-        fetchDropdownData();
-    } catch (error) {
-        Swal.fire("Error", "Gagal menambahkan location", "error");
-    }
-};
 
 const submitInventory = async () => {
     try {
@@ -232,7 +204,8 @@ const submitInventory = async () => {
         // Re-check completion after put-away
         await checkInboundCompletion();
     } catch (error) {
-        Swal.fire("Error", "Gagal menambahkan inventory", "error");
+        const errorMessage = error.response?.data?.message || "Gagal menambahkan inventory";
+        Swal.fire("Error", errorMessage, "error");
     }
 };
 
@@ -281,16 +254,10 @@ const availableLocations = computed(() => {
             </div>
 
             <div class="flex items-center gap-3">
-                <button @click="showLayoutModal = true" class="inline-flex items-center px-4 py-2 bg-indigo-50 text-indigo-700 rounded-lg font-medium hover:bg-indigo-100 transition-all">
+                <Link :href="route('admin.inbound.layout-location')" class="inline-flex items-center px-4 py-2 bg-indigo-50 text-indigo-700 rounded-lg font-medium hover:bg-indigo-100 transition-all">
                     <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" v-html="icons.layout"></svg>
-                    Add Layout
-                </button>
-                <button @click="showLocationModal = true" class="inline-flex items-center px-4 py-2 bg-blue-50 text-blue-700 rounded-lg font-medium hover:bg-blue-100 transition-all">
-                    <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.242-4.243a8 8 0 1111.314 0z"></path><path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                    </svg>
-                    Add Location
-                </button>
+                    Kelola Layout & Lokasi
+                </Link>
                 <button @click="showInventoryModal = true" class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 shadow-sm transition-all">
                     <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" v-html="icons.package"></svg>
                     Add Inventory
@@ -424,60 +391,7 @@ const availableLocations = computed(() => {
             </div>
         </div>
 
-        <!-- MODAL ADD LAYOUT -->
-        <div v-if="showLayoutModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <div class="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-                    <h3 class="font-bold text-gray-800">Add Layout</h3>
-                    <button @click="showLayoutModal = false" class="text-gray-400 hover:text-red-500">&times;</button>
-                </div>
-                <div class="p-6">
-                    <form @submit.prevent="submitLayout">
-                        <div class="mb-4">
-                            <label class="block text-sm font-semibold text-gray-700 mb-1">Nama Layout</label>
-                            <input v-model="layoutForm.nama_layout" type="text" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500" required placeholder="Gudang A, Area B..." />
-                        </div>
-                        <div class="flex justify-end gap-3">
-                            <button type="button" @click="showLayoutModal = false" class="px-4 py-2 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg">Batal</button>
-                            <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">Simpan Layout</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
 
-        <!-- MODAL ADD LOCATION -->
-        <div v-if="showLocationModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <div class="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-                    <h3 class="font-bold text-gray-800">Add Location</h3>
-                    <button @click="showLocationModal = false" class="text-gray-400 hover:text-red-500">&times;</button>
-                </div>
-                <div class="p-6">
-                    <form @submit.prevent="submitLocation">
-                        <div class="mb-4">
-                            <label class="block text-sm font-semibold text-gray-700 mb-1">Layout</label>
-                            <select v-model="locationForm.id_layout" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500" required>
-                                <option value="" disabled>-- Pilih Layout --</option>
-                                <option v-for="l in layouts" :key="l.id_layout" :value="l.id_layout">{{ l.nama_layout }}</option>
-                            </select>
-                        </div>
-                        <div class="mb-4">
-                            <label class="block text-sm font-semibold text-gray-700 mb-1">Kode Location</label>
-                            <input v-model="locationForm.kode_location" type="text" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500" required placeholder="A1, B2..." />
-                        </div>
-                        <div class="mb-4">
-                            <label class="block text-sm font-semibold text-gray-700 mb-1">Kapasitas</label>
-                            <input v-model="locationForm.kapasitas" type="number" min="1" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500" required />
-                        </div>
-                        <div class="flex justify-end gap-3">
-                            <button type="button" @click="showLocationModal = false" class="px-4 py-2 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg">Batal</button>
-                            <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Simpan Location</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
 
         <!-- MODAL ADD INVENTORY -->
         <div v-if="showInventoryModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">

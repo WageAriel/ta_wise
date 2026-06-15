@@ -17,49 +17,41 @@ class FieldOfficerController extends Controller
 {
     public function index(Request $request)
     {
-        // Statistik
         $totalPetugas = User::where('role', 'petugas_lapangan')->count();
         $petugasAktif = User::where('role', 'petugas_lapangan')->where('is_active', true)->count();
         $jadwalKunjungan = JadwalKunjungan::count();
         $sedangBerlangsung = JadwalKunjungan::where('status', 'berlangsung')->count();
-
         $stats = [
             'total_petugas' => $totalPetugas,
             'petugas_aktif' => $petugasAktif,
             'jadwal_kunjungan' => $jadwalKunjungan,
             'sedang_berlangsung' => $sedangBerlangsung,
         ];
-
         // Data Jadwal dengan Pagination & Search
-        $jadwalQuery = JadwalKunjungan::with(['klasifikasi.supplier', 'petugas'])->latest();
+        $jadwalQuery = JadwalKunjungan::with(['klasifikasi.supplier', 'petugas.profilPetugas'])->latest();
         if ($request->filled('search_jadwal')) {
             $jadwalQuery->whereHas('klasifikasi.supplier', function ($q) use ($request) {
                 $q->where('nama_perusahaan', 'like', '%' . $request->search_jadwal . '%');
             });
         }
         $jadwals = $jadwalQuery->paginate(10, ['*'], 'jadwal_page');
-
         // Data Petugas dengan Pagination & Search
         $petugasQuery = User::with('profilPetugas')
             ->where('role', 'petugas_lapangan')
             ->latest();
-            
         if ($request->filled('search_petugas')) {
             $petugasQuery->where('username', 'like', '%' . $request->search_petugas . '%');
         }
         $petugass = $petugasQuery->paginate(10, ['*'], 'petugas_page');
-
-        // Untuk dropdown klasifikasi yang belum punya jadwal
-        // Ambil klasifikasi yang 'pending' atau 'diproses' dan belum ada di tabel jadwal
         $klasifikasiPending = Klasifikasi::with('supplier')
             ->whereDoesntHave('jadwalKunjungan')
             ->whereIn('status_klasifikasi', ['pending', 'diproses'])
-            ->get();
-            
+            ->get();  
         // Dropdown Petugas Aktif
-        $petugasList = User::where('role', 'petugas_lapangan')
+        $petugasList = User::with('profilPetugas')
+            ->where('role', 'petugas_lapangan')
             ->where('is_active', true)
-            ->get(['id', 'username']);
+            ->get();
 
         return Inertia::render('Admin/FieldOfficers/Index', [
             'stats' => $stats,
@@ -77,6 +69,7 @@ class FieldOfficerController extends Controller
             'username' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8',
+            'nama_petugas' => 'nullable|string|max:255',
             'posisi' => 'nullable|string|max:255',
             'kontak' => 'nullable|string|max:255',
         ]);
@@ -92,6 +85,7 @@ class FieldOfficerController extends Controller
 
             ProfilPetugas::create([
                 'user_id' => $user->id,
+                'nama_petugas' => $validated['nama_petugas'],
                 'posisi' => $validated['posisi'],
                 'kontak' => $validated['kontak'],
             ]);
@@ -122,5 +116,28 @@ class FieldOfficerController extends Controller
             ->update(['status_klasifikasi' => 'diproses']);
 
         return redirect()->back()->with('message', 'Jadwal kunjungan berhasil ditambahkan.');
+    }
+
+    public function updatePetugasProfile(Request $request, $id)
+    {
+        $user = User::findOrFail($id);
+        
+        $validated = $request->validate([
+            'nama_petugas' => 'nullable|string|max:255',
+            'posisi' => 'nullable|string|max:255',
+            'kontak' => 'nullable|string|max:255',
+        ]);
+
+        $profil = ProfilPetugas::firstOrCreate(
+            ['user_id' => $user->id]
+        );
+        
+        $profil->update([
+            'nama_petugas' => $validated['nama_petugas'],
+            'posisi' => $validated['posisi'],
+            'kontak' => $validated['kontak'],
+        ]);
+
+        return redirect()->back()->with('message', 'Profil petugas berhasil diperbarui.');
     }
 }

@@ -69,7 +69,6 @@ const sudahDijawabCount = computed(() =>
 async function submitPengajuan(e) {
     e.preventDefault();
     if (!semuaDijawab.value) return;
-
     const result = await Swal.fire({
         title: 'Konfirmasi Pengajuan',
         text: 'Apakah Anda yakin ingin mengirim pengajuan klasifikasi ini? Data yang sudah dikirim tidak dapat diubah.',
@@ -80,9 +79,7 @@ async function submitPengajuan(e) {
         confirmButtonText: 'Ya, Kirim!',
         cancelButtonText: 'Batal'
     });
-
     if (!result.isConfirmed) return;
-
     isSubmitting.value = true;
     errorMsg.value = '';
     try {
@@ -94,9 +91,7 @@ async function submitPengajuan(e) {
             id_soal: idSoal.value,
             jawaban 
         });
-        
         showSuccess.value = true;
-        
         Swal.fire({
             title: 'Berhasil!',
             text: 'Data klasifikasi berhasil disimpan. Anda akan dialihkan...',
@@ -107,7 +102,6 @@ async function submitPengajuan(e) {
         }).then(() => {
             window.location.href = '/supplier/classification';
         });
-
     } catch (err) {
         errorMsg.value = err.response?.data?.message ?? 'Gagal mengirim pengajuan. Coba lagi.';
         Swal.fire({
