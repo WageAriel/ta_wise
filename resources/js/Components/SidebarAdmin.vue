@@ -37,7 +37,7 @@ const icons = {
         class="flex flex-col w-64 h-screen sticky top-0 bg-white text-black border-r border-gray-200 shadow-sm"
     >
         <!-- Brand (Bagian Atas - Tetap) -->
-        <div class="flex items-center gap-3 px-6 py-5 border-b border-gray-100 shrink-0">
+        <div class="flex items-center gap-3 px-6 py-3.5 border-b border-gray-100 shrink-0">
             <template v-if="$page.props.app_settings?.system_logo">
                 <img :src="$page.props.app_settings.system_logo" class="w-8 h-8 rounded-lg object-contain" alt="Logo">
             </template>

@@ -616,7 +616,7 @@ const systemRecommendation = computed(() => {
                                     </span>
                                     <span
                                         v-else-if="
-                                            supplier.status === 'submitted'
+                                            supplier.status === 'menunggu review'
                                         "
                                         class="inline-flex items-center gap-1.5 px-5 py-1 rounded-3xl text-xs font-bold bg-blue-50 text-blue-700 border border-blue-100 whitespace-nowrap"
                                     >
@@ -1233,7 +1233,7 @@ const systemRecommendation = computed(() => {
                             >
                                 <template
                                     v-if="
-                                        selectedSupplier.status === 'submitted'
+                                        selectedSupplier.status === 'menunggu review'
                                     "
                                 >
                                     <button

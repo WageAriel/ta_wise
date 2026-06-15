@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use \App\Models\Inbound;
 use App\Models\ReturnBarang;
+use App\Models\ReturnDetail;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -13,7 +15,7 @@ class ReturnController extends Controller
     {
         // Ambil data return beserta informasi barangnya
         $returns = ReturnBarang::with('details.barang')->latest()->get();
-        $inboundsList = \App\Models\Inbound::select('id_inbound')->get();
+        $inboundsList = Inbound::select('id_inbound')->get();
 
         return Inertia::render('Admin/Return Management/Index', [
             'returns' => $returns,
@@ -73,7 +75,7 @@ class ReturnController extends Controller
         ]);
 
         foreach ($request->items as $item) {
-            \App\Models\ReturnDetail::create([
+            ReturnDetail::create([
                 'id_return' => $returnHeader->id_return,
                 'id_barang' => $item['id_barang'],
                 'qty'       => $item['qty'],
@@ -97,7 +99,7 @@ class ReturnController extends Controller
     {
         $return = ReturnBarang::with('details.barang')->findOrFail($id);
 
-        $inbound = \App\Models\Inbound::with(['purchaseOrder.supplier', 'purchaseOrder.items.barang', 'purchaseOrder.items.subtype', 'purchaseOrder.items.itemType'])
+        $inbound = Inbound::with(['purchaseOrder.supplier', 'purchaseOrder.items.barang', 'purchaseOrder.items.subtype', 'purchaseOrder.items.itemType'])
                         ->where('id_inbound', $return->id_inbound)
                         ->first();
         
@@ -111,7 +113,7 @@ class ReturnController extends Controller
         }
 
         // Enrich each return item with the full name including subtype
-        $enrichedItems = $siblings->map(function ($item) use ($subtypeMap) {
+        $enrichedItems = $return->details->map(function ($item) use ($subtypeMap) {
             $baseName = $item->barang ? $item->barang->nama_barang : 'Unknown';
             $subtypeName = $subtypeMap[$item->id_barang] ?? null;
             $item->display_name = $subtypeName ? "{$baseName} - {$subtypeName}" : $baseName;
@@ -131,7 +133,7 @@ class ReturnController extends Controller
             'supplier_name' => $supplierName,
             'inbound_date' => $inboundDate,
             'return_date' => $returnDate,
-            'items' => $return->details,
+            'items' => $enrichedItems,
             'user_name' => auth()->user() ? auth()->user()->username : 'Petugas Gudang',
         ];
 

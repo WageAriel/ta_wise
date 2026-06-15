@@ -225,7 +225,7 @@ const confirmSubmit = async () => {
                     'bg-amber-50 border-amber-200 shadow-amber-100/30':
                         props.supplier.status === 'draft',
                     'bg-blue-50 border-blue-200 shadow-blue-100/30':
-                        props.supplier.status === 'submitted',
+                        props.supplier.status === 'menunggu review',
                     'bg-emerald-50 border-emerald-200 shadow-emerald-100/30':
                         props.supplier.status === 'approved',
                     'bg-rose-50 border-rose-200 shadow-rose-100/30':
@@ -290,11 +290,11 @@ const confirmSubmit = async () => {
                         <h3 class="font-bold text-slate-900 text-md">
                             Status:
                             <span class="uppercase tracking-widest">{{
-                                props.supplier.status === 'submitted' ? 'Menunggu Review' : props.supplier.status
+                                props.supplier.status
                             }}</span>
                         </h3>
                         <p class="text-slate-600 text-sm mt-1 leading-relaxed">
-                            <span v-if="props.supplier.status === 'submitted'"
+                            <span v-if="props.supplier.status === 'menunggu review'"
                                 >Aplikasi Anda sedang dalam peninjauan oleh tim
                                 pengadaan.</span
                             >

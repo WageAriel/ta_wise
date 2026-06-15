@@ -6,6 +6,10 @@ use App\Http\Requests\SupplierRequest;
 use App\Models\Supplier;
 use App\Models\SupplierDocument;
 use App\Models\SupplierScore;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\SupplierExport;
+use App\Imports\SupplierImport;
+use App\Exports\SupplierImportTemplate;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -54,8 +58,8 @@ class DataSupplierController extends Controller
                 'no_rekening' => $request->no_rekening,
                 'atas_nama' => $request->atas_nama,
                 
-                'status' => 'submitted',       // Langsung masuk status submitted
-                'tahun_periode' => date('Y'),  // Catat tahun pendaftaran
+                'status' => 'menunggu review',       
+                'tahun_periode' => date('Y'),  
                 'submitted_at' => now(),
             ]
         );
@@ -111,7 +115,7 @@ class DataSupplierController extends Controller
     public function adminIndex(Request $request)
     {
         $query = Supplier::with(['user', 'documents'])
-            ->whereIn('status', ['submitted', 'approved', 'rejected'])
+            ->whereIn('status', ['menunggu review', 'approved', 'rejected'])
             ->latest();
 
         // Filter Pencarian
@@ -259,13 +263,13 @@ class DataSupplierController extends Controller
     // 6. Export Excel
     public function export(Request $request)
     {
-        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\SupplierExport, 'data_supplier.xlsx');
+        return Excel::download(new SupplierExport, 'data_supplier.xlsx');
     }
 
     // 7. Download Import Template Excel
     public function downloadImportTemplate()
     {
-        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\SupplierImportTemplate, 'template_import_supplier.xlsx');
+        return Excel::download(new SupplierImportTemplate, 'template_import_supplier.xlsx');
     }
 
     // 8. Import Excel
@@ -275,7 +279,61 @@ class DataSupplierController extends Controller
             'file' => 'required|mimes:xlsx,xls,csv|max:2048'
         ]);
 
-        \Maatwebsite\Excel\Facades\Excel::import(new \App\Imports\SupplierImport, $request->file('file'));
+        $file = $request->file('file');
+        $data = \Maatwebsite\Excel\Facades\Excel::toArray(new \App\Imports\SupplierImport, $file);
+
+        // Cek apakah ada minimal 1 baris yang terisi (tidak kosong semua)
+        $hasValidData = false;
+        $hasError = false;
+        $errorMessage = '';
+
+        $requiredColumns = [
+            'nama_perusahaan', 'no_telp_perusahaan', 'alamat_perusahaan', 'email_perusahaan',
+            'nama_pic', 'no_telp_pic', 'email_pic', 'nama_bank', 'no_rekening', 'atas_nama'
+        ];
+
+        if (!empty($data) && isset($data[0])) {
+            foreach ($data[0] as $index => $row) {
+                // Abaikan baris jika 100% kosong
+                if (!empty(array_filter($row))) {
+                    $hasValidData = true;
+                    
+                    // Jika baris ada isinya, maka SEMUA kolom wajib diisi
+                    $missingColumns = [];
+                    foreach ($requiredColumns as $col) {
+                        if (empty($row[$col])) {
+                            $missingColumns[] = str_replace('_', ' ', ucwords($col, '_'));
+                        }
+                    }
+
+                    if (count($missingColumns) > 0) {
+                        $hasError = true;
+                        $barisKe = $index + 2; // +2 karena baris 1 adalah Header
+                        $kolomKosong = implode(', ', $missingColumns);
+                        $errorMessage = "Terdapat baris data (Baris ke-{$barisKe}) yang belum lengkap. Kolom berikut wajib diisi: {$kolomKosong}.";
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Jika benar-benar kosong
+        if (!$hasValidData) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'File Excel benar-benar kosong atau tidak memiliki baris data untuk diimport.'
+            ], 422);
+        }
+
+        // Jika ada baris yang emailnya kosong
+        if ($hasError) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $errorMessage
+            ], 422);
+        }
+
+        \Maatwebsite\Excel\Facades\Excel::import(new \App\Imports\SupplierImport, $file);
 
         return response()->json([
             'status' => 'success',

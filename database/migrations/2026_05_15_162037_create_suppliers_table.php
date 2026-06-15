@@ -31,7 +31,7 @@ return new class extends Migration
 
             // LOGIKA TAHUNAN: Periode dan Status
             $table->year('tahun_periode')->nullable(); 
-            $table->enum('status', ['draft', 'submitted', 'approved', 'rejected'])->default('draft');
+            $table->enum('status', ['draft', 'menunggu review', 'approved', 'rejected'])->default('draft');
             
             $table->text('catatan_admin')->nullable();
             $table->timestamp('submitted_at')->nullable();

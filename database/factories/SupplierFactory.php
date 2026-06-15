@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -17,7 +18,7 @@ class SupplierFactory extends Factory
     public function definition(): array
     {
         return [
-            'user_id' => \App\Models\User::factory(),
+            'user_id' => User::factory(),
             'nama_perusahaan' => $this->faker->company(),
             'no_telp_perusahaan' => $this->faker->phoneNumber(),
             'alamat_perusahaan' => $this->faker->address(),
@@ -29,7 +30,7 @@ class SupplierFactory extends Factory
             'no_rekening' => $this->faker->bankAccountNumber(),
             'atas_nama' => $this->faker->name(),
             'tahun_periode' => $this->faker->year(),
-            'status' => $this->faker->randomElement(['draft', 'submitted', 'approved', 'rejected']),
+            'status' => $this->faker->randomElement(['draft', 'menunggu review', 'approved', 'rejected']),
         ];
     }
 }
