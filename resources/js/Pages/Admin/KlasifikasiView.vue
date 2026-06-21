@@ -185,6 +185,7 @@ const rekomendasiConfig = {
     'Class A': { color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0' },
     'Class B': { color: '#ea580c', bg: '#fff7ed', border: '#fed7aa' },
     'Class C': { color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe' },
+    'Ditolak': { color: '#dc2626', bg: '#fef2f2', border: '#fecaca' },
     'Belum Memenuhi': { color: '#64748b', bg: '#f8fafc', border: '#e2e8f0' },
 };
 
@@ -193,12 +194,17 @@ function getCfg(kelas) {
 }
 
 async function handleValidasi(kelas) {
+    const isDitolak = kelas === 'Ditolak';
+    const titleText = isDitolak ? 'Tolak Pengajuan?' : `Tetapkan ${kelas}?`;
+    const actionText = isDitolak ? `menolak pengajuan klasifikasi` : `menetapkan`;
+    const targetText = isDitolak ? `dari <strong>${selectedRow.value?.supplier?.nama_perusahaan}</strong>` : `<strong>${selectedRow.value?.supplier?.nama_perusahaan}</strong> ke <strong>${kelas}</strong>`;
+    
     const result = await Swal.fire({
-        title: `Tetapkan ${kelas}?`,
-        html: `<p style="font-size:14px;color:#475569">Anda akan menetapkan <strong>${selectedRow.value?.supplier?.nama_perusahaan}</strong> ke <strong>${kelas}</strong>.<br><br>Keputusan ini <strong>tidak dapat diubah</strong> setelah dikonfirmasi.</p>`,
+        title: titleText,
+        html: `<p style="font-size:14px;color:#475569">Anda akan ${actionText} ${targetText}.<br><br>Keputusan ini <strong>tidak dapat diubah</strong> setelah dikonfirmasi.</p>`,
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonText: `Ya, Tetapkan ${kelas}`,
+        confirmButtonText: isDitolak ? 'Ya, Tolak Pengajuan' : `Ya, Tetapkan ${kelas}`,
         cancelButtonText: 'Batal',
         confirmButtonColor: getCfg(kelas).color,
         reverseButtons: true,
@@ -211,7 +217,7 @@ async function handleValidasi(kelas) {
         await axios.post(`/api/admin/klasifikasi/${selectedRow.value.id_klasifikasi}/validasi`, {
             keputusan_admin: kelas,
         });
-        Swal.fire({ icon: 'success', title: 'Berhasil!', text: `Supplier telah ditetapkan ke ${kelas}.`, 
+        Swal.fire({ icon: 'success', title: 'Berhasil!', text: isDitolak ? 'Pengajuan berhasil ditolak.' : `Supplier telah ditetapkan ke ${kelas}.`, 
         timer: 2000, showConfirmButton: false });
         closeValidasiModal();
         fetchData(currentPage.value);
@@ -368,7 +374,7 @@ function hitungPoinJawaban(jawaban) {
                                 v-for="opt in [
                                     { val: 'semua', label: 'Semua' },
                                     { val: 'pending_diproses', label: 'Menunggu & Diproses' },
-                                    { val: 'selesai', label: 'Selesai' },
+                                    { val: 'selesai_ditolak', label: 'Selesai' },
                                 ]"
                                 :key="opt.val"
                                 @click="filterStatus = opt.val; applyFilter()"
@@ -475,7 +481,7 @@ function hitungPoinJawaban(jawaban) {
                                         <div class="flex items-center justify-center gap-2">
                                             <!-- Validasi Akhir: tampil jika sudah ada verifikasi lapangan & belum selesai -->
                                             <button
-                                                v-if="row.verifikasi && row.status_klasifikasi !== 'selesai'"
+                                                v-if="row.verifikasi && row.status_klasifikasi !== 'selesai' && row.status_klasifikasi !== 'ditolak'"
                                                 @click="openValidasiModal(row)"
                                                 class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition-colors shadow-sm"
                                                 title="Validasi Akhir"
@@ -485,9 +491,9 @@ function hitungPoinJawaban(jawaban) {
                                                 </svg>
                                                 Validasi
                                             </button>
-                                            <!-- Lihat Detail: tampil jika selesai -->
+                                            <!-- Lihat Detail: tampil jika selesai atau ditolak -->
                                             <button
-                                                v-else-if="row.status_klasifikasi === 'selesai'"
+                                                v-else-if="row.status_klasifikasi === 'selesai' || row.status_klasifikasi === 'ditolak'"
                                                 @click="openDetailModal(row)"
                                                 class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition-colors shadow-sm"
                                                 title="Lihat Detail"
@@ -751,18 +757,24 @@ function hitungPoinJawaban(jawaban) {
                         </div>
 
                         <!-- Keputusan Admin (jika sudah selesai) -->
-                        <div v-if="selectedRow.status_klasifikasi === 'selesai' && selectedRow.verifikasi?.keputusan_admin"
+                        <div v-if="selectedRow.status_klasifikasi === 'selesai' && selectedRow.verifikasi?.keputusan_admin && selectedRow.verifikasi?.keputusan_admin !== 'Ditolak'"
                             class="p-4 rounded-xl border-2 border-emerald-200 bg-emerald-50">
                             <p class="text-emerald-700 text-xs font-bold uppercase tracking-widest mb-1">Keputusan Admin</p>
                             <p class="text-2xl font-bold text-emerald-800">{{ selectedRow.verifikasi.keputusan_admin }}</p>
                             <p class="text-emerald-600 text-xs mt-1">Validasi telah selesai dan tidak dapat diubah.</p>
+                        </div>
+                        <div v-else-if="selectedRow.status_klasifikasi === 'ditolak'"
+                            class="p-4 rounded-xl border-2 border-red-200 bg-red-50">
+                            <p class="text-red-700 text-xs font-bold uppercase tracking-widest mb-1">Keputusan Admin</p>
+                            <p class="text-2xl font-bold text-red-800">Ditolak</p>
+                            <p class="text-red-600 text-xs mt-1">Pengajuan telah ditolak dan tidak dapat diubah.</p>
                         </div>
 
                         <!-- Tombol Pilih Kelas -->
                         <div v-if="selectedRow.status_klasifikasi !== 'selesai'" class="border-t border-slate-100 pt-5">
                             <h4 class="text-slate-700 text-sm font-bold mb-1">Validasi Klasifikasi Supplier</h4>
                             <p class="text-slate-400 text-xs mb-4">Pilih kelas yang sesuai berdasarkan hasil verifikasi. Keputusan tidak dapat diubah setelah dikonfirmasi.</p>
-                            <div class="grid grid-cols-3 gap-3">
+                            <div class="grid grid-cols-3 gap-3 mb-3">
                                 <button
                                     v-for="kelas in ['Class A', 'Class B', 'Class C']"
                                     :key="kelas"
@@ -778,6 +790,16 @@ function hitungPoinJawaban(jawaban) {
                                     </span>
                                 </button>
                             </div>
+                            <!-- Tombol Tolak -->
+                            <button
+                                @click="handleValidasi('Ditolak')"
+                                :disabled="isValidating"
+                                class="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 font-bold transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
+                                :style="{ background: getCfg('Ditolak').bg, borderColor: getCfg('Ditolak').border, color: getCfg('Ditolak').color }"
+                            >
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                Tolak Pengajuan (Belum Memenuhi)
+                            </button>
                         </div>
                     </div>
                 </div>

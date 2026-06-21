@@ -256,6 +256,8 @@ class KlasifikasiController extends Controller
         if ($request->filled('status')) {
             if ($request->status === 'pending_diproses') {
                 $query->whereIn('status_klasifikasi', ['pending', 'diproses']);
+            } elseif ($request->status === 'selesai_ditolak') {
+                $query->whereIn('status_klasifikasi', ['selesai', 'ditolak']);
             } else {
                 $query->where('status_klasifikasi', $request->status);
             }
@@ -331,26 +333,27 @@ class KlasifikasiController extends Controller
     public function adminValidasi(Request $request, Klasifikasi $klasifikasi)
     {
         $validated = $request->validate([
-            'keputusan_admin' => 'required|in:Class A,Class B,Class C',
+            'keputusan_admin' => 'required|in:Class A,Class B,Class C,Ditolak',
         ]);
         if (!$klasifikasi->verifikasi) {
             return response()->json([
                 'message' => 'Belum ada hasil verifikasi lapangan untuk pengajuan ini.',
             ], 422);
         }
-        if ($klasifikasi->status_klasifikasi === 'selesai') {
+        if ($klasifikasi->status_klasifikasi === 'selesai' || $klasifikasi->status_klasifikasi === 'ditolak') {
             return response()->json([
                 'message' => 'Pengajuan ini sudah divalidasi dan tidak dapat diubah kembali.',
             ], 422);
         }
         \Illuminate\Support\Facades\DB::transaction(function () use ($klasifikasi, $validated) {
+            $isDitolak = $validated['keputusan_admin'] === 'Ditolak';
             $klasifikasi->verifikasi->update([
                 'keputusan_admin' => $validated['keputusan_admin'],
                 'id_user_admin'   => \Illuminate\Support\Facades\Auth::id(),
-                'status'          => 'selesai',
+                'status'          => $isDitolak ? 'ditolak' : 'selesai',
             ]);
             $klasifikasi->update([
-                'status_klasifikasi' => 'selesai',
+                'status_klasifikasi' => $isDitolak ? 'ditolak' : 'selesai',
             ]);
         });
         return response()->json([
