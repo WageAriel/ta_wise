@@ -75,7 +75,7 @@ class PurchaseOrderDefault extends Controller
             \App\Models\Barang::create([
                 'nama_barang' => $type->type_name,
                 'satuan' => 'pcs',
-                'status' => 'aktif',
+                'status' => 'Aktif',
                 'id_item_type' => $type->id_item_type,
             ]);
         });
@@ -99,7 +99,7 @@ class PurchaseOrderDefault extends Controller
                 \App\Models\Barang::create([
                     'nama_barang' => $itemType->type_name,
                     'satuan' => 'pcs',
-                    'status' => 'aktif',
+                    'status' => 'Aktif',
                     'id_item_type' => $itemType->id_item_type,
                 ]);
             }

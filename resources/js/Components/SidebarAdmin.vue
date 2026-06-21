@@ -97,10 +97,6 @@ const icons = {
                                 label: 'Pengaturan Umum',
                                 icon: 'dashboard',
                             },
-                            'admin.settings.kelas': {
-                                label: 'Kelas Klasifikasi',
-                                icon: 'classification',
-                            },
                             'admin.soal.header.index': {
                                 label: 'Bank Pertanyaan',
                                 icon: 'selection',
@@ -147,11 +143,11 @@ const icons = {
                                 icon: 'supplierData',
                             },
                             'admin.supplier.selection.index': {
-                                label: 'Supplier Selection',
+                                label: 'Seleksi Supplier',
                                 icon: 'selection',
                             },
                             'admin.supplier.classification': {
-                                label: 'Classification Supplier',
+                                label: 'Klasifikasi Supplier',
                                 icon: 'classification',
                             },
                             'admin.field-officers': {

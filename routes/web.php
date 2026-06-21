@@ -68,7 +68,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/classification/ajukan', [KlasifikasiController::class, 'create'])->name('classification.create');
         Route::post('/classification/ajukan', [KlasifikasiController::class, 'store'])->name('classification.store');
 
-        Route::get('/timeline', fn() => Inertia::render('Supplier/Timeline'))->name('timeline');
+        Route::get('/timeline', [\App\Http\Controllers\Supplier\TimelineController::class, 'index'])->name('timeline');
         Route::get('/purchase-orders', [\App\Http\Controllers\SupplierPurchaseOrdersController::class, 'index'])->name('purchase-orders.index');
         
         // Purchase Order - Supplier actions
@@ -126,7 +126,6 @@ Route::middleware('auth')->group(function () {
         Route::prefix('settings')->name('settings.')->group(function () {
             Route::get('/general', [\App\Http\Controllers\Admin\AppSettingController::class, 'index'])->name('general');
             Route::post('/general', [\App\Http\Controllers\Admin\AppSettingController::class, 'update'])->name('general.update');
-            Route::resource('kelas', \App\Http\Controllers\Admin\KelasController::class);
         });
         Route::get('/field-officers', [\App\Http\Controllers\Admin\FieldOfficerController::class, 'index'])->name('field-officers');
         Route::post('/field-officers/petugas', [\App\Http\Controllers\Admin\FieldOfficerController::class, 'storePetugas'])->name('field-officers.petugas.store');

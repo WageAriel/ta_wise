@@ -253,11 +253,7 @@ const submitOutbound = async () => {
                                 Kapasitas Lokasi
                             </button>
                         </div>
-                        <div class="pb-3">
-                            <button @click="openOutboundModal" class="px-4 py-2 border border-slate-300 text-slate-700 bg-white rounded-lg text-sm font-bold shadow-sm hover:bg-slate-50 transition">
-                                Outbound
-                            </button>
-                        </div>
+                        
                     </div>
 
                     <!-- Tab Content: Stock Overview -->
@@ -430,87 +426,7 @@ const submitOutbound = async () => {
         </main>
 
         <!-- Outbound Modal -->
-        <div v-if="showOutboundModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-            <div class="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-                <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-                    <h2 class="text-lg font-bold text-slate-900">Form Outbound Barang</h2>
-                    <button @click="showOutboundModal = false" class="text-slate-400 hover:text-slate-600">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                    </button>
-                </div>
-                
-                <div class="p-6 overflow-y-auto flex-1">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                        <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-2">Tanggal Outbound</label>
-                            <input type="date" v-model="outboundForm.tanggal" class="w-full border-slate-200 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-slate-50" />
-                        </div>
-                        <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-2">Tujuan / Keterangan</label>
-                            <input type="text" v-model="outboundForm.tujuan" placeholder="Masukkan tujuan pengeluaran barang..." class="w-full border-slate-200 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-slate-50" />
-                        </div>
-                    </div>
-
-                    <div class="mb-4 flex items-center justify-between">
-                        <h3 class="text-md font-bold text-slate-800">Daftar Barang Keluar</h3>
-                        <button @click="addOutboundItemRow" class="px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-sm font-bold hover:bg-blue-100 transition flex items-center gap-2">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                            Tambah Barang
-                        </button>
-                    </div>
-
-                    <div class="border border-slate-200 rounded-xl overflow-hidden">
-                        <table class="w-full text-left text-sm">
-                            <thead class="bg-slate-50 border-b border-slate-200">
-                                <tr>
-                                    <th class="px-4 py-3 font-bold text-slate-600 w-12 text-center">No</th>
-                                    <th class="px-4 py-3 font-bold text-slate-600">Pilih Inventory</th>
-                                    <th class="px-4 py-3 font-bold text-slate-600">Nama Barang</th>
-                                    <th class="px-4 py-3 font-bold text-slate-600">Lokasi</th>
-                                    <th class="px-4 py-3 font-bold text-slate-600 w-32">Quantity</th>
-                                    <th class="px-4 py-3 font-bold text-slate-600 w-16">Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-slate-100">
-                                <tr v-for="(item, index) in outboundForm.items" :key="index" class="hover:bg-slate-50/50">
-                                    <td class="px-4 py-3 text-center text-slate-500">{{ index + 1 }}</td>
-                                    <td class="px-4 py-3">
-                                        <select v-model="item.inventoryObj" @change="onBarangSelect(index)" class="w-full border-slate-200 rounded-lg text-sm p-2 focus:ring-blue-500 focus:border-blue-500">
-                                            <option :value="null" disabled>Pilih Stok...</option>
-                                            <option v-for="inv in availableItems" :key="inv.id_inventory" :value="inv">
-                                                {{ inv.barang?.nama_barang || inv.barang?.name }} (Stok: {{ inv.qty }})
-                                            </option>
-                                        </select>
-                                    </td>
-                                    <td class="px-4 py-3 font-semibold">{{ item.name }}</td>
-                                    <td class="px-4 py-3 text-slate-600">{{ item.location }}</td>
-                                    <td class="px-4 py-3">
-                                        <input type="number" min="1" :max="item.max_qty" v-model="item.qty" class="w-full border-slate-200 rounded-lg text-sm p-2 focus:ring-blue-500 focus:border-blue-500" />
-                                    </td>
-                                    <td class="px-4 py-3 text-center">
-                                        <button @click="removeOutboundItemRow(index)" class="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition">
-                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                                        </button>
-                                    </td>
-                                </tr>
-                                <tr v-if="outboundForm.items.length === 0">
-                                    <td colspan="6" class="text-center py-8 text-slate-500">
-                                        Belum ada barang ditambahkan. Klik "Tambah Barang".
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                
-                <div class="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
-                    <button @click="showOutboundModal = false" class="px-5 py-2.5 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-200 transition">Batal</button>
-                    <button @click="submitOutbound" :disabled="isSubmittingOutbound" class="px-5 py-2.5 rounded-lg text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 transition disabled:opacity-50">
-                        {{ isSubmittingOutbound ? 'Menyimpan...' : 'Simpan Outbound' }}
-                    </button>
-                </div>
-            </div>
-        </div>
+        
 
     </div>
 </template>

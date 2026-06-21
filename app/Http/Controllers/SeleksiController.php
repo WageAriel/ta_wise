@@ -92,10 +92,27 @@ class SeleksiController extends Controller
             return response()->json(['message' => 'Anda sudah mengirimkan pengajuan seleksi untuk tahun ini.'], 409);
         }
 
-        // Ambil header soal yang berkaitan dengan Seleksi
-        $header = \App\Models\HeaderSoal::where('nama_soal', 'like', '%Seleksi%')
-            ->latest('id_soal')
-            ->first();
+        // Ambil ID soal seleksi aktif dari pengaturan
+        $idAktif = \App\Models\AppSetting::where('key', 'id_soal_seleksi_aktif')->value('value');
+        
+        $header = null;
+        if ($idAktif) {
+            $header = \App\Models\HeaderSoal::find($idAktif);
+        }
+
+        // Fallback jika tidak ada yang diset aktif: ambil soal berjenis seleksi terbaru
+        if (!$header) {
+            $header = \App\Models\HeaderSoal::where('jenis_soal', 'seleksi')
+                ->latest('id_soal')
+                ->first();
+        }
+
+        // Fallback backward compatibility: cari berdasarkan nama yang mengandung 'Seleksi'
+        if (!$header) {
+            $header = \App\Models\HeaderSoal::where('nama_soal', 'like', '%Seleksi%')
+                ->latest('id_soal')
+                ->first();
+        }
 
         if (!$header) {
             return response()->json(['message' => 'Bank soal seleksi belum tersedia. Silakan hubungi admin.'], 404);

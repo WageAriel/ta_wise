@@ -11,12 +11,6 @@ return new class extends Migration {
     public function up(): void
     {
         // 1. Tabel tanpa dependensi (Master Tables)
-        Schema::create('kelas', function (Blueprint $table) {
-            $table->id('id_kelas');
-            $table->string('nama_kelas');
-            $table->timestamps();
-        });
-
         Schema::create('header_soal', function (Blueprint $table) {
             $table->id('id_soal');
             $table->string('nama_soal', 255);
@@ -33,15 +27,6 @@ return new class extends Migration {
         });
 
         // 2. Tabel yang bergantung pada Master Tables
-        Schema::create('supplier_kelas', function (Blueprint $table) {
-            $table->id('id_supplier_kelas');
-            $table->date('tanggal');
-            $table->string('status');
-            $table->foreignId('id_kelas')->constrained('kelas', 'id_kelas')->onDelete('cascade');
-            $table->foreignId('id_supplier')->constrained('suppliers', 'id')->onDelete('cascade'); // Asumsi ada tabel suppliers
-            $table->timestamps();
-        });
-
         Schema::create('detail_soal', function (Blueprint $table) {
             $table->id('id_detail');
             $table->foreignId('id_pertanyaan')->constrained('pertanyaan', 'id_pertanyaan')->onDelete('cascade');
@@ -130,9 +115,7 @@ return new class extends Migration {
         Schema::dropIfExists('klasifikasi');
         Schema::dropIfExists('opsi');
         Schema::dropIfExists('detail_soal');
-        Schema::dropIfExists('supplier_kelas');
         Schema::dropIfExists('pertanyaan');
         Schema::dropIfExists('header_soal');
-        Schema::dropIfExists('kelas');
     }
 };

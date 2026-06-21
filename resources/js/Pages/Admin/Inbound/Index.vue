@@ -206,19 +206,41 @@ const submitInventory = async () => {
 const isInventoryFormValid = computed(() => {
     if (!inventoryForm.value.id_inbound || inventoryForm.value.items.length === 0) return false;
     
+    const locationUsage = {};
     return inventoryForm.value.items.every(item => {
         const hasLocation = !!item.id_location;
         const validQty = item.qty > 0 && item.qty <= item.max_qty;
+        
+        if (hasLocation && validQty) {
+            if (!locationUsage[item.id_location]) locationUsage[item.id_location] = 0;
+            locationUsage[item.id_location] += Number(item.qty);
+            
+            const loc = getSelectedLocation(item.id_location);
+            if (locationUsage[item.id_location] > loc.remaining_capacity) {
+                return false;
+            }
+        }
+        
         return hasLocation && validQty;
     });
 });
 
 const allLocations = computed(() => {
-    return layouts.value.flatMap(l => l.locations.map(loc => ({
-        ...loc,
-        nama_layout: l.nama_layout
-    })));
+    return layouts.value.flatMap(l => l.locations.map(loc => {
+        const used = loc.inventories ? loc.inventories.reduce((sum, inv) => sum + Number(inv.qty), 0) : 0;
+        const remaining = Math.max(0, loc.kapasitas - used);
+        return {
+            ...loc,
+            nama_layout: l.nama_layout,
+            used_capacity: used,
+            remaining_capacity: remaining
+        };
+    }));
 });
+
+const getSelectedLocation = (id_location) => {
+    return allLocations.value.find(loc => loc.id_location === id_location) || {};
+};
 
 const availableLocations = computed(() => {
     const layout = layouts.value.find(l => l.id_layout === inventoryForm.value.id_layout_temp);
@@ -450,10 +472,13 @@ const availableLocations = computed(() => {
                                                     required
                                                 >
                                                     <option value="" disabled>-- Pilih Lokasi --</option>
-                                                    <option v-for="loc in allLocations" :key="loc.id_location" :value="loc.id_location">
-                                                        {{ loc.nama_layout }} - {{ loc.kode_location }}
+                                                    <option v-for="loc in allLocations" :key="loc.id_location" :value="loc.id_location" :disabled="loc.remaining_capacity === 0">
+                                                        {{ loc.nama_layout }} - {{ loc.kode_location }} (Sisa: {{ loc.remaining_capacity }})
                                                     </option>
                                                 </select>
+                                                <p v-if="item.id_location && getSelectedLocation(item.id_location).remaining_capacity < item.qty" class="text-xs font-medium text-rose-500 mt-1">
+                                                    Kapasitas tidak cukup! Sisa: {{ getSelectedLocation(item.id_location).remaining_capacity }}
+                                                </p>
                                             </td>
                                         </tr>
                                         <tr v-if="inventoryForm.items.length === 0">

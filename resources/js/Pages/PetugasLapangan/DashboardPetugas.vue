@@ -54,7 +54,7 @@ const tanggalHariIni = computed(() => {
                 <!-- ── Section 1: Welcome & Tanggal ── -->
                 <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4 bg-gradient-to-br from-blue-600 to-indigo-700 p-8 rounded-2xl shadow-md text-black">
                     <div>
-                        <h1 class="text-3xl font-extrabold tracking-tight">
+                        <h1 class="text-3xl font-extrabold text-white tracking-tight">
                             Selamat Datang, {{ namaPetugas }}! 👋
                         </h1>
                         <p class="mt-2 text-blue-100 font-medium">

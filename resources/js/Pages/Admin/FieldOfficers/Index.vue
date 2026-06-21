@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue';
 import { Head, router, useForm } from '@inertiajs/vue3';
-import SidebarAdmin from '@/Components/SidebarAdmin.vue';
+import AdminLayout from '@/Layouts/AdminLayout.vue';
 import Swal from 'sweetalert2';
 // import Pagination from '@/Components/Pagination.vue'; // Asumsi ada komponen pagination
 
@@ -119,9 +119,9 @@ const submitEditPetugas = () => {
 
 <template>
     <Head title="Field Officers | Admin" />
-
+    <AdminLayout>
     <div class="flex h-screen bg-[#F8FAFC] overflow-hidden">
-        <SidebarAdmin />
+        
 
         <main class="flex-1 overflow-y-auto">
             <div class="p-8 space-y-6">
@@ -523,4 +523,5 @@ const submitEditPetugas = () => {
         </div>
 
     </div>
+    </AdminLayout>
 </template>

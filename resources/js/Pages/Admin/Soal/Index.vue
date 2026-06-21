@@ -6,7 +6,8 @@ import axios from 'axios';
 
 const props = defineProps({
     initialHeaderSoals: Array,
-    initialIdSoalAktif: Number,
+    initialIdSoalKlasifikasiAktif: Number,
+    initialIdSoalSeleksiAktif: Number,
 });
 
 const activeTab = ref('header'); // 'header' or 'pertanyaan'
@@ -94,7 +95,8 @@ const deletePertanyaan = async (id) => {
 
 // --- Modal & Form Header Soal ---
 const headers = ref(props.initialHeaderSoals || []);
-const aktifSoalId = ref(props.initialIdSoalAktif || null);
+const aktifSoalKlasifikasiId = ref(props.initialIdSoalKlasifikasiAktif || null);
+const aktifSoalSeleksiId = ref(props.initialIdSoalSeleksiAktif || null);
 const isSettingAktif = ref(false);
 const isModalHeaderOpen = ref(false);
 const formHeader = useForm({
@@ -139,9 +141,10 @@ const openHeaderModal = async (item = null) => {
 const loadHeaders = async () => {
     try {
         const res = await axios.get(route('admin.soal.header.index'), { headers: { 'Accept': 'application/json' }});
-        // API now returns { data: [...], id_soal_aktif: ... }
+        // API now returns { data: [...], id_soal_klasifikasi_aktif: ..., id_soal_seleksi_aktif: ... }
         headers.value = res.data.data ?? res.data;
-        aktifSoalId.value = res.data.id_soal_aktif ?? null;
+        aktifSoalKlasifikasiId.value = res.data.id_soal_klasifikasi_aktif ?? null;
+        aktifSoalSeleksiId.value = res.data.id_soal_seleksi_aktif ?? null;
     } catch(e) {
         console.error(e);
     }
@@ -172,16 +175,16 @@ const deleteHeader = async (id) => {
 };
 
 const setAktifSoal = async (item) => {
-    if (item.jenis_soal !== 'klasifikasi') {
-        alert('Fitur ini hanya untuk paket soal berjenis Klasifikasi.');
-        return;
-    }
-    if (!confirm(`Jadikan "${item.nama_soal}" sebagai paket soal klasifikasi aktif?`)) return;
+    if (!confirm(`Jadikan "${item.nama_soal}" sebagai paket soal ${item.jenis_soal} aktif?`)) return;
     isSettingAktif.value = true;
     try {
         const res = await axios.patch(route('admin.soal.header.setAktif', item.id_soal));
-        aktifSoalId.value = res.data.id_soal_aktif;
-        alert(`Berhasil! Paket soal "${item.nama_soal}" kini aktif untuk pengajuan klasifikasi.`);
+        if (item.jenis_soal === 'seleksi') {
+            aktifSoalSeleksiId.value = res.data.id_soal_aktif;
+        } else {
+            aktifSoalKlasifikasiId.value = res.data.id_soal_aktif;
+        }
+        alert(`Berhasil! Paket soal "${item.nama_soal}" kini aktif untuk pengajuan ${item.jenis_soal}.`);
     } catch (e) {
         alert('Gagal mengubah paket soal aktif.');
         console.error(e);
@@ -218,22 +221,38 @@ const setAktifSoal = async (item) => {
 
                     <!-- TAB 1: Header Soal -->
                     <div v-if="activeTab === 'header'" class="p-6">
-                        <!-- Info banner soal aktif -->
-                        <div v-if="aktifSoalId" class="mb-4 flex items-center gap-3 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3">
+                        <!-- Info banner soal aktif klasifikasi -->
+                        <div v-if="aktifSoalKlasifikasiId" class="mb-4 flex items-center gap-3 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3">
                             <svg class="w-5 h-5 text-emerald-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                             <p class="text-emerald-800 text-sm font-medium">
                                 Paket soal klasifikasi aktif: 
-                                <strong>{{ headers.find(h => h.id_soal === aktifSoalId)?.nama_soal ?? `#${aktifSoalId}` }}</strong>
-                                — digunakan untuk pengajuan klasifikasi supplier saat ini.
+                                <strong>{{ headers.find(h => h.id_soal === aktifSoalKlasifikasiId)?.nama_soal ?? `#${aktifSoalKlasifikasiId}` }}</strong>
                             </p>
                         </div>
                         <div v-else class="mb-4 flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
                             <svg class="w-5 h-5 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
                             </svg>
-                            <p class="text-amber-800 text-sm font-medium">Belum ada paket soal klasifikasi yang dipilih sebagai aktif. Sistem akan menggunakan paket soal klasifikasi terbaru secara otomatis.</p>
+                            <p class="text-amber-800 text-sm font-medium">Belum ada paket soal klasifikasi aktif.</p>
+                        </div>
+
+                        <!-- Info banner soal aktif seleksi -->
+                        <div v-if="aktifSoalSeleksiId" class="mb-4 flex items-center gap-3 bg-indigo-50 border border-indigo-200 rounded-xl px-4 py-3">
+                            <svg class="w-5 h-5 text-indigo-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <p class="text-indigo-800 text-sm font-medium">
+                                Paket soal seleksi aktif: 
+                                <strong>{{ headers.find(h => h.id_soal === aktifSoalSeleksiId)?.nama_soal ?? `#${aktifSoalSeleksiId}` }}</strong>
+                            </p>
+                        </div>
+                        <div v-else class="mb-4 flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+                            <svg class="w-5 h-5 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                            </svg>
+                            <p class="text-amber-800 text-sm font-medium">Belum ada paket soal seleksi aktif.</p>
                         </div>
 
                         <div class="flex justify-end mb-4">
@@ -260,8 +279,8 @@ const setAktifSoal = async (item) => {
                                         <div class="flex items-center gap-2">
                                             {{ item.nama_soal }}
                                             <span
-                                                v-if="item.id_soal === aktifSoalId && item.jenis_soal === 'klasifikasi'"
-                                                class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700"
+                                                v-if="(item.id_soal === aktifSoalKlasifikasiId && item.jenis_soal === 'klasifikasi') || (item.id_soal === aktifSoalSeleksiId && item.jenis_soal === 'seleksi')"
+                                                class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-700"
                                             >
                                                 <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
                                                 AKTIF
@@ -277,14 +296,14 @@ const setAktifSoal = async (item) => {
                                     <td class="px-6 py-4">{{ item.pertanyaans_count || 0 }} Pertanyaan</td>
                                     <td class="px-6 py-4 text-right">
                                         <button
-                                            v-if="item.jenis_soal === 'klasifikasi' && item.id_soal !== aktifSoalId"
+                                            v-if="(item.jenis_soal === 'klasifikasi' && item.id_soal !== aktifSoalKlasifikasiId) || (item.jenis_soal === 'seleksi' && item.id_soal !== aktifSoalSeleksiId)"
                                             @click="setAktifSoal(item)"
                                             :disabled="isSettingAktif"
                                             class="text-emerald-600 font-bold hover:underline mr-3 text-sm disabled:opacity-50"
                                         >Jadikan Aktif</button>
                                         <span
-                                            v-else-if="item.jenis_soal === 'klasifikasi' && item.id_soal === aktifSoalId"
-                                            class="text-emerald-600 font-bold mr-3 text-sm opacity-60 cursor-default"
+                                            v-else
+                                            class="text-blue-600 font-bold mr-3 text-sm opacity-60 cursor-default"
                                         >✓ Aktif</span>
                                         <button @click="openHeaderModal(item)" class="text-blue-600 font-bold hover:underline mr-3">Edit</button>
                                         <button @click="deleteHeader(item.id_soal)" class="text-red-600 font-bold hover:underline">Hapus</button>

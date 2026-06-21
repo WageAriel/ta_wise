@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { Head, Link } from '@inertiajs/vue3';
 import SidebarSupplier from '@/Components/SidebarSupplier.vue';
+import SupplierLayout from '@/Layouts/SupplierLayout.vue';
 import axios from 'axios';
 
 const rows = ref([]);
@@ -12,8 +13,40 @@ const stats = ref({
     menunggu_validasi: 0
 });
 const canSubmit = ref(false);
+const hasSubmittedThisYear = ref(false);
 const currentPage = ref(1);
 const perPage = ref(10);
+
+const showDetailModal = ref(false);
+const selectedRow = ref(null);
+
+function openDetailModal(row) {
+    selectedRow.value = row;
+    showDetailModal.value = true;
+}
+
+function closeDetailModal() {
+    showDetailModal.value = false;
+    selectedRow.value = null;
+}
+
+function hitungPoinJawaban(jawaban) {
+    if (!jawaban.opsi_verifikasi) return jawaban.opsi?.nilai ?? 0;
+    const bobot = jawaban.pertanyaan?.bobot ?? 0;
+    const nilai = jawaban.opsi_verifikasi?.nilai ?? 0;
+    return Math.round((nilai / 100) * bobot);
+}
+
+const rekomendasiConfig = {
+    'Class A': { color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0' },
+    'Class B': { color: '#ea580c', bg: '#fff7ed', border: '#fed7aa' },
+    'Class C': { color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe' },
+    'Belum Memenuhi': { color: '#64748b', bg: '#f8fafc', border: '#e2e8f0' },
+};
+
+function getCfg(kelas) {
+    return rekomendasiConfig[kelas] ?? rekomendasiConfig['Belum Memenuhi'];
+}
 
 async function fetchData(page = 1) {
     try {
@@ -29,6 +62,7 @@ async function fetchData(page = 1) {
         pagination.value = response.data.data;
         stats.value = response.data.stats;
         canSubmit.value = response.data.can_submit_classification;
+        hasSubmittedThisYear.value = response.data.has_submitted_this_year;
     } catch (error) {
         console.error("Error fetching classification data:", error);
     }
@@ -105,12 +139,11 @@ function formatDate(dateStr) {
 
 <template>
     <Head title="Klasifikasi Saya | WISE" />
-
+    <SupplierLayout>
     <div class="flex h-screen overflow-hidden bg-[#F8FAFC]">
-        <SidebarSupplier class="flex-shrink-0 h-full overflow-y-auto border-r border-slate-200 shadow-sm" />
 
         <main class="flex-1 h-full overflow-y-auto">
-            <div class="max-w-7xl mx-auto px-6 py-10 lg:px-10">
+            <div class="max-w-8xl mx-auto px-6 py-10 lg:px-10">
                 <!-- ── Page Header ── -->
                 <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
                     <div>
@@ -123,7 +156,7 @@ function formatDate(dateStr) {
                     </div>
                     <div>
                         <Link 
-                            v-if="canSubmit"
+                            v-if="canSubmit && !hasSubmittedThisYear"
                             :href="route('supplier.klasifikasi-form')" 
                             class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2.5 rounded-xl shadow-sm transition-colors"
                         >
@@ -132,6 +165,17 @@ function formatDate(dateStr) {
                             </svg>
                             Ajukan Klasifikasi
                         </Link>
+                        <button 
+                            v-else-if="hasSubmittedThisYear"
+                            disabled
+                            class="inline-flex items-center gap-2 bg-slate-300 text-white font-semibold px-5 py-2.5 rounded-xl shadow-sm cursor-not-allowed"
+                            title="Anda sudah mengajukan klasifikasi tahun ini"
+                        >
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                            </svg>
+                            Ajukan Klasifikasi
+                        </button>
                         <button 
                             v-else
                             disabled
@@ -246,6 +290,7 @@ function formatDate(dateStr) {
                                     </td>
                                     <td class="px-6 py-4 text-center">
                                         <button
+                                            @click="openDetailModal(row)"
                                             class="p-1.5 rounded-lg text-blue-500 hover:bg-blue-50 transition-colors"
                                             title="Lihat Detail"
                                         >
@@ -307,6 +352,134 @@ function formatDate(dateStr) {
             </div>
         </main>
     </div>
+    </SupplierLayout>
+
+    <!-- ── Detail Modal ── -->
+    <Teleport to="body">
+        <Transition name="fade">
+            <div
+                v-if="showDetailModal && selectedRow"
+                class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+                @click.self="closeDetailModal"
+            >
+                <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl mx-4 max-h-[90vh] overflow-y-auto">
+                    <!-- Header -->
+                    <div class="flex items-start justify-between p-6 border-b border-slate-100">
+                        <div>
+                            <h3 class="text-lg font-bold text-slate-900">Detail Pengajuan Klasifikasi</h3>
+                            <p class="text-sm text-slate-500 mt-0.5">Riwayat jawaban dan hasil verifikasi</p>
+                        </div>
+                        <button @click="closeDetailModal" class="text-slate-400 hover:text-slate-600 p-1">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                        </button>
+                    </div>
+
+                    <div class="p-6 space-y-5">
+                        
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="p-4 rounded-xl border border-slate-200 bg-slate-50">
+                                <p class="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1">Skor Pengajuan (Self-Assessment)</p>
+                                <p class="text-slate-900 text-2xl font-bold">{{ selectedRow.total_nilai }} <span class="text-sm font-normal">poin</span></p>
+                            </div>
+                            <div class="p-4 rounded-xl border border-blue-200 bg-blue-50">
+                                <p class="text-blue-600 text-xs font-bold uppercase tracking-widest mb-1">Skor Verifikasi Lapangan</p>
+                                <p class="text-blue-700 text-2xl font-bold">{{ selectedRow.verifikasi?.total_nilai ?? '-' }} <span class="text-sm font-normal">poin</span></p>
+                            </div>
+                        </div>
+
+                        <!-- ── Daftar Jawaban ── -->
+                        <div>
+                            <h4 class="text-slate-700 text-sm font-bold mb-3">Daftar Pertanyaan & Jawaban</h4>
+                            <div class="space-y-3">
+                                <div
+                                    v-for="jawaban in selectedRow.jawaban_klasifikasis"
+                                    :key="jawaban.id_jawaban"
+                                    class="rounded-xl border p-4 transition-all"
+                                    :class="jawaban.jawaban_verifikasi === 'invalid'
+                                        ? 'border-orange-200 bg-orange-50/40'
+                                        : 'border-slate-200 bg-white'"
+                                >
+                                    <div class="flex items-start justify-between gap-3">
+                                        <div class="flex items-start gap-2 flex-1 min-w-0">
+                                            <div class="flex-1 min-w-0">
+                                                <div class="flex items-center gap-2 flex-wrap mb-1">
+                                                    <span class="text-slate-800 text-sm font-semibold leading-snug">
+                                                        {{ jawaban.pertanyaan?.teks_pertanyaan }}
+                                                    </span>
+                                                    <span
+                                                        v-if="jawaban.jawaban_verifikasi === 'invalid'"
+                                                        class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-orange-500 text-white font-bold"
+                                                        style="font-size:9px"
+                                                    >
+                                                        TIDAK SESUAI
+                                                    </span>
+                                                </div>
+
+                                                <div
+                                                    class="mt-2 mb-1 px-2 py-1.5 rounded-lg flex items-center gap-2 flex-wrap border bg-slate-50"
+                                                    style="font-size:12px"
+                                                >
+                                                    <span class="text-slate-500 font-semibold">Pengajuan Anda:</span>
+                                                    <span class="px-1.5 py-0.5 rounded bg-white text-slate-700 font-bold border border-slate-200">
+                                                        {{ jawaban.opsi?.teks_opsi ?? '—' }}
+                                                    </span>
+                                                    <template v-if="jawaban.jawaban_verifikasi === 'invalid'">
+                                                        <svg class="w-3.5 h-3.5 text-slate-400 flex-shrink-0 mx-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                                                        <span class="text-orange-600 font-semibold">Koreksi Verifikasi:</span>
+                                                        <span class="px-1.5 py-0.5 rounded bg-orange-100 text-orange-700 font-bold">
+                                                            {{ jawaban.opsi_verifikasi?.teks_opsi ?? '—' }}
+                                                        </span>
+                                                    </template>
+                                                </div>
+
+                                                <p
+                                                    v-if="jawaban.catatan_verifikasi"
+                                                    class="text-slate-500 mt-2 bg-white p-2 rounded border border-slate-100 italic"
+                                                    style="font-size:12px"
+                                                >
+                                                    <span class="font-semibold text-slate-600 mr-1">Catatan Petugas:</span>
+                                                    {{ jawaban.catatan_verifikasi }}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <!-- Poin -->
+                                        <span
+                                            class="flex-shrink-0 text-xs font-bold px-2.5 py-0.5 rounded-full mt-1"
+                                            :class="jawaban.jawaban_verifikasi === 'invalid'
+                                                ? 'bg-orange-100 text-orange-700'
+                                                : 'bg-emerald-50 text-emerald-700'"
+                                        >
+                                            {{ hitungPoinJawaban(jawaban) }} poin
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Keputusan Final -->
+                        <div v-if="selectedRow.status_klasifikasi === 'selesai' && selectedRow.verifikasi?.keputusan_admin"
+                            class="p-5 rounded-xl border-2 border-emerald-200 bg-emerald-50 text-center">
+                            <p class="text-emerald-700 text-xs font-bold uppercase tracking-widest mb-1">Keputusan Kelas Final Anda</p>
+                            <p class="text-3xl font-bold text-emerald-800">{{ selectedRow.verifikasi.keputusan_admin }}</p>
+                            <p class="text-emerald-600 text-xs mt-1">Klasifikasi ini telah disetujui dan diverifikasi oleh Admin.</p>
+                        </div>
+                        <div v-else-if="selectedRow.status_klasifikasi === 'ditolak'"
+                            class="p-5 rounded-xl border-2 border-red-200 bg-red-50 text-center">
+                            <p class="text-red-700 text-xs font-bold uppercase tracking-widest mb-1">Status Pengajuan</p>
+                            <p class="text-2xl font-bold text-red-800">Ditolak</p>
+                        </div>
+                        <div v-else
+                            class="p-5 rounded-xl border-2 border-slate-200 bg-slate-50 text-center">
+                            <p class="text-slate-600 text-xs font-bold tracking-widest mb-1">Status saat ini</p>
+                            <p class="text-lg font-bold text-slate-800">{{ getStatusLabel(selectedRow.status_klasifikasi) }}</p>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </Transition>
+    </Teleport>
 </template>
 
 <style scoped>

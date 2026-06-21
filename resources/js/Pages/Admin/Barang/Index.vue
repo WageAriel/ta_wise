@@ -101,9 +101,6 @@ const deleteBarang = (id) => {
                 <h1 class="text-2xl font-bold text-gray-800">Setting Barang</h1>
                 <p class="text-sm text-gray-500">Kelola master data barang beserta limit stok.</p>
             </div>
-            <button @click="openModal()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 shadow-sm transition-all">
-                + Tambah Barang
-            </button>
         </div>
 
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">

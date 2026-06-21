@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from "vue";
 import { Head, router } from "@inertiajs/vue3";
 import SidebarAdmin from "@/Components/SidebarAdmin.vue";
+import AdminLayout from '@/Layouts/AdminLayout.vue';
 import axios from "axios";
 import Swal from 'sweetalert2';
 
@@ -232,10 +233,10 @@ function hitungPoinJawaban(jawaban) {
 
 <template>
     <Head title="Klasifikasi Supplier | WISE" />
-
+    <AdminLayout>
     <div class="flex h-screen overflow-hidden bg-[#F8FAFC]">
         <!-- Sidebar -->
-        <SidebarAdmin class="flex-shrink-0 h-full overflow-y-auto border-r border-slate-200 shadow-sm" />
+       
 
         <!-- Main -->
         <main class="flex-1 h-full overflow-y-auto">
@@ -563,7 +564,9 @@ function hitungPoinJawaban(jawaban) {
 
             </div>
         </main>
+        
     </div>
+    </AdminLayout>
 
     <!-- ── Validasi Modal ── -->
     <Teleport to="body">

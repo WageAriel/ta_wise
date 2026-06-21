@@ -182,6 +182,8 @@ class KlasifikasiController extends Controller
         $supplier = Supplier::where('user_id', Auth::id())->first();
 
         $canSubmitClassification = false;
+        $hasSubmittedThisYear = false;
+
         if ($supplier) {
             $latestSeleksi = \App\Models\Seleksi::where('id_supplier', $supplier->id)
                 ->latest('tanggal')
@@ -189,6 +191,10 @@ class KlasifikasiController extends Controller
             if ($latestSeleksi && $latestSeleksi->status_seleksi === 'Lolos') {
                 $canSubmitClassification = true;
             }
+
+            $hasSubmittedThisYear = Klasifikasi::where('id_supplier', $supplier->id)
+                ->whereYear('tanggal', now()->year)
+                ->exists();
         }
 
         if (!$supplier) {
@@ -200,6 +206,7 @@ class KlasifikasiController extends Controller
                     'menunggu_validasi'   => 0,
                 ],
                 'can_submit_classification' => false,
+                'has_submitted_this_year'   => false,
             ]);
         }
 
@@ -207,6 +214,7 @@ class KlasifikasiController extends Controller
             ->with([
                 'jawabanKlasifikasis.pertanyaan',
                 'jawabanKlasifikasis.opsi',
+                'jawabanKlasifikasis.opsiVerifikasi',
                 'verifikasi.admin',
                 'verifikasi.petugas.profilPetugas',
                 'jadwalKunjungan.petugas.profilPetugas',
@@ -224,6 +232,7 @@ class KlasifikasiController extends Controller
             'data'  => $klasifikasis,
             'stats' => $stats,
             'can_submit_classification' => $canSubmitClassification,
+            'has_submitted_this_year'   => $hasSubmittedThisYear,
         ]);
     }
 

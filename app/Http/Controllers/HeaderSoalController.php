@@ -20,19 +20,24 @@ class HeaderSoalController extends Controller
             ->latest()
             ->get();
 
-        $idAktif = (int) AppSetting::where('key', 'id_soal_klasifikasi_aktif')
+        $idAktifKlasifikasi = (int) AppSetting::where('key', 'id_soal_klasifikasi_aktif')
+            ->value('value');
+
+        $idAktifSeleksi = (int) AppSetting::where('key', 'id_soal_seleksi_aktif')
             ->value('value');
 
         if ($request->wantsJson()) {
             return response()->json([
-                'data'            => $headerSoals,
-                'id_soal_aktif'   => $idAktif ?: null,
+                'data'                     => $headerSoals,
+                'id_soal_klasifikasi_aktif'=> $idAktifKlasifikasi ?: null,
+                'id_soal_seleksi_aktif'    => $idAktifSeleksi ?: null,
             ]);
         }
 
         return \Inertia\Inertia::render('Admin/Soal/Index', [
             'initialHeaderSoals' => $headerSoals,
-            'initialIdSoalAktif' => $idAktif ?: null,
+            'initialIdSoalKlasifikasiAktif' => $idAktifKlasifikasi ?: null,
+            'initialIdSoalSeleksiAktif' => $idAktifSeleksi ?: null,
         ]);
     }
 
@@ -128,18 +133,21 @@ class HeaderSoalController extends Controller
 
     /**
      * PATCH /api/soal/header/{id}/set-aktif
-     * Set paket soal klasifikasi yang aktif digunakan untuk pengajuan supplier.
+     * Set paket soal aktif digunakan untuk pengajuan supplier.
      */
     public function setAktif(HeaderSoal $header)
     {
+        $key = $header->jenis_soal === 'seleksi' ? 'id_soal_seleksi_aktif' : 'id_soal_klasifikasi_aktif';
+
         AppSetting::updateOrCreate(
-            ['key' => 'id_soal_klasifikasi_aktif'],
+            ['key' => $key],
             ['value' => $header->id_soal]
         );
 
         return response()->json([
-            'message'       => 'Paket soal klasifikasi aktif berhasil diperbarui.',
+            'message'       => 'Paket soal aktif berhasil diperbarui.',
             'id_soal_aktif' => $header->id_soal,
+            'jenis_soal'    => $header->jenis_soal,
             'nama_soal'     => $header->nama_soal,
         ]);
     }

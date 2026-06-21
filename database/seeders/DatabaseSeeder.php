@@ -46,5 +46,7 @@ class DatabaseSeeder extends Seeder
 
         // Seed bank soal klasifikasi
         $this->call(BankSoalKlasifikasiSeeder::class);
+        $this->call(SoalSeleksiSeeder::class);
+        $this->call(DemoSidangSeeder::class);
     }
 }

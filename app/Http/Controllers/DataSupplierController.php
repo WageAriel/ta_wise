@@ -115,7 +115,7 @@ class DataSupplierController extends Controller
     public function adminIndex(Request $request)
     {
         $query = Supplier::with(['user', 'documents'])
-            ->whereIn('status', ['menunggu review', 'approved', 'rejected'])
+            ->whereIn('status', ['draft', 'menunggu review', 'approved', 'rejected'])
             ->latest();
 
         // Filter Pencarian

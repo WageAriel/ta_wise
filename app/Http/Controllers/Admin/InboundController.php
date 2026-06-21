@@ -12,7 +12,7 @@ use App\Models\PutAway;
 use App\Models\ReturnBarang;
 use App\Models\Inbound;
 use App\Models\InboundItem;
-use Illuminate\Support\Facades\DB; 
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class InboundController extends Controller
@@ -44,7 +44,7 @@ class InboundController extends Controller
      */
     public function getLayoutLocations()
     {
-        $layouts = Layout::with('locations')->get();
+        $layouts = Layout::with('locations.inventories')->get();
         // Return dummy barang as well for now
         $barangs = Barang::all();
 
@@ -81,7 +81,7 @@ class InboundController extends Controller
 
         // Calculate how much has already been put away for this inbound per barang
         $putAways = PutAway::with('inventory')->where('id_inbound', $id_inbound)->get();
-        
+
         $putAwayQtyPerBarang = [];
         foreach ($putAways as $pa) {
             if ($pa->inventory) {
@@ -113,7 +113,7 @@ class InboundController extends Controller
 
         foreach ($items as $item) {
             $id_barang = $item->id_barang;
-            
+
             if (!isset($consumedQty[$id_barang])) {
                 $putAwayQty = $putAwayQtyPerBarang[$id_barang] ?? 0;
                 $returnQty = $returnQtyPerBarang[$id_barang] ?? 0;
@@ -135,7 +135,7 @@ class InboundController extends Controller
 
             if ($remainingQty > 0) {
                 $namaBarang = $item->barang ? $item->barang->nama_barang : 'Unknown';
-                
+
                 // Fetch correct subtype name using the seen count index
                 $subtypeName = null;
                 if (isset($poItemsGrouped[$id_barang][$index])) {
@@ -215,11 +215,11 @@ class InboundController extends Controller
 
         return redirect()->back()->with('success', 'Layout updated successfully');
     }
-    
+
     public function destroyLayout($id)
     {
         $layout = Layout::withCount('locations')->findOrFail($id);
-        
+
         if ($layout->locations_count > 0) {
             return redirect()->back()->with('error', 'Cannot delete layout because it has locations.');
         }
@@ -279,56 +279,40 @@ class InboundController extends Controller
             'items.*.qty' => 'required|integer|min:1',
             'items.*.max_qty' => 'sometimes|integer|min:1',
             'items.*.id_location' => 'required_unless:items.*.is_returned,true|nullable|exists:location,id_location',
-            'items.*.is_returned' => 'sometimes|boolean',
-            'items.*.return_reason' => 'nullable|string|max:500',
         ]);
 
         try {
             DB::beginTransaction();
 
             foreach ($request->items as $item) {
-                $isReturned = (bool) ($item['is_returned'] ?? false);
 
-                if ($isReturned) {
-                    // Catat sebagai Return (barang tidak ada / rusak / hilang)
-                    \App\Models\ReturnBarang::create([
-                        'tanggal'    => now()->toDateString(),
-                        'qty'        => $item['qty'],
-                        'kondisi'    => 'tidak layak',
-                        'alasan'     => $item['return_reason'] ?? 'Barang tidak tersedia/rusak/hilang sebelum diterima',
-                        'status'     => 'returned',
-                        'id_barang'  => $item['id_barang'],
-                        'id_inbound' => $request->id_inbound,
-                    ]);
-                } else {
-                    // Regular Put Away
-                    $location = Location::findOrFail($item['id_location']);
-                    $currentUsed = $location->inventories()->sum('qty');
-                    $proposedQty = $currentUsed + $item['qty'];
+                // Regular Put Away
+                $location = Location::findOrFail($item['id_location']);
+                $currentUsed = $location->inventories()->sum('qty');
+                $proposedQty = $currentUsed + $item['qty'];
 
-                    if ($proposedQty > $location->kapasitas) {
-                        return response()->json([
-                            'status' => 'error',
-                            'message' => "Kapasitas lokasi {$location->kode_location} tidak mencukupi. (Sisa kapasitas: " . max(0, $location->kapasitas - $currentUsed) . ")"
-                        ], 422);
-                    }
-
-                    $inventory = Inventory::updateOrCreate(
-                        [
-                            'id_barang'   => $item['id_barang'],
-                            'id_location' => $item['id_location'],
-                        ],
-                        [
-                            'qty' => DB::raw("qty + " . $item['qty'])
-                        ]
-                    );
-
-                    PutAway::create([
-                        'id_inbound'   => $request->id_inbound,
-                        'id_inventory' => $inventory->id_inventory,
-                        'qty'          => $item['qty'],
-                    ]);
+                if ($proposedQty > $location->kapasitas) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => "Kapasitas lokasi {$location->kode_location} tidak mencukupi. (Sisa kapasitas: " . max(0, $location->kapasitas - $currentUsed) . ")"
+                    ], 422);
                 }
+
+                $inventory = Inventory::updateOrCreate(
+                    [
+                        'id_barang' => $item['id_barang'],
+                        'id_location' => $item['id_location'],
+                    ],
+                    [
+                        'qty' => DB::raw("qty + " . $item['qty'])
+                    ]
+                );
+
+                PutAway::create([
+                    'id_inbound' => $request->id_inbound,
+                    'id_inventory' => $inventory->id_inventory,
+                    'qty' => $item['qty'],
+                ]);
             }
 
             DB::commit();
