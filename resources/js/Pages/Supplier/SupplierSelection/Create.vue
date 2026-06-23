@@ -60,9 +60,10 @@ const submit = async () => {
 
     const result = await Swal.fire({
         title: 'Konfirmasi Pengajuan',
-        text: 'Yakin Ingin Mengirim Jawaban? Data Akan Dikunci dan Dinilai Oleh Sistem Untuk Kelolosan Supplier.',
+        text: 'Yakin ingin mengajukan? Data yang sudah dikirim tidak dapat diubah',
         icon: 'question',
         showCancelButton: true,
+        reverseButtons: true,
         confirmButtonColor: '#2563eb',
         cancelButtonColor: '#64748b',
         confirmButtonText: 'YA, KIRIM',

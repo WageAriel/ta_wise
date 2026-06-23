@@ -45,6 +45,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/dashboard', [\App\Http\Controllers\Supplier\DashboardController::class, 'index'])->name('dashboard');
         Route::get('/data', [\App\Http\Controllers\DataSupplierController::class, 'index'])->name('data');
         Route::post('/data', [\App\Http\Controllers\DataSupplierController::class, 'store'])->name('data.store');
+        Route::put('/data', [\App\Http\Controllers\DataSupplierController::class, 'update'])->name('data.update');
         Route::get('/selection', [\App\Http\Controllers\SeleksiController::class, 'index'])->name('selection');// Halaman Utama Seleksi (Daftar Pengajuan)
         Route::middleware('supplier.approved')->group(function () { // Fitur Seleksi yang DIBATASI (Wajib Approved)
             Route::get('/selection/create', [\App\Http\Controllers\SeleksiController::class, 'create'])->name('selection.create');

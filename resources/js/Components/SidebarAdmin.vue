@@ -232,19 +232,19 @@ const icons = {
                                 icon: 'inventory',
                             },
                             'admin.inbound': {
-                                label: 'Inbound',
+                                label: 'Barang Masuk',
                                 icon: 'inbound',
                             },
                             'admin.inventory': {
-                                label: 'Inventory',
+                                label: 'Penyimpanan Barang',
                                 icon: 'inventory',
                             },
                             'admin.return-management': {
-                                label: 'Return Management',
+                                label: 'Pengembalian Barang',
                                 icon: 'returnManagement',
                             },
                             'admin.outbound': {
-                                label: 'Outbound',
+                                label: 'Barang Keluar',
                                 icon: 'outbound',
                             },
                         }"
@@ -305,7 +305,7 @@ const icons = {
                             stroke="currentColor"
                             v-html="icons.userManagement"
                         ></svg>
-                        <span>User Management</span>
+                        <span>Manajemen Pengguna</span>
                     </Link>
                 </div>
             </div>

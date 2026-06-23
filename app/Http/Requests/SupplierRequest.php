@@ -22,7 +22,7 @@ class SupplierRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
+        $rules = [
             // Data Perusahaan
             'nama_perusahaan'    => 'required|string|max:255',
             'no_telp_perusahaan' => 'required|string|max:20',
@@ -47,16 +47,30 @@ class SupplierRequest extends FormRequest
             'has_izin_khusus'      => 'required|boolean',
             'has_sk_domisili'      => 'required|boolean',
             'has_laporan_keuangan' => 'required|boolean',
-
-            // File Dokumen (hanya wajib jika has_* bernilai true)
-            'file_nib'              => 'required_if:has_nib,true|nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
-            'file_npwp'             => 'required_if:has_npwp,true|nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
-            'file_akta_pendirian'   => 'required_if:has_akta_pendirian,true|nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
-            'file_izin_usaha'       => 'required_if:has_izin_usaha,true|nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
-            'file_izin_khusus'      => 'required_if:has_izin_khusus,true|nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
-            'file_sk_domisili'      => 'required_if:has_sk_domisili,true|nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
-            'file_laporan_keuangan' => 'required_if:has_laporan_keuangan,true|nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
         ];
+
+        $docs = ['nib', 'npwp', 'akta_pendirian', 'izin_usaha', 'izin_khusus', 'sk_domisili', 'laporan_keuangan'];
+        $supplier = auth()->user()->supplier;
+
+        foreach ($docs as $doc) {
+            $hasDocDb = false;
+            if ($supplier) {
+                $docRecord = $supplier->documents()->where('jenis_dokumen', $doc)->first();
+                if ($docRecord && $docRecord->file_path) {
+                    $hasDocDb = true;
+                }
+            }
+
+            if ($this->isMethod('PUT') && $hasDocDb) {
+                // If it's an update and document exists in DB, file is not strictly required
+                $rules["file_$doc"] = "nullable|file|mimes:pdf,jpg,jpeg,png|max:5120";
+            } else {
+                // Require file if 'has_X' is 1 or true
+                $rules["file_$doc"] = "required_if:has_$doc,1,true|nullable|file|mimes:pdf,jpg,jpeg,png|max:5120";
+            }
+        }
+
+        return $rules;
     }
 
     public function messages(): array

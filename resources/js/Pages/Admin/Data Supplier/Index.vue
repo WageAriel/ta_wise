@@ -3,6 +3,7 @@ import { ref, computed } from "vue";
 import { Head } from "@inertiajs/vue3";
 import axios from "axios";
 import AdminLayout from "../../../Layouts/AdminLayout.vue";
+import Swal from "sweetalert2";
 
 // Props dari controller (data awal saat halaman pertama dimuat)
 const props = defineProps({
@@ -43,9 +44,14 @@ const notificationType = ref("success"); // 'success' or 'error'
 const notificationMessage = ref("");
 
 const triggerNotification = (type, message) => {
-    notificationType.value = type;
-    notificationMessage.value = message;
-    showNotificationModal.value = true;
+    Swal.fire({
+        title: type === "success" ? "Berhasil!" : "Gagal!",
+        text: message,
+        icon: type,
+        timer: type === "success" ? 2000 : undefined,
+        showConfirmButton: type !== "success",
+        confirmButtonColor: "#2563eb",
+    });
 };
 
 const closeNotification = () => {
@@ -56,9 +62,23 @@ const closeNotification = () => {
 const showDeleteConfirmModal = ref(false);
 const supplierIdToDelete = ref(null);
 
-const confirmDeleteSupplier = (id) => {
-    supplierIdToDelete.value = id;
-    showDeleteConfirmModal.value = true;
+const confirmDeleteSupplier = async (id) => {
+    const result = await Swal.fire({
+        title: "Konfirmasi Hapus",
+        text: "Apakah Anda yakin ingin menghapus data supplier ini? Tindakan ini tidak dapat dibatalkan.",
+        icon: "warning",
+        showCancelButton: true,
+        reverseButtons: true,
+        confirmButtonColor: "#d33",
+        cancelButtonColor: "#64748b",
+        confirmButtonText: "Ya, Hapus!",
+        cancelButtonText: "Batal",
+    });
+
+    if (result.isConfirmed) {
+        supplierIdToDelete.value = id;
+        executeDeleteSupplier();
+    }
 };
 
 // Hapus Supplier via Axios
@@ -230,20 +250,59 @@ const getFileType = (path) => {
     return "other";
 };
 
-// Buka Modal Konfirmasi
-const openConfirm = (action) => {
+// Buka Modal Konfirmasi menggunakan Swal
+const openConfirm = async (action) => {
     confirmAction.value = action;
-    catatanAdmin.value = "";
-    showConfirmModal.value = true;
+    
+    if (action === 'approve') {
+        const result = await Swal.fire({
+            title: 'Konfirmasi Kelulusan',
+            text: 'Apakah Anda yakin ingin meloloskan supplier ini? Data akan diverifikasi secara otomatis dan supplier akan diberitahu.',
+            icon: 'question',
+            showCancelButton: true,
+            reverseButtons: true,
+            confirmButtonColor: '#10b981', // emerald
+            cancelButtonColor: '#64748b',
+            confirmButtonText: 'Ya, Loloskan',
+            cancelButtonText: 'Batal'
+        });
+
+        if (result.isConfirmed) {
+            submitDecision();
+        }
+    } else if (action === 'reject') {
+        const result = await Swal.fire({
+            title: 'Konfirmasi Penolakan',
+            text: 'Silakan masukkan alasan penolakan. Supplier akan melihat catatan ini untuk memperbaiki data.',
+            input: 'textarea',
+            inputPlaceholder: 'Tuliskan catatan atau alasan penolakan di sini...',
+            inputAttributes: {
+                'aria-label': 'Tuliskan catatan penolakan'
+            },
+            icon: 'warning',
+            showCancelButton: true,
+            reverseButtons: true,
+            confirmButtonColor: '#f59e0b', // amber
+            cancelButtonColor: '#64748b',
+            confirmButtonText: 'Ya, Tolak',
+            cancelButtonText: 'Batal',
+            preConfirm: (text) => {
+                if (!text || !text.trim()) {
+                    Swal.showValidationMessage('Alasan penolakan wajib diisi!');
+                }
+                return text;
+            }
+        });
+
+        if (result.isConfirmed) {
+            catatanAdmin.value = result.value;
+            submitDecision();
+        }
+    }
 };
 
 // Submit Keputusan Approve/Reject via Axios
 const submitDecision = async () => {
-    if (confirmAction.value === "reject" && !catatanAdmin.value.trim()) {
-        triggerNotification("error", "Alasan penolakan wajib diisi!");
-        return;
-    }
-
     isSubmitting.value = true;
 
     try {
@@ -279,7 +338,6 @@ const submitDecision = async () => {
             );
         }
 
-        showConfirmModal.value = false;
         showDetailModal.value = false;
         await fetchSuppliers(); // refresh tabel setelah aksi
     } catch (err) {
@@ -323,21 +381,27 @@ const systemRecommendation = computed(() => {
     let textClass = "";
     let description = "";
 
-    if (missingRequired.length === 0 && uploadedCount === totalCount) {
-        status = "Sangat Direkomendasikan (Lolos)";
+    if (uploadedCount === 0) {
+        status = "Dokumen Tidak Ada";
+        colorClass = "bg-rose-50/50";
+        borderClass = "border-rose-100";
+        textClass = "text-rose-700";
+        description = "Belum ada dokumen yang diunggah oleh supplier (0/7).";
+    } else if (missingRequired.length === 0 && uploadedCount === totalCount) {
+        status = "Dokumen Lengkap";
         colorClass = "bg-emerald-50/50";
         borderClass = "border-emerald-100";
         textClass = "text-emerald-700";
         description =
-            "Seluruh dokumen legalitas lengkap (7/7) termasuk NIB, NPWP, Akta Pendirian, dan Izin Usaha. Supplier sangat memenuhi syarat untuk diloloskan.";
+            "Seluruh dokumen legalitas lengkap (7/7) termasuk NIB, NPWP, Akta Pendirian, dan Izin Usaha.";
     } else if (missingRequired.length === 0) {
-        status = "Direkomendasikan (Lolos)";
+        status = "Dokumen Kurang Lengkap";
         colorClass = "bg-emerald-50/30";
         borderClass = "border-emerald-100/60";
         textClass = "text-emerald-600";
-        description = `Dokumen wajib lengkap (${uploadedCount}/7). NIB, NPWP, Akta Pendirian, dan Izin Usaha telah terverifikasi. Rekomendasi sistem: Lolos dengan catatan beberapa dokumen pendukung dapat menyusul.`;
+        description = `Dokumen wajib lengkap (${uploadedCount}/7). NIB, NPWP, Akta Pendirian, dan Izin Usaha telah terverifikasi, namun dokumen pendukung belum lengkap.`;
     } else if (uploadedCount >= 4) {
-        status = "Pertimbangkan (Butuh Review)";
+        status = "Dokumen Kurang Lengkap";
         colorClass = "bg-amber-50/50";
         borderClass = "border-amber-100";
         textClass = "text-amber-700";
@@ -345,15 +409,15 @@ const systemRecommendation = computed(() => {
             .map((d) => d.toUpperCase())
             .join(
                 ", ",
-            )}. Harap tinjau lebih lanjut sebelum mengambil keputusan.`;
+            )}.`;
     } else {
-        status = "Tidak Direkomendasikan (Tidak Lolos)";
-        colorClass = "bg-rose-50/50";
+        status = "Dokumen Kurang Lengkap";
+        colorClass = "bg-rose-50/30";
         borderClass = "border-rose-100";
         textClass = "text-rose-700";
         description = `Kelengkapan dokumen sangat rendah (${uploadedCount}/7). Dokumen wajib yang hilang: ${missingRequired
             .map((d) => d.toUpperCase())
-            .join(", ")}. Sistem merekomendasikan untuk menolak supplier ini.`;
+            .join(", ")}.`;
     }
 
     return {
@@ -1149,15 +1213,15 @@ const systemRecommendation = computed(() => {
                             </div>
                         </div>
 
-                        <!-- Row 5: Rekomendasi Sistem & Keputusan Admin -->
+                        <!-- Row 5: Kelengkapan Dokumen -->
                         <div>
                             <h4
                                 class="text-xs font-black text-indigo-600 uppercase tracking-widest mb-4"
                             >
-                                V. Rekomendasi & Keputusan Sistem
+                                V. Kelengkapan Dokumen
                             </h4>
 
-                            <!-- Box Rekomendasi -->
+                            <!-- Box Kelengkapan -->
                             <div
                                 :class="[
                                     'rounded-2xl border p-5 flex flex-col justify-between gap-4 transition-all duration-300 shadow-sm bg-white',
@@ -1169,7 +1233,7 @@ const systemRecommendation = computed(() => {
                                     <div class="flex items-center gap-2">
                                         <span
                                             class="text-[10px] font-black uppercase tracking-wider text-slate-400"
-                                            >Rekomendasi Sistem:</span
+                                            >Kelengkapan Dokumen:</span
                                         >
                                         <span
                                             :class="[
@@ -1381,374 +1445,7 @@ const systemRecommendation = computed(() => {
         </div>
     </Transition>
 
-    <!-- SECTION 5: Custom Confirmation Modal (Keputusan Final - Sleek & Compact) -->
-    <Transition
-        enter-active-class="transition duration-300 ease-out"
-        enter-from-class="opacity-0"
-        enter-to-class="opacity-100"
-        leave-active-class="transition duration-200 ease-in"
-        leave-from-class="opacity-100"
-        leave-to-class="opacity-0"
-    >
-        <div
-            v-if="showConfirmModal"
-            class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md"
-        >
-            <div
-                class="relative w-full max-w-sm transform overflow-hidden rounded-[24px] bg-white p-5 shadow-2xl transition-all border border-slate-100"
-            >
-                <div class="flex flex-col items-center text-center">
-                    <!-- Icon Warning/Danger -->
-                    <div
-                        :class="[
-                            'h-12 w-12 rounded-xl flex items-center justify-center mb-3 shadow-sm border shrink-0',
-                            confirmAction === 'approve'
-                                ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
-                                : 'bg-rose-50 text-rose-600 border-rose-100',
-                        ]"
-                    >
-                        <svg
-                            v-if="confirmAction === 'approve'"
-                            class="w-6 h-6"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="2"
-                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                            />
-                        </svg>
-                        <svg
-                            v-else
-                            class="w-6 h-6"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="2"
-                                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                            />
-                        </svg>
-                    </div>
 
-                    <h3
-                        class="text-base font-black text-slate-900 leading-snug"
-                    >
-                        {{
-                            confirmAction === "approve"
-                                ? "Konfirmasi Kelulusan"
-                                : "Konfirmasi Penolakan"
-                        }}
-                    </h3>
-
-                    <!-- Peringatan Utama (Tebal & Kontras) -->
-                    <div
-                        class="mt-2.5 px-3 py-2 bg-amber-50 border border-amber-100 rounded-xl flex items-start gap-2 text-left mb-3.5 w-full"
-                    >
-                        <svg
-                            class="w-4 h-4 text-amber-600 shrink-0 mt-0.5"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="2"
-                                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                            />
-                        </svg>
-                        <p
-                            class="text-[11px] font-bold text-amber-800 leading-relaxed"
-                        >
-                            PERINGATAN: Keputusan bersifat final dan tidak dapat
-                            diubah kembali setelah disimpan.
-                        </p>
-                    </div>
-
-                    <p class="text-xs text-slate-500 mb-4 leading-relaxed">
-                        Apakah Anda yakin menetapkan status supplier
-                        <strong>{{ selectedSupplier?.nama_perusahaan }}</strong>
-                        menjadi
-                        <span
-                            :class="
-                                confirmAction === 'approve'
-                                    ? 'text-emerald-600 font-bold'
-                                    : 'text-rose-600 font-bold'
-                            "
-                        >
-                            {{
-                                confirmAction === "approve"
-                                    ? "Lolos (Disetujui)"
-                                    : "Tidak Lolos (Ditolak)"
-                            }} </span
-                        >?
-                    </p>
-
-                    <!-- Textarea Catatan Admin (Wajib diisi untuk penolakan) -->
-                    <div
-                        class="w-full text-left mb-4"
-                        v-if="confirmAction === 'reject'"
-                    >
-                        <label
-                            class="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1"
-                            >Alasan Penolakan (Wajib)</label
-                        >
-                        <textarea
-                            v-model="catatanAdmin"
-                            rows="2"
-                            placeholder="Tulis alasan penolakan di sini..."
-                            class="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 focus:bg-white transition-all placeholder:text-slate-400 resize-none font-medium text-slate-700"
-                        ></textarea>
-                    </div>
-                </div>
-
-                <div class="flex items-center gap-2 mt-2">
-                    <button
-                        @click="showConfirmModal = false"
-                        class="flex-1 px-3 py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl text-xs font-bold active:scale-95 transition-all"
-                    >
-                        Batal
-                    </button>
-                    <button
-                        @click="submitDecision"
-                        :disabled="isSubmitting"
-                        :class="[
-                            'flex-1 px-3 py-2.5 text-white rounded-xl text-xs font-bold active:scale-95 transition-all shadow-md flex items-center justify-center gap-1.5',
-                            confirmAction === 'approve'
-                                ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-100 disabled:bg-emerald-400'
-                                : 'bg-rose-600 hover:bg-rose-700 shadow-rose-100 disabled:bg-rose-400',
-                        ]"
-                    >
-                        <span
-                            v-if="isSubmitting"
-                            class="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"
-                        ></span>
-                        <span>Ya, Simpan</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-    </Transition>
-
-    <!-- Modal Konfirmasi Hapus Supplier -->
-    <Transition
-        enter-active-class="transition duration-300 ease-out"
-        enter-from-class="opacity-0"
-        enter-to-class="opacity-100"
-        leave-active-class="transition duration-200 ease-in"
-        leave-from-class="opacity-100"
-        leave-to-class="opacity-0"
-    >
-        <div
-            v-if="showDeleteConfirmModal"
-            class="fixed inset-0 z-[100] flex items-center justify-center p-4"
-            role="dialog"
-            aria-modal="true"
-        >
-            <!-- Background Overlay -->
-            <div
-                class="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] transition-opacity"
-                @click="showDeleteConfirmModal = false"
-            ></div>
-
-            <!-- Modal Content -->
-            <Transition
-                enter-active-class="transition duration-300 ease-out"
-                enter-from-class="opacity-0 scale-95"
-                enter-to-class="opacity-100 scale-100"
-                leave-active-class="transition duration-200 ease-in"
-                leave-from-class="opacity-100 scale-100"
-                leave-to-class="opacity-0 scale-95"
-            >
-                <div
-                    class="relative w-full max-w-[400px] transform overflow-hidden rounded-[24px] bg-white shadow-2xl transition-all border border-slate-100 p-6"
-                >
-                    <!-- Header: Icon + Title -->
-                    <div class="flex items-start gap-4 mb-5">
-                        <div
-                            class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-rose-100 text-rose-600 shadow-lg shadow-rose-50"
-                        >
-                            <svg
-                                class="h-6 w-6"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                                stroke-width="2.5"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                                />
-                            </svg>
-                        </div>
-                        <div class="pt-0.5">
-                            <h3
-                                class="text-lg font-bold text-slate-900 leading-tight"
-                            >
-                                Hapus Supplier
-                            </h3>
-                            <p class="text-[13px] text-slate-500 mt-1">
-                                Tindakan ini tidak dapat dibatalkan.
-                            </p>
-                        </div>
-                    </div>
-
-                    <!-- Warning Text -->
-                    <div
-                        class="mb-6 p-4 rounded-xl bg-slate-50 border border-slate-100/50"
-                    >
-                        <p
-                            class="text-[13px] text-slate-600 leading-relaxed font-medium"
-                        >
-                            Apakah Anda yakin ingin menghapus data supplier ini
-                            dari sistem? Seluruh data legalitas dan dokumen
-                            terkait juga akan dihapus.
-                        </p>
-                    </div>
-
-                    <!-- Action Buttons: Side-by-Side -->
-                    <div class="flex gap-3">
-                        <button
-                            type="button"
-                            @click="showDeleteConfirmModal = false"
-                            class="flex-1 px-4 py-2.5 text-[13px] font-bold text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-xl transition-all border border-slate-200"
-                        >
-                            Batal
-                        </button>
-                        <button
-                            type="button"
-                            @click="executeDeleteSupplier"
-                            class="flex-1 inline-flex items-center justify-center rounded-xl bg-rose-600 px-4 py-2.5 text-[13px] font-bold text-white shadow-lg shadow-rose-100 hover:bg-rose-700 transition-all active:scale-95"
-                        >
-                            Ya, Hapus
-                        </button>
-                    </div>
-                </div>
-            </Transition>
-        </div>
-    </Transition>
-
-    <!-- Modal Notifikasi (Sukses / Gagal) -->
-    <Transition
-        enter-active-class="transition duration-300 ease-out"
-        enter-from-class="opacity-0"
-        enter-to-class="opacity-100"
-        leave-active-class="transition duration-200 ease-in"
-        leave-from-class="opacity-100"
-        leave-to-class="opacity-0"
-    >
-        <div
-            v-if="showNotificationModal"
-            class="fixed inset-0 z-[110] flex items-center justify-center p-4"
-            role="dialog"
-            aria-modal="true"
-        >
-            <!-- Background Overlay -->
-            <div
-                class="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] transition-opacity"
-                @click="closeNotification"
-            ></div>
-
-            <!-- Modal Content -->
-            <Transition
-                enter-active-class="transition duration-300 ease-out"
-                enter-from-class="opacity-0 scale-95"
-                enter-to-class="opacity-100 scale-100"
-                leave-active-class="transition duration-200 ease-in"
-                leave-from-class="opacity-100 scale-100"
-                leave-to-class="opacity-0 scale-95"
-            >
-                <div
-                    class="relative w-full max-w-[380px] transform overflow-hidden rounded-[24px] bg-white shadow-2xl transition-all border border-slate-100 p-6"
-                >
-                    <div class="text-center">
-                        <!-- Icon -->
-                        <div
-                            class="mx-auto flex h-14 w-14 items-center justify-center rounded-full mb-4"
-                            :class="{
-                                'bg-emerald-100 text-emerald-600':
-                                    notificationType === 'success',
-                                'bg-rose-100 text-rose-600':
-                                    notificationType === 'error',
-                            }"
-                        >
-                            <!-- Success Checkmark Icon -->
-                            <svg
-                                v-if="notificationType === 'success'"
-                                class="h-8 w-8"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                                stroke-width="2.5"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="M5 13l4 4L19 7"
-                                />
-                            </svg>
-                            <!-- Error X Icon -->
-                            <svg
-                                v-else
-                                class="h-8 w-8"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                                stroke-width="2.5"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="M6 18L18 6M6 6l12 12"
-                                />
-                            </svg>
-                        </div>
-
-                        <!-- Title -->
-                        <h3
-                            class="text-lg font-bold text-slate-900 leading-tight"
-                        >
-                            {{
-                                notificationType === "success"
-                                    ? "Berhasil!"
-                                    : "Gagal!"
-                            }}
-                        </h3>
-
-                        <!-- Message -->
-                        <p class="text-sm text-slate-500 mt-2 leading-relaxed">
-                            {{ notificationMessage }}
-                        </p>
-
-                        <!-- Close Button -->
-                        <div class="mt-6">
-                            <button
-                                type="button"
-                                @click="closeNotification"
-                                class="w-full inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-bold text-white shadow-md transition-all active:scale-95"
-                                :class="{
-                                    'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-100':
-                                        notificationType === 'success',
-                                    'bg-rose-600 hover:bg-rose-700 shadow-rose-100':
-                                        notificationType === 'error',
-                                }"
-                            >
-                                Tutup
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </Transition>
-        </div>
-    </Transition>
 
     <!-- Modal Import Excel Compact -->
     <Transition enter-active-class="transition duration-300 ease-out" enter-from-class="opacity-0" enter-to-class="opacity-100" leave-active-class="transition duration-200 ease-in" leave-from-class="opacity-100" leave-to-class="opacity-0">

@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from 'vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import SidebarAdmin from "@/Components/SidebarAdmin.vue";
 import axios from 'axios';
+import Swal from 'sweetalert2';
 
 const props = defineProps({
     initialHeaderSoals: Array,
@@ -72,26 +73,43 @@ const savePertanyaan = async () => {
     try {
         if (formPertanyaan.id_pertanyaan) {
             await axios.put(route('admin.soal.pertanyaan.update', formPertanyaan.id_pertanyaan), formPertanyaan);
-            alert('Berhasil diupdate');
+            Swal.fire({ title: 'Berhasil!', text: 'Pertanyaan berhasil diupdate.', icon: 'success', timer: 1500, showConfirmButton: false });
         } else {
             await axios.post(route('admin.soal.pertanyaan.store'), formPertanyaan);
-            alert('Berhasil disimpan');
+            Swal.fire({ title: 'Berhasil!', text: 'Pertanyaan berhasil disimpan.', icon: 'success', timer: 1500, showConfirmButton: false });
         }
         isModalPertanyaanOpen.value = false;
         loadPertanyaan();
     } catch (e) {
-        alert('Gagal menyimpan. Cek kembali isian Anda.');
+        Swal.fire({ title: 'Gagal!', text: 'Gagal menyimpan. Cek kembali isian Anda.', icon: 'error' });
         console.error(e);
     }
 };
 
 const deletePertanyaan = async (id) => {
-    if (confirm('Yakin ingin menghapus?')) {
-        await axios.delete(route('admin.soal.pertanyaan.destroy', id));
-        loadPertanyaan();
+    const result = await Swal.fire({
+        title: 'Konfirmasi',
+        text: 'Yakin ingin menghapus pertanyaan ini?',
+        icon: 'warning',
+        showCancelButton: true,
+        reverseButtons: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'Ya, Hapus',
+        cancelButtonText: 'Batal'
+    });
+
+    if (result.isConfirmed) {
+        try {
+            await axios.delete(route('admin.soal.pertanyaan.destroy', id));
+            Swal.fire({ title: 'Terhapus!', text: 'Pertanyaan berhasil dihapus.', icon: 'success', timer: 1500, showConfirmButton: false });
+            loadPertanyaan();
+        } catch(e) {
+            Swal.fire({ title: 'Gagal!', text: 'Terjadi kesalahan saat menghapus.', icon: 'error' });
+            console.error(e);
+        }
     }
 };
-
 
 // --- Modal & Form Header Soal ---
 const headers = ref(props.initialHeaderSoals || []);
@@ -154,28 +172,59 @@ const saveHeader = async () => {
     try {
         if (formHeader.id_soal) {
             await axios.put(route('admin.soal.header.update', formHeader.id_soal), formHeader);
-            alert('Berhasil diupdate');
+            Swal.fire({ title: 'Berhasil!', text: 'Paket soal berhasil diupdate.', icon: 'success', timer: 1500, showConfirmButton: false });
         } else {
             await axios.post(route('admin.soal.header.store'), formHeader);
-            alert('Berhasil disimpan');
+            Swal.fire({ title: 'Berhasil!', text: 'Paket soal berhasil disimpan.', icon: 'success', timer: 1500, showConfirmButton: false });
         }
         isModalHeaderOpen.value = false;
         loadHeaders();
     } catch (e) {
-        alert('Gagal menyimpan. Cek kembali (pastikan ada pertanyaan yg dipilih).');
+        Swal.fire({ title: 'Gagal!', text: 'Gagal menyimpan. Cek kembali (pastikan ada pertanyaan yg dipilih).', icon: 'error' });
         console.error(e);
     }
 };
 
 const deleteHeader = async (id) => {
-    if (confirm('Yakin ingin menghapus paket soal ini?')) {
-        await axios.delete(route('admin.soal.header.destroy', id));
-        loadHeaders();
+    const result = await Swal.fire({
+        title: 'Konfirmasi',
+        text: 'Yakin ingin menghapus paket soal ini?',
+        icon: 'warning',
+        showCancelButton: true,
+        reverseButtons: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'Ya, Hapus',
+        cancelButtonText: 'Batal'
+    });
+
+    if (result.isConfirmed) {
+        try {
+            await axios.delete(route('admin.soal.header.destroy', id));
+            Swal.fire({ title: 'Terhapus!', text: 'Paket soal berhasil dihapus.', icon: 'success', timer: 1500, showConfirmButton: false });
+            loadHeaders();
+        } catch(e) {
+            Swal.fire({ title: 'Gagal!', text: 'Terjadi kesalahan saat menghapus.', icon: 'error' });
+            console.error(e);
+        }
     }
 };
 
 const setAktifSoal = async (item) => {
-    if (!confirm(`Jadikan "${item.nama_soal}" sebagai paket soal ${item.jenis_soal} aktif?`)) return;
+    const result = await Swal.fire({
+        title: 'Konfirmasi',
+        text: `Jadikan "${item.nama_soal}" sebagai paket soal ${item.jenis_soal} aktif?`,
+        icon: 'question',
+        showCancelButton: true,
+        reverseButtons: true,
+        confirmButtonColor: '#2563eb',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'Ya, Jadikan Aktif',
+        cancelButtonText: 'Batal'
+    });
+
+    if (!result.isConfirmed) return;
+
     isSettingAktif.value = true;
     try {
         const res = await axios.patch(route('admin.soal.header.setAktif', item.id_soal));
@@ -184,9 +233,9 @@ const setAktifSoal = async (item) => {
         } else {
             aktifSoalKlasifikasiId.value = res.data.id_soal_aktif;
         }
-        alert(`Berhasil! Paket soal "${item.nama_soal}" kini aktif untuk pengajuan ${item.jenis_soal}.`);
+        Swal.fire({ title: 'Berhasil!', text: `Paket soal "${item.nama_soal}" kini aktif untuk pengajuan ${item.jenis_soal}.`, icon: 'success', timer: 2000, showConfirmButton: false });
     } catch (e) {
-        alert('Gagal mengubah paket soal aktif.');
+        Swal.fire({ title: 'Gagal!', text: 'Gagal mengubah paket soal aktif.', icon: 'error' });
         console.error(e);
     } finally {
         isSettingAktif.value = false;

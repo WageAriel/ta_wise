@@ -74,6 +74,46 @@ class DataSupplierController extends Controller
         ], 200);
     }
 
+    // 3. Update data (Edit Profile)
+    public function update(SupplierRequest $request)
+    {
+        $user = auth()->user();
+        
+        $supplier = $user->supplier;
+
+        if (!$supplier) {
+            return response()->json(['status' => 'error', 'message' => 'Supplier belum terdaftar.'], 404);
+        }
+
+        // Update data utama ke tabel suppliers
+        $supplier->update([
+            'nama_perusahaan' => $request->nama_perusahaan,
+            'no_telp_perusahaan' => $request->no_telp_perusahaan,
+            'alamat_perusahaan' => $request->alamat_perusahaan,
+            'email_perusahaan' => $request->email_perusahaan,
+            
+            'nama_pic' => $request->nama_pic,
+            'no_telp_pic' => $request->no_telp_pic,
+            'email_pic' => $request->email_pic,
+            
+            'nama_bank' => $request->nama_bank,
+            'no_rekening' => $request->no_rekening,
+            'atas_nama' => $request->atas_nama,
+            
+            'status' => 'menunggu review',       
+            'submitted_at' => now(),
+        ]);
+
+        // Panggil fungsi handle dokumen
+        $this->handleDocuments($request, $supplier);
+
+        return response()->json([
+            'status'   => 'success',
+            'message'  => 'Data berhasil diperbarui dan diajukan ulang ke Admin. Silakan tunggu proses verifikasi.',
+            'supplier' => $supplier->load('documents'),
+        ], 200);
+    }
+
     // Fungsi private untuk upload dan simpan record dokumen
     private function handleDocuments(Request $request, Supplier $supplier)
     {
@@ -82,14 +122,25 @@ class DataSupplierController extends Controller
 
         foreach ($dokumenList as $jenis) {
             $hasDocument = $request->boolean('has_' . $jenis);
-            $filePath = null;
-            $fileName = null;
+            
+            $existingDoc = SupplierDocument::where('supplier_id', $supplier->id)
+                ->where('jenis_dokumen', $jenis)
+                ->first();
+                
+            $filePath = $existingDoc ? $existingDoc->file_path : null;
+            $fileName = $existingDoc ? $existingDoc->file_name : null;
 
             // Jika supplier centang "Ya" dan file benar-benar diupload
             if ($hasDocument && $request->hasFile('file_' . $jenis)) {
                 $file = $request->file('file_' . $jenis);
                 $filePath = $file->store("supplier-docs/{$supplier->id}", 'public');
                 $fileName = $file->getClientOriginalName();
+            }
+            
+            // Jika user menghapus centang dokumen, maka file path harus di-null kan
+            if (!$hasDocument) {
+                $filePath = null;
+                $fileName = null;
             }
 
             // Simpan / update ke database

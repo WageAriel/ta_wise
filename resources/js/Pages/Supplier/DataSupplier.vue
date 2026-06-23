@@ -3,6 +3,7 @@ import { reactive, ref, computed } from "vue";
 import { Head } from "@inertiajs/vue3";
 import axios from "axios";
 import SupplierLayout from "@/Layouts/SupplierLayout.vue";
+import Swal from "sweetalert2";
 
 const props = defineProps({
     supplier: { type: Object, default: null },
@@ -12,6 +13,18 @@ const props = defineProps({
 const isSubmitted = computed(
     () => props.supplier && props.supplier.status !== "draft",
 );
+
+// State untuk mode edit
+const isEditing = ref(false);
+
+const isFormDisabled = computed(
+    () => isSubmitted.value && !isEditing.value
+);
+
+const cancelEdit = () => {
+    isEditing.value = false;
+    window.location.reload();
+};
 
 const getHasDocument = (type) => {
     if (!props.supplier || !props.supplier.documents) return false;
@@ -99,12 +112,25 @@ const closeNotification = () => {
     }
 };
 
-const submit = () => {
-    showConfirmModal.value = true;
+const submit = async () => {
+    const result = await Swal.fire({
+        title: "Konfirmasi Pengajuan",
+        text: "Apakah Anda yakin data yang diisi sudah benar dan lengkap?",
+        icon: "question",
+        showCancelButton: true,
+        reverseButtons: true,
+        confirmButtonColor: "#2563eb",
+        cancelButtonColor: "#64748b",
+        confirmButtonText: "Ya, Ajukan!",
+        cancelButtonText: "Batal",
+    });
+
+    if (result.isConfirmed) {
+        confirmSubmit();
+    }
 };
 
 const confirmSubmit = async () => {
-    showConfirmModal.value = false;
     form.processing = true;
     form.errors = {};
 
@@ -151,14 +177,24 @@ const confirmSubmit = async () => {
         if (form[k] instanceof File) formData.append(k, form[k]);
     });
 
+    if (isEditing.value) {
+        formData.append('_method', 'PUT');
+    }
+
     try {
         const response = await axios.post("/supplier/data", formData, {
             headers: { "Content-Type": "multipart/form-data" },
         });
-        notificationType.value = "success";
-        notificationMessage.value =
-            response.data.message || "Data berhasil diajukan!";
-        showNotificationModal.value = true;
+        
+        Swal.fire({
+            title: "Berhasil!",
+            text: response.data.message || "Data berhasil diajukan!",
+            icon: "success",
+            timer: 2000,
+            showConfirmButton: false,
+        }).then(() => {
+            window.location.reload(); // Reload agar status banner terupdate
+        });
     } catch (err) {
         if (err.response?.status === 422) {
             // Flatten array errors ke string pertama (sama seperti perilaku useForm)
@@ -169,16 +205,19 @@ const confirmSubmit = async () => {
                 ]),
             );
             //Pesan error ketika user menginput salah/kosong
-            notificationType.value = "error";
-            notificationMessage.value =
-                "Terdapat inputan yang kosong atau salah. Silakan periksa kembali semua isian Anda.";
-            showNotificationModal.value = true;
+            Swal.fire({
+                title: "Gagal!",
+                text: "Terdapat inputan yang kosong atau salah. Silakan periksa kembali semua isian Anda.",
+                icon: "error",
+                confirmButtonColor: "#2563eb",
+            });
         } else {
-            notificationType.value = "error";
-            notificationMessage.value =
-                err.response?.data?.message ||
-                "Terjadi kesalahan. Silakan coba lagi.";
-            showNotificationModal.value = true;
+            Swal.fire({
+                title: "Gagal!",
+                text: err.response?.data?.message || "Terjadi kesalahan. Silakan coba lagi.",
+                icon: "error",
+                confirmButtonColor: "#2563eb",
+            });
         }
     } finally {
         form.processing = false;
@@ -205,15 +244,25 @@ const confirmSubmit = async () => {
                         Lengkapi data untuk verifikasi identitas & legalitas
                     </p>
                 </div>
-                <div
-                    class="flex items-center gap-2 text-sm font-medium bg-white px-4 py-2 rounded-full border border-slate-200 shadow-sm"
-                >
-                    <span
-                        class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"
-                    ></span>
-                    <span class="text-slate-600"
-                        >Periode Seleksi {{ new Date().getFullYear() }}</span
+                <div class="flex items-center gap-3">
+                    <button
+                        v-if="isFormDisabled"
+                        @click="isEditing = true"
+                        class="px-4 py-2 bg-amber-500 text-white rounded-lg font-bold shadow-sm hover:bg-amber-600 transition-all text-sm flex items-center gap-2"
                     >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                        Edit Profil
+                    </button>
+                    <div
+                        class="flex items-center gap-2 text-sm font-medium bg-white px-4 py-2 rounded-full border border-slate-200 shadow-sm"
+                    >
+                        <span
+                            class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"
+                        ></span>
+                        <span class="text-slate-600"
+                            >Periode Seleksi {{ new Date().getFullYear() }}</span
+                        >
+                    </div>
                 </div>
             </div>
 
@@ -295,7 +344,7 @@ const confirmSubmit = async () => {
                         </h3>
                         <p class="text-slate-600 text-sm mt-1 leading-relaxed">
                             <span v-if="props.supplier.status === 'menunggu review'"
-                                >Aplikasi Anda sedang dalam peninjauan oleh tim
+                                >Profil Perusahaan Anda sedang dalam peninjauan oleh tim
                                 pengadaan.</span
                             >
                             <span
@@ -364,7 +413,7 @@ const confirmSubmit = async () => {
                                     <input
                                         v-model="form.nama_perusahaan"
                                         type="text"
-                                        :disabled="isSubmitted"
+                                        :disabled="isFormDisabled"
                                         class="w-full px-4 py-3 rounded-lg bg-gray-200 border-slate-200 bg-slate-50/50 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all disabled:opacity-60"
                                         :class="{
                                             'border-rose-300 ring-4 ring-rose-500/10 focus:border-rose-500':
@@ -400,7 +449,7 @@ const confirmSubmit = async () => {
                                     <input
                                         v-model="form.no_telp_perusahaan"
                                         type="text"
-                                        :disabled="isSubmitted"
+                                        :disabled="isFormDisabled"
                                         class="w-full px-4 py-3 rounded-lg bg-gray-200 border-slate-200 bg-slate-50/50 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all disabled:opacity-60"
                                         :class="{
                                             'border-rose-300 ring-4 ring-rose-500/10 focus:border-rose-500':
@@ -438,7 +487,7 @@ const confirmSubmit = async () => {
                                 <textarea
                                     v-model="form.alamat_perusahaan"
                                     rows="3"
-                                    :disabled="isSubmitted"
+                                    :disabled="isFormDisabled"
                                     class="w-full px-4 py-3 rounded-lg bg-gray-200 border-slate-200 bg-slate-50/50 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all disabled:opacity-60"
                                     :class="{
                                         'border-rose-300 ring-4 ring-rose-500/10 focus:border-rose-500':
@@ -474,7 +523,7 @@ const confirmSubmit = async () => {
                                 <input
                                     v-model="form.email_perusahaan"
                                     type="email"
-                                    :disabled="isSubmitted"
+                                    :disabled="isFormDisabled"
                                     class="w-full px-4 py-3 rounded-lg bg-gray-200 border-slate-200 bg-slate-50/50 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all disabled:opacity-60"
                                     :class="{
                                         'border-rose-300 ring-4 ring-rose-500/10 focus:border-rose-500':
@@ -544,7 +593,7 @@ const confirmSubmit = async () => {
                                 <input
                                     v-model="form.nama_pic"
                                     type="text"
-                                    :disabled="isSubmitted"
+                                    :disabled="isFormDisabled"
                                     class="w-full px-4 py-3 rounded-lg bg-gray-200 border-slate-200 bg-slate-50/50 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all disabled:opacity-60"
                                     :class="{
                                         'border-rose-300 ring-4 ring-rose-500/10 focus:border-rose-500':
@@ -580,7 +629,7 @@ const confirmSubmit = async () => {
                                 <input
                                     v-model="form.no_telp_pic"
                                     type="text"
-                                    :disabled="isSubmitted"
+                                    :disabled="isFormDisabled"
                                     class="w-full px-4 py-3 rounded-lg bg-gray-200 border-slate-200 bg-slate-50/50 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all disabled:opacity-60"
                                     :class="{
                                         'border-rose-300 ring-4 ring-rose-500/10 focus:border-rose-500':
@@ -616,7 +665,7 @@ const confirmSubmit = async () => {
                                 <input
                                     v-model="form.email_pic"
                                     type="email"
-                                    :disabled="isSubmitted"
+                                    :disabled="isFormDisabled"
                                     class="w-full px-4 py-3 rounded-lg bg-gray-200 border-slate-200 bg-slate-50/50 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all disabled:opacity-60"
                                     :class="{
                                         'border-rose-300 ring-4 ring-rose-500/10 focus:border-rose-500':
@@ -688,7 +737,7 @@ const confirmSubmit = async () => {
                                 <input
                                     v-model="form.nama_bank"
                                     type="text"
-                                    :disabled="isSubmitted"
+                                    :disabled="isFormDisabled"
                                     placeholder="BCA / Mandiri"
                                     class="w-full px-4 py-3 rounded-xl bg-gray-200 border-slate-200 bg-slate-50/50 focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all disabled:opacity-60"
                                     :class="{
@@ -724,7 +773,7 @@ const confirmSubmit = async () => {
                                 <input
                                     v-model="form.no_rekening"
                                     type="text"
-                                    :disabled="isSubmitted"
+                                    :disabled="isFormDisabled"
                                     class="w-full px-4 py-3 rounded-lg bg-gray-200 border-slate-200 bg-slate-50/50 focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all disabled:opacity-60"
                                     :class="{
                                         'border-rose-300 ring-4 ring-rose-500/10 focus:border-rose-500':
@@ -760,7 +809,7 @@ const confirmSubmit = async () => {
                                 <input
                                     v-model="form.atas_nama"
                                     type="text"
-                                    :disabled="isSubmitted"
+                                    :disabled="isFormDisabled"
                                     class="w-full px-4 py-3 rounded-lg bg-gray-200 border-slate-200 bg-slate-50/50 focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all disabled:opacity-60"
                                     :class="{
                                         'border-rose-300 ring-4 ring-rose-500/10 focus:border-rose-500':
@@ -882,7 +931,7 @@ const confirmSubmit = async () => {
                                             @click="
                                                 form[`has_${doc.id}`] = true
                                             "
-                                            :disabled="isSubmitted"
+                                            :disabled="isFormDisabled"
                                             class="px-3 py-1 rounded text-[10px] font-bold uppercase transition-all"
                                             :class="
                                                 form[`has_${doc.id}`]
@@ -897,7 +946,7 @@ const confirmSubmit = async () => {
                                             @click="
                                                 form[`has_${doc.id}`] = false
                                             "
-                                            :disabled="isSubmitted"
+                                            :disabled="isFormDisabled"
                                             class="px-3 py-1 rounded text-[10px] font-bold uppercase transition-all"
                                             :class="
                                                 !form[`has_${doc.id}`]
@@ -916,10 +965,9 @@ const confirmSubmit = async () => {
                                 v-if="form[`has_${doc.id}`]"
                                 class="flex-1 flex flex-col justify-end"
                             >
-                                <div v-if="!isSubmitted">
-                                    <!-- Large Preview Box -->
-                                    <div
-                                        v-if="previews[doc.id]"
+                                <!-- Large Preview Box (Newly Uploaded) -->
+                                <div
+                                    v-if="!isFormDisabled && previews[doc.id]"
                                         class="mt-4 mb-4 relative rounded-xl overflow-hidden border shadow-sm bg-white"
                                         :class="
                                             form.errors[`file_${doc.id}`]
@@ -1015,77 +1063,15 @@ const confirmSubmit = async () => {
                                         </div>
                                     </div>
 
-                                    <!-- Upload Button -->
-                                    <div
-                                        v-if="!form[`file_${doc.id}`]"
-                                        class="relative"
-                                    >
-                                        <input
-                                            type="file"
-                                            @change="
-                                                (e) =>
-                                                    handleFileUpload(e, doc.id)
-                                            "
-                                            accept=".pdf,.jpg,.jpeg,.png"
-                                            class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                                        />
-                                        <div
-                                            class="px-4 py-6 rounded-xl border-2 border-dashed bg-slate-50/50 transition-all flex flex-col items-center justify-center text-center"
-                                            :class="
-                                                form.errors[`file_${doc.id}`]
-                                                    ? 'border-rose-300 hover:border-rose-400 hover:bg-rose-50/50'
-                                                    : 'border-slate-300 hover:border-blue-400 hover:bg-white'
-                                            "
-                                        >
-                                            <svg
-                                                class="w-6 h-6 mb-2"
-                                                :class="
-                                                    form.errors[
-                                                        `file_${doc.id}`
-                                                    ]
-                                                        ? 'text-rose-400'
-                                                        : 'text-blue-500'
-                                                "
-                                                fill="none"
-                                                stroke="currentColor"
-                                                viewBox="0 0 24 24"
-                                            >
-                                                <path
-                                                    stroke-linecap="round"
-                                                    stroke-linejoin="round"
-                                                    stroke-width="2"
-                                                    d="M12 4v16m8-8H4"
-                                                ></path>
-                                            </svg>
-                                            <p
-                                                class="text-[10px] font-bold uppercase tracking-widest"
-                                                :class="
-                                                    form.errors[
-                                                        `file_${doc.id}`
-                                                    ]
-                                                        ? 'text-rose-600'
-                                                        : 'text-slate-600'
-                                                "
-                                            >
-                                                Pilih File
-                                            </p>
-                                            <p
-                                                class="text-[9px] text-slate-400 mt-1 uppercase tracking-widest"
-                                            >
-                                                PDF, JPG, PNG (Max 5MB)
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-
                                 <!-- View Only (Already Submitted) -->
                                 <div
-                                    v-else-if="
+                                    v-if="
+                                        !previews[doc.id] &&
                                         props.supplier.documents.find(
                                             (d) => d.jenis_dokumen === doc.id,
                                         )?.file_path
                                     "
-                                    class="mt-4"
+                                    class="mt-4 mb-4"
                                 >
                                     <div
                                         class="relative rounded-xl overflow-hidden border border-slate-200 shadow-sm bg-white"
@@ -1243,6 +1229,69 @@ const confirmSubmit = async () => {
                                         </div>
                                     </div>
                                 </div>
+
+                                    <!-- Upload Button -->
+                                    <div
+                                        v-if="!isFormDisabled && !form[`file_${doc.id}`]"
+                                        class="relative"
+                                    >
+                                        <input
+                                            type="file"
+                                            @change="
+                                                (e) =>
+                                                    handleFileUpload(e, doc.id)
+                                            "
+                                            accept=".pdf,.jpg,.jpeg,.png"
+                                            class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                        />
+                                        <div
+                                            class="px-4 py-6 rounded-xl border-2 border-dashed bg-slate-50/50 transition-all flex flex-col items-center justify-center text-center"
+                                            :class="
+                                                form.errors[`file_${doc.id}`]
+                                                    ? 'border-rose-300 hover:border-rose-400 hover:bg-rose-50/50'
+                                                    : 'border-slate-300 hover:border-blue-400 hover:bg-white'
+                                            "
+                                        >
+                                            <svg
+                                                class="w-6 h-6 mb-2"
+                                                :class="
+                                                    form.errors[
+                                                        `file_${doc.id}`
+                                                    ]
+                                                        ? 'text-rose-400'
+                                                        : 'text-blue-500'
+                                                "
+                                                fill="none"
+                                                stroke="currentColor"
+                                                viewBox="0 0 24 24"
+                                            >
+                                                <path
+                                                    stroke-linecap="round"
+                                                    stroke-linejoin="round"
+                                                    stroke-width="2"
+                                                    d="M12 4v16m8-8H4"
+                                                ></path>
+                                            </svg>
+                                            <p
+                                                class="text-[10px] font-bold uppercase tracking-widest"
+                                                :class="
+                                                    form.errors[
+                                                        `file_${doc.id}`
+                                                    ]
+                                                        ? 'text-rose-600'
+                                                        : 'text-slate-600'
+                                                "
+                                            >
+                                                Pilih File
+                                            </p>
+                                            <p
+                                                class="text-[9px] text-slate-400 mt-1 uppercase tracking-widest"
+                                            >
+                                                PDF, JPG, PNG (Max 5MB)
+                                            </p>
+                                        </div>
+                                    </div>
+
                             </div>
 
                             <!-- Error Message Display -->
@@ -1273,11 +1322,11 @@ const confirmSubmit = async () => {
                 <!-- Submit Action Bar -->
                 <div
                     class="flex justify-end items-center gap-3 mt-10"
-                    v-if="!isSubmitted"
+                    v-if="!isFormDisabled"
                 >
                     <button
                         type="button"
-                        @click="form.reset()"
+                        @click="isEditing ? cancelEdit() : form.reset()"
                         class="px-6 py-2.5 rounded-lg border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition-all text-sm"
                     >
                         Batal
@@ -1314,303 +1363,6 @@ const confirmSubmit = async () => {
             </form>
         </div>
     </SupplierLayout>
-
-    <!-- Modal Konfirmasi Simpan Data -->
-    <Transition
-        enter-active-class="transition duration-300 ease-out"
-        enter-from-class="opacity-0"
-        enter-to-class="opacity-100"
-        leave-active-class="transition duration-200 ease-in"
-        leave-from-class="opacity-100"
-        leave-to-class="opacity-0"
-    >
-        <div
-            v-if="showConfirmModal"
-            class="fixed inset-0 z-[100] flex items-center justify-center p-4"
-            role="dialog"
-            aria-modal="true"
-        >
-            <!-- Background Overlay -->
-            <div
-                class="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] transition-opacity"
-                @click="showConfirmModal = false"
-            ></div>
-
-            <!-- Modal Content -->
-            <Transition
-                enter-active-class="transition duration-300 ease-out"
-                enter-from-class="opacity-0 scale-95"
-                enter-to-class="opacity-100 scale-100"
-                leave-active-class="transition duration-200 ease-in"
-                leave-from-class="opacity-100 scale-100"
-                leave-to-class="opacity-0 scale-95"
-            >
-                <div
-                    class="relative w-full max-w-[420px] transform overflow-hidden rounded-[24px] bg-white shadow-2xl transition-all border border-slate-100"
-                >
-                    <div class="p-6">
-                        <!-- Header: Icon + Title -->
-                        <div class="flex items-start gap-4 mb-5">
-                            <div
-                                class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white shadow-lg shadow-blue-100"
-                            >
-                                <svg
-                                    class="h-6 w-6"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                    stroke-width="2.5"
-                                >
-                                    <path
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                                    />
-                                </svg>
-                            </div>
-                            <div class="pt-0.5">
-                                <h3
-                                    class="text-lg font-bold text-slate-900 leading-tight"
-                                >
-                                    Konfirmasi Profil Perusahaan
-                                </h3>
-                                <p class="text-[13px] text-slate-500 mt-1">
-                                    Data akan diperiksa oleh Admin.
-                                </p>
-                            </div>
-                        </div>
-
-                        <!-- Compact Information Box -->
-                        <div
-                            class="mb-5 p-4 rounded-xl bg-slate-50 border border-slate-100/50"
-                        >
-                            <p
-                                class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3"
-                            >
-                                Ringkasan Data:
-                            </p>
-                            <div class="space-y-2.5">
-                                <div
-                                    class="flex items-center gap-2 text-[13px] text-slate-600"
-                                >
-                                    <svg
-                                        class="h-4 w-4 text-emerald-500"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                        stroke="currentColor"
-                                        stroke-width="3"
-                                    >
-                                        <path
-                                            stroke-linecap="round"
-                                            stroke-linejoin="round"
-                                            d="M5 13l4 4L19 7"
-                                        />
-                                    </svg>
-                                    <span>Informasi Profil & PIC</span>
-                                </div>
-                                <div
-                                    class="flex items-center gap-2 text-[13px] text-slate-600"
-                                >
-                                    <svg
-                                        class="h-4 w-4 text-emerald-500"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                        stroke="currentColor"
-                                        stroke-width="3"
-                                    >
-                                        <path
-                                            stroke-linecap="round"
-                                            stroke-linejoin="round"
-                                            d="M5 13l4 4L19 7"
-                                        />
-                                    </svg>
-                                    <span>Rekening & Dokumen Legalitas</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Compact Warning -->
-                        <div
-                            class="flex items-start gap-3 mb-6 p-3 rounded-xl bg-amber-50 border border-amber-100/50"
-                        >
-                            <svg
-                                class="h-4 w-4 text-amber-600 shrink-0 mt-0.5"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                                stroke-width="2.5"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                                />
-                            </svg>
-                            <p
-                                class="text-[11px] font-medium text-amber-900 leading-normal"
-                            >
-                                Setelah diajukan, data akan dikunci dan tidak
-                                dapat diubah selama periode seleksi.
-                            </p>
-                        </div>
-
-                        <!-- Action Buttons: Side-by-Side -->
-                        <div class="flex gap-3">
-                            <button
-                                type="button"
-                                @click="showConfirmModal = false"
-                                class="flex-1 px-4 py-2.5 text-[13px] font-bold text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-xl transition-all"
-                            >
-                                Periksa Lagi
-                            </button>
-                            <button
-                                type="button"
-                                @click="confirmSubmit"
-                                :disabled="form.processing"
-                                class="flex-1 inline-flex items-center justify-center rounded-xl bg-blue-600 px-4 py-2.5 text-[13px] font-bold text-white shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all active:scale-95 disabled:opacity-70"
-                            >
-                                <svg
-                                    v-if="form.processing"
-                                    class="animate-spin -ml-1 mr-2 h-3.5 w-3.5 text-white"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <circle
-                                        class="opacity-25"
-                                        cx="12"
-                                        cy="12"
-                                        r="10"
-                                        stroke="currentColor"
-                                        stroke-width="4"
-                                    ></circle>
-                                    <path
-                                        class="opacity-75"
-                                        fill="currentColor"
-                                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                    ></path>
-                                </svg>
-                                Ya, Ajukan
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </Transition>
-        </div>
-    </Transition>
-
-    <!-- Modal Notifikasi (Sukses / Gagal) -->
-    <Transition
-        enter-active-class="transition duration-300 ease-out"
-        enter-from-class="opacity-0"
-        enter-to-class="opacity-100"
-        leave-active-class="transition duration-200 ease-in"
-        leave-from-class="opacity-100"
-        leave-to-class="opacity-0"
-    >
-        <div
-            v-if="showNotificationModal"
-            class="fixed inset-0 z-[110] flex items-center justify-center p-4"
-            role="dialog"
-            aria-modal="true"
-        >
-            <!-- Background Overlay -->
-            <div
-                class="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] transition-opacity"
-                @click="closeNotification"
-            ></div>
-
-            <!-- Modal Content -->
-            <Transition
-                enter-active-class="transition duration-300 ease-out"
-                enter-from-class="opacity-0 scale-95"
-                enter-to-class="opacity-100 scale-100"
-                leave-active-class="transition duration-200 ease-in"
-                leave-from-class="opacity-100 scale-100"
-                leave-to-class="opacity-0 scale-95"
-            >
-                <div
-                    class="relative w-full max-w-[380px] transform overflow-hidden rounded-[24px] bg-white shadow-2xl transition-all border border-slate-100 p-6"
-                >
-                    <div class="text-center">
-                        <!-- Icon -->
-                        <div
-                            class="mx-auto flex h-14 w-14 items-center justify-center rounded-full mb-4"
-                            :class="{
-                                'bg-emerald-100 text-emerald-600':
-                                    notificationType === 'success',
-                                'bg-rose-100 text-rose-600':
-                                    notificationType === 'error',
-                            }"
-                        >
-                            <!-- Success Checkmark Icon -->
-                            <svg
-                                v-if="notificationType === 'success'"
-                                class="h-8 w-8"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                                stroke-width="2.5"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="M5 13l4 4L19 7"
-                                />
-                            </svg>
-                            <!-- Error X Icon -->
-                            <svg
-                                v-else
-                                class="h-8 w-8"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                                stroke-width="2.5"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="M6 18L18 6M6 6l12 12"
-                                />
-                            </svg>
-                        </div>
-
-                        <!-- Title -->
-                        <h3
-                            class="text-lg font-bold text-slate-900 leading-tight"
-                        >
-                            {{
-                                notificationType === "success"
-                                    ? "Berhasil!"
-                                    : "Gagal!"
-                            }}
-                        </h3>
-
-                        <!-- Message -->
-                        <p class="text-sm text-slate-500 mt-2 leading-relaxed">
-                            {{ notificationMessage }}
-                        </p>
-
-                        <!-- Close Button -->
-                        <div class="mt-6">
-                            <button
-                                type="button"
-                                @click="closeNotification"
-                                class="w-full inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-bold text-white shadow-md transition-all active:scale-95"
-                                :class="{
-                                    'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-100':
-                                        notificationType === 'success',
-                                    'bg-rose-600 hover:bg-rose-700 shadow-rose-100':
-                                        notificationType === 'error',
-                                }"
-                            >
-                                Tutup
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </Transition>
-        </div>
-    </Transition>
 </template>
 
 <style scoped>

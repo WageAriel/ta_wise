@@ -119,11 +119,11 @@ const icons = {
                                 icon: 'profile',
                             },
                             'supplier.selection': {
-                                label: 'Supplier Selection',
+                                label: 'Seleksi Supplier',
                                 icon: 'selection',
                             },
                             'supplier.classification': {
-                                label: 'Classification Supplier',
+                                label: 'Klasifikasi Supplier',
                                 icon: 'classification',
                             },
                             'supplier.timeline': {
