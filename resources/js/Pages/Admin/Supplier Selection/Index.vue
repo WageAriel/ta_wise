@@ -1,7 +1,8 @@
 <script setup>
 import { ref, computed, watch, onMounted } from "vue";
-import { Head, router } from "@inertiajs/vue3"; // Tambahkan router
+import { Head, router, usePage } from "@inertiajs/vue3"; // Tambahkan router & usePage
 import axios from "axios";
+import Swal from "sweetalert2";
 import AdminLayout from "@/Layouts/AdminLayout.vue";
 
 const props = defineProps({
@@ -19,6 +20,11 @@ const selectedYear = ref("");
 const perPage = ref(10);
 const activeTab = ref('pending'); // 'pending' = Status Menunggu Review, 'validated' = Lolos/Tidak Lolos
 const currentPage = ref(1);
+
+// Ambil skor minimum dari Pengaturan Umum
+const minimalSkorLulus = computed(() => {
+    return usePage().props.app_settings?.minimal_skor_lulus ?? 70;
+});
 
 // Logic Fetch Data
 const fetchData = async (page = 1) => {
@@ -62,20 +68,8 @@ const handleExport = () => {
 
 const showModal = ref(false);
 const showValidationModal = ref(false); // Modal baru khusus validasi
-const showConfirmModal = ref(false);
-const showSuccessModal = ref(false);
 const detailData = ref(null);
 const isProcessing = ref(false);
-
-const successMessage = ref('');
-
-const confirmConfig = ref({
-    title: '',
-    message: '',
-    confirmText: '',
-    type: '', // 'success', 'danger', 'info'
-    action: null
-});
 
 const handleView = async (id) => {
     isLoading.value = true;
@@ -107,38 +101,95 @@ const handleValidation = async (id) => {
     }
 };
 
-const updateStatus = (id, newStatus) => {
-    confirmConfig.value = {
+const updateStatus = async (id, newStatus) => {
+    const isApprove = newStatus === 'Lolos';
+    const result = await Swal.fire({
         title: 'Konfirmasi Validasi',
-        message: `Apakah Anda yakin ingin menyatakan supplier ini ${newStatus.toUpperCase()}?`,
-        confirmText: 'Ya, Lanjutkan',
-        type: newStatus === 'Lolos' ? 'success' : 'danger',
-        action: async () => {
-            isProcessing.value = true;
-            try {
-                await axios.post(`/api/admin/seleksi/${id}/status`, {
-                    status: newStatus
-                });
-                showModal.value = false;
-                showValidationModal.value = false;
-                showConfirmModal.value = false;
-                successMessage.value = `Supplier berhasil dinyatakan ${newStatus.toUpperCase()}.`;
-                showSuccessModal.value = true;
-                fetchData(currentPage.value); // Refresh data table
-            } catch (error) {
-                console.error("Gagal update status:", error);
-            } finally {
-                isProcessing.value = false;
-            }
+        text: `Apakah Anda yakin ingin menyatakan supplier ini ${newStatus.toUpperCase()}?`,
+        icon: isApprove ? 'question' : 'warning',
+        showCancelButton: true,
+        confirmButtonColor: isApprove ? '#059669' : '#e11d48',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'Ya, Lanjutkan',
+        cancelButtonText: 'Batal',
+        reverseButtons: true
+    });
+
+    if (result.isConfirmed) {
+        isProcessing.value = true;
+        try {
+            await axios.post(`/api/admin/seleksi/${id}/status`, {
+                status: newStatus
+            });
+            showModal.value = false;
+            showValidationModal.value = false;
+            
+            Swal.fire({
+                title: 'Berhasil!',
+                text: `Supplier berhasil dinyatakan ${newStatus.toUpperCase()}.`,
+                icon: 'success',
+                confirmButtonColor: '#059669',
+            });
+            
+            fetchData(currentPage.value); // Refresh data table
+        } catch (error) {
+            console.error("Gagal update status:", error);
+            Swal.fire({
+                title: 'Gagal!',
+                text: 'Terjadi kesalahan saat memproses data.',
+                icon: 'error',
+                confirmButtonColor: '#e11d48',
+            });
+        } finally {
+            isProcessing.value = false;
         }
-    };
-    showConfirmModal.value = true;
+    }
 };
 
-// Hitung Rekomendasi
+const handleDelete = async (id) => {
+    const result = await Swal.fire({
+        title: 'Hapus Data Seleksi?',
+        text: "Data seleksi supplier yang dihapus tidak dapat dikembalikan!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#e11d48',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'Ya, Hapus',
+        cancelButtonText: 'Batal',
+        reverseButtons: true
+    });
+
+    if (result.isConfirmed) {
+        isLoading.value = true;
+        try {
+            await axios.delete(`/admin/supplier/selection/${id}`);
+            
+            Swal.fire({
+                title: 'Terhapus!',
+                text: 'Data seleksi supplier berhasil dihapus.',
+                icon: 'success',
+                confirmButtonColor: '#059669',
+            });
+            
+            fetchData(currentPage.value); // Refresh data
+        } catch (error) {
+            console.error("Gagal menghapus data:", error);
+            Swal.fire({
+                title: 'Gagal!',
+                text: 'Terjadi kesalahan saat menghapus data.',
+                icon: 'error',
+                confirmButtonColor: '#e11d48',
+            });
+        } finally {
+            isLoading.value = false;
+        }
+    }
+};
+
+// Hitung Rekomendasi berdasarkan pengaturan umum
 const recommendation = computed(() => {
     if (!detailData.value) return null;
-    return detailData.value.total_nilai >= 70? 'Lolos' : 'Tidak Lolos';
+    return detailData.value.total_nilai >= minimalSkorLulus.value ? 'Lolos' : 'Tidak Lolos';
 });
 
 // Hitung poin dari jawaban verifikasi petugas
@@ -151,27 +202,6 @@ const paginationLinks = computed(() => {
             page: l.url ? parseInt(new URL(l.url).searchParams.get('page')) : null
         }));
 });
-
-const handleDelete = (id) => {
-    confirmConfig.value = {
-        title: 'Hapus Data?',
-        message: 'Data pengajuan seleksi ini akan dihapus permanen dari sistem. Anda yakin?',
-        confirmText: 'Ya, Hapus',
-        type: 'danger',
-        action: async () => {
-            try {
-                await axios.delete(`/admin/supplier/selection/${id}`);
-                showConfirmModal.value = false;
-                successMessage.value = 'Data pengajuan seleksi berhasil dihapus.';
-                showSuccessModal.value = true;
-                fetchData(currentPage.value);
-            } catch (error) {
-                console.error("Gagal menghapus data:", error);
-            }
-        }
-    };
-    showConfirmModal.value = true;
-};
 
 const getStatusBadge = (status) => {
     switch (status) {
@@ -507,56 +537,7 @@ const formatDate = (dateString) => {
             </div>
         </div>
 
-        <!-- Modal Konfirmasi Custom -->
-        <div v-if="showConfirmModal" class="fixed inset-0 z-[70] overflow-y-auto px-4 py-6 sm:px-0 flex items-center justify-center">
-            <div class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity" @click="showConfirmModal = false"></div>
 
-            <div class="bg-white rounded-[32px] overflow-hidden shadow-2xl transform transition-all sm:max-w-sm w-full border border-gray-100 p-8 text-center">
-                <div :class="confirmConfig.type === 'danger' ? 'bg-rose-50 text-rose-500' : 'bg-emerald-50 text-emerald-500'" 
-                    class="w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-6">
-                    <svg v-if="confirmConfig.type === 'danger'" class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                    </svg>
-                    <svg v-else class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                </div>
-
-                <h3 class="text-xl font-black text-gray-800 uppercase tracking-tight mb-2">{{ confirmConfig.title }}</h3>
-                <p class="text-xs font-bold text-gray-500 leading-relaxed mb-8 px-4">{{ confirmConfig.message }}</p>
-
-                <div class="grid grid-cols-2 gap-3">
-                    <button @click="showConfirmModal = false" class="w-full py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-gray-400 hover:bg-gray-50 transition-all border border-gray-100">
-                        Batal
-                    </button>
-                    <button @click="confirmConfig.action" 
-                        :class="confirmConfig.type === 'danger' ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-100' : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-100'"
-                        class="w-full py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-white shadow-lg transition-all active:scale-95">
-                        {{ confirmConfig.confirmText }}
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Modal Success Custom -->
-        <div v-if="showSuccessModal" class="fixed inset-0 z-[80] overflow-y-auto px-4 py-6 sm:px-0 flex items-center justify-center">
-            <div class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity" @click="showSuccessModal = false"></div>
-
-            <div class="bg-white rounded-[32px] overflow-hidden shadow-2xl transform transition-all sm:max-w-sm w-full border border-gray-100 p-8 text-center">
-                <div class="bg-emerald-50 text-emerald-500 w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-6">
-                    <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                    </svg>
-                </div>
-
-                <h3 class="text-xl font-black text-gray-800 uppercase tracking-tight mb-2">Berhasil!</h3>
-                <p class="text-xs font-bold text-gray-500 leading-relaxed mb-8 px-4">{{ successMessage }}</p>
-
-                <button @click="showSuccessModal = false" class="w-full py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest bg-gray-800 text-white hover:bg-gray-900 shadow-lg shadow-gray-100 transition-all active:scale-95">
-                    Tutup
-                </button>
-            </div>
-        </div>
 </template>
 
 <style scoped>

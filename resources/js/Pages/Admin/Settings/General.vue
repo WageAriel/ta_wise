@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue';
 import { Head, useForm } from '@inertiajs/vue3';
+import Swal from 'sweetalert2';
 import SidebarAdmin from "@/Components/SidebarAdmin.vue";
 
 const props = defineProps({
@@ -10,11 +11,30 @@ const props = defineProps({
 const form = useForm({
     system_name: props.settings.system_name || 'TA Wise',
     theme_color: props.settings.theme_color || '#2563eb',
+    minimal_skor_lulus: props.settings.minimal_skor_lulus || 70,
     system_logo: null,
 });
 
 const submit = () => {
-    form.post(route('admin.settings.general.update'));
+    form.post(route('admin.settings.general.update'), {
+        preserveScroll: true,
+        onSuccess: () => {
+            Swal.fire({
+                title: 'Berhasil!',
+                text: 'Pengaturan sistem berhasil disimpan.',
+                icon: 'success',
+                confirmButtonColor: '#059669',
+            });
+        },
+        onError: () => {
+            Swal.fire({
+                title: 'Gagal!',
+                text: 'Terjadi kesalahan. Pastikan isian Anda sudah benar.',
+                icon: 'error',
+                confirmButtonColor: '#e11d48',
+            });
+        }
+    });
 };
 </script>
 
@@ -36,6 +56,33 @@ const submit = () => {
                         <div>
                             <label class="block text-sm font-bold text-slate-700 mb-2">Nama Sistem</label>
                             <input type="text" v-model="form.system_name" class="w-full border-slate-200 rounded-lg bg-slate-50 focus:ring-blue-500 focus:border-blue-500 text-sm" placeholder="Contoh: Aplikasi Klasifikasi Supplier">
+                        </div>
+
+                        <!-- Input Skor Minimum Lulus Seleksi -->
+                        <div class="p-4 bg-amber-50/50 border border-amber-100 rounded-xl mb-4">
+                            <label class="block text-sm font-bold text-slate-700 mb-1">
+                                Minimal Skor Kelulusan Seleksi Supplier
+                            </label>
+                            <p class="text-xs text-slate-500 mb-3">
+                                Batas minimum skor supplier dapat dinyatakan lulus secara sistem.
+                            </p>
+                            <div class="relative w-48">
+                                <input 
+                                    type="number" 
+                                    min="0"
+                                    max="100"
+                                    required
+                                    v-model="form.minimal_skor_lulus" 
+                                    class="w-full border-slate-200 rounded-lg bg-white focus:ring-blue-500 focus:border-blue-500 text-sm font-bold text-amber-700 pr-10" 
+                                    :class="{ 'border-rose-500 ring-1 ring-rose-500': form.errors.minimal_skor_lulus }"
+                                    placeholder="Contoh: 70"
+                                >
+                                <span class="absolute right-3 top-2.5 text-sm font-bold text-slate-400">Poin</span>
+                            </div>
+                            <p v-if="form.errors.minimal_skor_lulus" class="text-rose-600 text-[11px] font-bold mt-2 flex items-center gap-1">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                {{ form.errors.minimal_skor_lulus }}
+                            </p>
                         </div>
 
                         <!-- <div>

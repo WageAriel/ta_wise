@@ -23,9 +23,10 @@ class AppSettingController extends Controller
             'system_name' => 'nullable|string',
             'theme_color' => 'nullable|string',
             'system_logo' => 'nullable|image|max:2048',
+            'minimal_skor_lulus' => 'required|numeric|min:0|max:100',
         ]);
 
-        $data = $request->only(['system_name', 'theme_color']);
+        $data = $request->only(['system_name', 'theme_color', 'minimal_skor_lulus']);
 
         if ($request->hasFile('system_logo')) {
             $file = $request->file('system_logo');
