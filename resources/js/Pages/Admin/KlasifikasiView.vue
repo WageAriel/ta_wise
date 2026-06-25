@@ -75,14 +75,22 @@ function formatDate(dateStr) {
 }
 
 // ─── Badge & Label Helpers ─────────────────────────────────────────────────────────
-function statusClass(status) {
+function statusClass(row) {
+    const status = row.status_klasifikasi;
     if (status === "selesai") return "bg-emerald-50 text-emerald-700 border border-emerald-200";
     if (status === "ditolak") return "bg-red-50 text-red-700 border border-red-200";
-    if (status === "diproses") return "bg-blue-50 text-blue-700 border border-blue-200";
+    if (status === "diproses") {
+        if (row.verifikasi) return "bg-purple-50 text-purple-700 border border-purple-200";
+        return "bg-blue-50 text-blue-700 border border-blue-200";
+    }
     return "bg-amber-50 text-amber-700 border border-amber-200";
 }
 
-function getStatusLabel(status) {
+function getStatusLabel(row) {
+    const status = row.status_klasifikasi;
+    if (status === 'diproses' && row.verifikasi) {
+        return 'Menunggu Validasi';
+    }
     const map = {
         'pending': 'Menunggu',
         'diproses': 'Diproses',
@@ -100,8 +108,7 @@ function getKategori(score) {
 }
 
 function getKelasName(row) {
-    if (row.verifikasi?.keputusan_admin) return row.verifikasi.keputusan_admin;
-    if (row.verifikasi?.rekomendasi_sistem) return row.verifikasi.rekomendasi_sistem;
+    if (row.status_klasifikasi === 'selesai' && row.verifikasi?.keputusan_admin) return row.verifikasi.keputusan_admin;
     return '-';
 }
 
@@ -182,9 +189,9 @@ function closeDetailModal() {
 }
 
 const rekomendasiConfig = {
-    'Class A': { color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0' },
-    'Class B': { color: '#ea580c', bg: '#fff7ed', border: '#fed7aa' },
-    'Class C': { color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe' },
+    'Kelas A': { color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0' },
+    'Kelas B': { color: '#ea580c', bg: '#fff7ed', border: '#fed7aa' },
+    'Kelas C': { color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe' },
     'Ditolak': { color: '#dc2626', bg: '#fef2f2', border: '#fecaca' },
     'Belum Memenuhi': { color: '#64748b', bg: '#f8fafc', border: '#e2e8f0' },
 };
@@ -206,7 +213,8 @@ async function handleValidasi(kelas) {
         showCancelButton: true,
         confirmButtonText: isDitolak ? 'Ya, Tolak Pengajuan' : `Ya, Tetapkan ${kelas}`,
         cancelButtonText: 'Batal',
-        confirmButtonColor: getCfg(kelas).color,
+        confirmButtonColor: '#16a34a',
+        cancelButtonColor: '#ef4444',
         reverseButtons: true,
     });
 
@@ -421,6 +429,7 @@ function hitungPoinJawaban(jawaban) {
                                     <th class="px-10 py-3 text-xs font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">Kelas</th>
                                     <th class="px-6 py-3 text-xs font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">Status</th>
                                     <th class="px-6 py-3 text-xs font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">Petugas</th>
+                                    <th class="px-6 py-3 text-xs font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">Validator</th>
                                     <th class="px-6 py-3 text-xs font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">Tgl Pengajuan</th>
                                     <th class="px-6 py-3 text-xs font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">Tgl Verifikasi</th>
                                     <th class="px-6 py-3 text-xs font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap text-center">Aksi</th>
@@ -456,10 +465,10 @@ function hitungPoinJawaban(jawaban) {
                                     <!-- Status -->
                                     <td class="px-6 py-4">
                                         <span
-                                            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold capitalize"
-                                            :class="statusClass(row.status_klasifikasi)"
+                                            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold capitalize whitespace-nowrap"
+                                            :class="statusClass(row)"
                                         >
-                                            {{ getStatusLabel(row.status_klasifikasi) }}
+                                            {{ getStatusLabel(row) }}
                                         </span>
                                     </td>
                                     <!-- Petugas -->
@@ -471,6 +480,13 @@ function hitungPoinJawaban(jawaban) {
                                             {{ row.verifikasi?.petugas?.profil_petugas?.nama_petugas || row.verifikasi?.petugas?.username || row.jadwal_kunjungan?.petugas?.profil_petugas?.nama_petugas || row.jadwal_kunjungan?.petugas?.username || 'Petugas' }}
                                         </span>
                                         <span v-else class="text-xs text-slate-400 italic">Belum dijadwalkan</span>
+                                    </td>
+                                    <!-- Validator -->
+                                    <td class="px-6 py-4">
+                                        <span v-if="row.verifikasi?.admin" class="text-sm font-semibold text-slate-700">
+                                            {{ row.verifikasi.admin.username }}
+                                        </span>
+                                        <span v-else class="text-xs text-slate-400">-</span>
                                     </td>
                                     <!-- Tgl Pengajuan -->
                                     <td class="px-6 py-4 text-slate-500 text-xs whitespace-nowrap">{{ formatDate(row.tanggal) }}</td>
@@ -749,9 +765,9 @@ function hitungPoinJawaban(jawaban) {
                                 {{ selectedRow.verifikasi?.rekomendasi_sistem || '-' }}
                             </p>
                             <p class="text-slate-500 text-xs mt-1">
-                                <span v-if="selectedRow.verifikasi?.rekomendasi_sistem === 'Class A'">Premium — semua kriteria utama terpenuhi</span>
-                                <span v-else-if="selectedRow.verifikasi?.rekomendasi_sistem === 'Class B'">Standard — sebagian besar kriteria terpenuhi</span>
-                                <span v-else-if="selectedRow.verifikasi?.rekomendasi_sistem === 'Class C'">Basic — kriteria minimal terpenuhi</span>
+                                <span v-if="selectedRow.verifikasi?.rekomendasi_sistem === 'Kelas A'">Premium — semua kriteria utama terpenuhi</span>
+                                <span v-else-if="selectedRow.verifikasi?.rekomendasi_sistem === 'Kelas B'">Standard — sebagian besar kriteria terpenuhi</span>
+                                <span v-else-if="selectedRow.verifikasi?.rekomendasi_sistem === 'Kelas C'">Basic — kriteria minimal terpenuhi</span>
                                 <span v-else>Nilai tidak mencukupi standar minimum</span>
                             </p>
                         </div>
@@ -776,7 +792,7 @@ function hitungPoinJawaban(jawaban) {
                             <p class="text-slate-400 text-xs mb-4">Pilih kelas yang sesuai berdasarkan hasil verifikasi. Keputusan tidak dapat diubah setelah dikonfirmasi.</p>
                             <div class="grid grid-cols-3 gap-3 mb-3">
                                 <button
-                                    v-for="kelas in ['Class A', 'Class B', 'Class C']"
+                                    v-for="kelas in ['Kelas A', 'Kelas B', 'Kelas C']"
                                     :key="kelas"
                                     @click="handleValidasi(kelas)"
                                     :disabled="isValidating"
@@ -786,7 +802,7 @@ function hitungPoinJawaban(jawaban) {
                                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/></svg>
                                     <span class="text-base">{{ kelas }}</span>
                                     <span class="text-xs font-normal opacity-70">
-                                        {{ kelas === 'Class A' ? 'Premium' : kelas === 'Class B' ? 'Standard' : 'Basic' }}
+                                        {{ kelas === 'Kelas A' ? 'Premium' : kelas === 'Kelas B' ? 'Standard' : 'Basic' }}
                                     </span>
                                 </button>
                             </div>

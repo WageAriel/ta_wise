@@ -38,6 +38,14 @@ class FieldOfficerController extends Controller
         // Data Petugas dengan Pagination & Search
         $petugasQuery = User::with('profilPetugas')
             ->where('role', 'petugas_lapangan')
+            ->withCount([
+                'jadwalKunjungan as supplier_aktif_count' => function ($query) {
+                    $query->whereIn('status', ['menunggu', 'berlangsung']);
+                },
+                'jadwalKunjungan as selesai_count' => function ($query) {
+                    $query->where('status', 'selesai');
+                }
+            ])
             ->latest();
         if ($request->filled('search_petugas')) {
             $petugasQuery->where('username', 'like', '%' . $request->search_petugas . '%');
@@ -102,6 +110,25 @@ class FieldOfficerController extends Controller
             'tanggal_kunjungan' => 'required|date',
             'waktu_kunjungan' => 'required',
         ]);
+
+        // Validasi: Maksimal 2 jadwal sehari dan jeda minimal 4 jam
+        $jadwalHariIni = JadwalKunjungan::where('id_user_petugas', $validated['id_user_petugas'])
+            ->whereDate('tanggal_kunjungan', $validated['tanggal_kunjungan'])
+            ->get();
+
+        if ($jadwalHariIni->count() >= 2) {
+            return redirect()->back()->withErrors(['waktu_kunjungan' => 'Petugas ini sudah mencapai batas maksimal 2 jadwal untuk hari tersebut.']);
+        }
+
+        $waktuBaru = \Carbon\Carbon::parse($validated['waktu_kunjungan']);
+        foreach ($jadwalHariIni as $jadwal) {
+            $waktuLama = \Carbon\Carbon::parse($jadwal->waktu_kunjungan);
+            $selisihMenit = $waktuBaru->diffInMinutes($waktuLama);
+            
+            if ($selisihMenit < 240) { // 240 menit = 4 jam
+                return redirect()->back()->withErrors(['waktu_kunjungan' => 'Jadwal bertabrakan! Jeda antar kunjungan harus minimal 4 jam. Jadwal sebelumnya pukul ' . $waktuLama->format('H:i') . '.']);
+            }
+        }
 
         JadwalKunjungan::create([
             'id_klasifikasi' => $validated['id_klasifikasi'],

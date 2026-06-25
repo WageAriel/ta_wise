@@ -9,6 +9,10 @@ const props = defineProps({
     supplier: Object,
     nilaiPengajuan: Number,
     jawabanSupplier: Array,
+    settings: {
+        type: Object,
+        default: () => ({ min_kelas_a: 85, min_kelas_b: 60, min_kelas_c: 30 })
+    }
 });
 
 const verifikasiJawaban = ref(
@@ -29,7 +33,7 @@ const isSubmitting = ref(false);
 // ─── Helpers ─────────────────────────────────────────────────────
 const formatWaktu = (t) => t ? t.slice(0, 5) : '-';
 
-const hitungPoin = (opsi, bobot) => opsi ? Math.round((opsi.nilai / 100) * bobot) : 0;
+const hitungPoin = (opsi, bobot) => opsi ? opsi.nilai : 0;
 
 const getOpsiById = (jawaban, idOpsi) =>
     jawaban.pertanyaan.opsis.find(o => o.id_opsi === idOpsi);
@@ -44,18 +48,20 @@ const adaKetidaksesuaian = computed(() =>
 );
 
 const totalNilaiVerifikasi = computed(() => {
-    return props.jawabanSupplier.reduce((acc, j) => {
+    const totalPoints = props.jawabanSupplier.reduce((acc, j) => {
         const idOpsi = verifikasiJawaban.value[j.id_jawaban];
         const opsi = getOpsiById(j, idOpsi);
         return acc + hitungPoin(opsi, j.pertanyaan.bobot);
     }, 0);
+    const count = props.jawabanSupplier.length;
+    return count > 0 ? Math.round((totalPoints / count) * 10) : 0;
 });
 
 const rekomendasiKelas = computed(() => {
     const s = totalNilaiVerifikasi.value;
-    if (s >= 85) return { kelas: 'Class A', warna: '#16a34a', bg: '#f0fdf4' };
-    if (s >= 60) return { kelas: 'Class B', warna: '#ea580c', bg: '#fff7ed' };
-    if (s >= 30) return { kelas: 'Class C', warna: '#2563eb', bg: '#eff6ff' };
+    if (s >= props.settings.min_kelas_a) return { kelas: 'Class A', warna: '#16a34a', bg: '#f0fdf4' };
+    if (s >= props.settings.min_kelas_b) return { kelas: 'Class B', warna: '#ea580c', bg: '#fff7ed' };
+    if (s >= props.settings.min_kelas_c) return { kelas: 'Class C', warna: '#2563eb', bg: '#eff6ff' };
     return { kelas: 'Belum Memenuhi', warna: '#64748b', bg: '#f8fafc' };
 });
 

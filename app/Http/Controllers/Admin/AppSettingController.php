@@ -24,9 +24,12 @@ class AppSettingController extends Controller
             'theme_color' => 'nullable|string',
             'system_logo' => 'nullable|image|max:2048',
             'minimal_skor_lulus' => 'required|numeric|min:0|max:100',
+            'min_skor_kelas_a' => 'required|numeric|min:0|max:100',
+            'min_skor_kelas_b' => 'required|numeric|min:0|max:100',
+            'min_skor_kelas_c' => 'required|numeric|min:0|max:100',
         ]);
 
-        $data = $request->only(['system_name', 'theme_color', 'minimal_skor_lulus']);
+        $data = $request->only(['system_name', 'theme_color', 'minimal_skor_lulus', 'min_skor_kelas_a', 'min_skor_kelas_b', 'min_skor_kelas_c']);
 
         if ($request->hasFile('system_logo')) {
             $file = $request->file('system_logo');

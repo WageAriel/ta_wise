@@ -67,6 +67,10 @@ class VerifikasiController extends Controller
         // Hitung total nilai pengajuan supplier
         $nilaiPengajuan = $jadwal->klasifikasi->total_nilai ?? 0;
 
+        $minKelasA = \App\Models\AppSetting::where('key', 'min_skor_kelas_a')->value('value') ?? 85;
+        $minKelasB = \App\Models\AppSetting::where('key', 'min_skor_kelas_b')->value('value') ?? 60;
+        $minKelasC = \App\Models\AppSetting::where('key', 'min_skor_kelas_c')->value('value') ?? 30;
+
         return Inertia::render('PetugasLapangan/VerifikasiForm', [
             'jadwal'          => [
                 'id'                => $jadwal->id,
@@ -82,6 +86,11 @@ class VerifikasiController extends Controller
             ],
             'nilaiPengajuan'  => $nilaiPengajuan,
             'jawabanSupplier' => $jawabanSupplier,
+            'settings'        => [
+                'min_kelas_a' => (int) $minKelasA,
+                'min_kelas_b' => (int) $minKelasB,
+                'min_kelas_c' => (int) $minKelasC,
+            ],
         ]);
     }
 
@@ -103,21 +112,31 @@ class VerifikasiController extends Controller
         DB::transaction(function () use ($jadwal, $request) {
             // 1. Hitung total nilai dari jawaban verifikasi petugas
             $totalNilai = 0;
+            $jumlahPertanyaan = count($request->jawaban);
+            
             foreach ($request->jawaban as $item) {
                 $jawaban = JawabanKlasifikasi::with(['pertanyaan.opsis'])->find($item['id_jawaban']);
                 if ($jawaban) {
                     $opsiDipilih = $jawaban->pertanyaan->opsis->firstWhere('id_opsi', $item['id_opsi']);
                     if ($opsiDipilih) {
-                        $totalNilai += round(($opsiDipilih->nilai / 100) * $jawaban->pertanyaan->bobot);
+                        $totalNilai += $opsiDipilih->nilai;
                     }
                 }
             }
+            
+            if ($jumlahPertanyaan > 0) {
+                $totalNilai = round(($totalNilai / $jumlahPertanyaan) * 10);
+            }
 
-            // 2. Tentukan rekomendasi kelas
+            // 2. Tentukan rekomendasi kelas berdasarkan pengaturan
+            $minA = \App\Models\AppSetting::where('key', 'min_skor_kelas_a')->value('value') ?? 85;
+            $minB = \App\Models\AppSetting::where('key', 'min_skor_kelas_b')->value('value') ?? 60;
+            $minC = \App\Models\AppSetting::where('key', 'min_skor_kelas_c')->value('value') ?? 30;
+
             $rekomendasi = 'Belum Memenuhi';
-            if ($totalNilai >= 85)      $rekomendasi = 'Class A';
-            elseif ($totalNilai >= 60)  $rekomendasi = 'Class B';
-            elseif ($totalNilai >= 30)  $rekomendasi = 'Class C';
+            if ($totalNilai >= $minA)      $rekomendasi = 'Kelas A';
+            elseif ($totalNilai >= $minB)  $rekomendasi = 'Kelas B';
+            elseif ($totalNilai >= $minC)  $rekomendasi = 'Kelas C';
 
             // 3. Buat/update record Verifikasi
             $verifikasi = Verifikasi::updateOrCreate(

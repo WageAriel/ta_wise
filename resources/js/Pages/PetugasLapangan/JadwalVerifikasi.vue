@@ -299,7 +299,7 @@ function hitungPoinJawaban(jawaban) {
                                                 <div>
                                                     <p class="text-slate-500" style="font-size:11px">Catatan</p>
                                                     <p class="text-slate-700 font-semibold" style="font-size:12px">
-                                                        {{ jadwal.klasifikasi?.supplier?.catatan_admin || 'Verifikasi klasifikasi supplier' }}
+                                                        {{ `Verifikasi klasifikasi periode ${new Date(jadwal.tanggal_kunjungan).getFullYear()}` }}
                                                     </p>
                                                 </div>
                                             </div>

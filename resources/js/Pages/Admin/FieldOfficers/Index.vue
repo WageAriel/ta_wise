@@ -33,7 +33,7 @@ const formPetugas = useForm({
     username: '',
     email: '',
     password: '',
-    posisi: '',
+    posisi: 'Petugas Lapangan',
     kontak: ''
 });
 
@@ -102,7 +102,7 @@ const formEditPetugas = useForm({
 const openEditPetugas = (petugas) => {
     selectedPetugas.value = petugas;
     formEditPetugas.nama_petugas = petugas.profil_petugas?.nama_petugas || '';
-    formEditPetugas.posisi = petugas.profil_petugas?.posisi || '';
+    formEditPetugas.posisi = petugas.profil_petugas?.posisi || 'Petugas Lapangan';
     formEditPetugas.kontak = petugas.profil_petugas?.kontak || '';
     showModalEditPetugas.value = true;
 };
@@ -296,8 +296,8 @@ const submitEditPetugas = () => {
                                     </td>
                                     <td class="px-6 py-4">{{ p.profil_petugas?.posisi || '-' }}</td>
                                     <td class="px-6 py-4">{{ p.profil_petugas?.kontak || '-' }}</td>
-                                    <td class="px-6 py-4 text-center"><span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs font-bold">0</span></td>
-                                    <td class="px-6 py-4 text-center"><span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-xs font-bold">0</span></td>
+                                    <td class="px-6 py-4 text-center"><span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs font-bold">{{ p.supplier_aktif_count ?? 0 }}</span></td>
+                                    <td class="px-6 py-4 text-center"><span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-xs font-bold">{{ p.selesai_count ?? 0 }}</span></td>
                                     <td class="px-6 py-4">
                                         <span class="px-2.5 py-1 rounded-full text-xs font-semibold" :class="p.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'">
                                             {{ p.is_active ? 'Aktif' : 'Nonaktif' }}
@@ -414,15 +414,9 @@ const submitEditPetugas = () => {
                             <input type="password" v-model="formPetugas.password" class="w-full bg-slate-50 border border-slate-200 rounded-lg text-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500" required />
                             <span class="text-red-500 text-xs mt-1" v-if="formPetugas.errors.password">{{ formPetugas.errors.password }}</span>
                         </div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-slate-700 mb-1">Posisi</label>
-                                <input type="text" v-model="formPetugas.posisi" placeholder="Cth: Auditor Senior" class="w-full bg-slate-50 border border-slate-200 rounded-lg text-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500" />
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-slate-700 mb-1">Kontak / No. HP</label>
-                                <input type="text" v-model="formPetugas.kontak" class="w-full bg-slate-50 border border-slate-200 rounded-lg text-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500" />
-                            </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Kontak / No. HP</label>
+                            <input type="text" v-model="formPetugas.kontak" class="w-full bg-slate-50 border border-slate-200 rounded-lg text-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500" />
                         </div>
                     </form>
                 </div>
@@ -455,15 +449,9 @@ const submitEditPetugas = () => {
                             <input type="text" :value="selectedPetugas.username" disabled class="w-full bg-slate-100 border border-slate-200 rounded-lg text-sm px-3 py-2 text-slate-500 cursor-not-allowed" />
                             <p class="text-xs text-slate-400 mt-1">Akun (username/email/password) tidak dapat diubah di sini.</p>
                         </div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-slate-700 mb-1">Posisi</label>
-                                <input type="text" v-model="formEditPetugas.posisi" placeholder="Cth: Auditor Senior" class="w-full bg-slate-50 border border-slate-200 rounded-lg text-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500" />
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-slate-700 mb-1">Kontak / No. HP</label>
-                                <input type="text" v-model="formEditPetugas.kontak" class="w-full bg-slate-50 border border-slate-200 rounded-lg text-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500" />
-                            </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Kontak / No. HP</label>
+                            <input type="text" v-model="formEditPetugas.kontak" class="w-full bg-slate-50 border border-slate-200 rounded-lg text-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500" />
                         </div>
                     </form>
                 </div>

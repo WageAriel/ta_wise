@@ -41,16 +41,18 @@ function getOpsiDipilih(pertanyaan) {
     return idOpsi ? pertanyaan.opsis.find(o => o.id_opsi === idOpsi) : null;
 }
 function hitungPoin(opsi, bobot) {
-    return Math.round((opsi.nilai / 100) * bobot);
+    return opsi ? opsi.nilai : 0;
 }
 
 // ── Computed ──────────────────────────────────────────────────────────────────
-const totalSkor = computed(() =>
-    pertanyaans.value.reduce((acc, p) => {
+const totalSkor = computed(() => {
+    const totalPoints = pertanyaans.value.reduce((acc, p) => {
         const opsi = getOpsiDipilih(p);
         return acc + (opsi ? hitungPoin(opsi, p.bobot) : 0);
-    }, 0)
-);
+    }, 0);
+    const count = pertanyaans.value.length;
+    return count > 0 ? Math.round((totalPoints / count) * 10) : 0;
+});
 
 const prediksiKelas = computed(() => {
     return { kelas: 'Belum Ditetapkan', warna: '#64748b', bg: '#f8fafc', desc: 'Kelas akan ditentukan setelah verifikasi lapangan dan validasi admin' };
@@ -74,8 +76,9 @@ async function submitPengajuan(e) {
         text: 'Apakah Anda yakin ingin mengirim pengajuan klasifikasi ini? Data yang sudah dikirim tidak dapat diubah.',
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#ea580c',
-        cancelButtonColor: '#64748b',
+        reverseButtons: true,
+        confirmButtonColor: '#16a34a',
+        cancelButtonColor: '#dc2626',
         confirmButtonText: 'Ya, Kirim!',
         cancelButtonText: 'Batal'
     });
@@ -221,7 +224,7 @@ async function submitPengajuan(e) {
                                                 {{ hitungPoin(getOpsiDipilih(p), p.bobot) }} poin
                                             </span> -->
                                         </div>
-                                        <p class="text-slate-500 text-base">Bobot: {{ p.bobot }} poin</p>
+                                        <!-- <p class="text-slate-500 text-base">Bobot: {{ p.bobot }} poin</p> -->
                                     </div>
                                     <div class="space-y-2">
                                         <label
@@ -297,7 +300,7 @@ async function submitPengajuan(e) {
                                     class="flex items-center gap-2 px-6 py-2.5 rounded-lg text-white text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md"
                                     style="background: linear-gradient(135deg, #ea580c, #f97316);">
                                     <span v-if="isSubmitting" class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                                    <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg v-else class="w-4 h-4 rotate-45" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                                     </svg>
                                     {{ isSubmitting ? 'Mengirim...' : 'Kirim Pengajuan' }}

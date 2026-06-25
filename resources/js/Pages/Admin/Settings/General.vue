@@ -12,6 +12,9 @@ const form = useForm({
     system_name: props.settings.system_name || 'TA Wise',
     theme_color: props.settings.theme_color || '#2563eb',
     minimal_skor_lulus: props.settings.minimal_skor_lulus || 70,
+    min_skor_kelas_a: props.settings.min_skor_kelas_a || 85,
+    min_skor_kelas_b: props.settings.min_skor_kelas_b || 60,
+    min_skor_kelas_c: props.settings.min_skor_kelas_c || 30,
     system_logo: null,
 });
 
@@ -83,6 +86,63 @@ const submit = () => {
                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                 {{ form.errors.minimal_skor_lulus }}
                             </p>
+                        </div>
+
+                        <!-- Input Rekomendasi Kelas Klasifikasi -->
+                        <div class="p-4 bg-blue-50/50 border border-blue-100 rounded-xl mb-4">
+                            <label class="block text-sm font-bold text-slate-700 mb-1">
+                                Standar Nilai Kelas Klasifikasi
+                            </label>
+                            <p class="text-xs text-slate-500 mb-4">
+                                Tentukan batas minimal nilai untuk masuk ke dalam masing-masing rekomendasi kelas.
+                            </p>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <!-- Kelas A -->
+                                <div>
+                                    <label class="block text-sm font-bold text-slate-700 mb-1">Minimal Kelas A</label>
+                                    <div class="relative">
+                                        <input 
+                                            type="number" min="0" max="100" required v-model="form.min_skor_kelas_a" 
+                                            class="w-full border-slate-200 rounded-lg bg-white focus:ring-blue-500 focus:border-blue-500 text-sm font-bold text-blue-700 pr-10" 
+                                            :class="{ 'border-rose-500 ring-1 ring-rose-500': form.errors.min_skor_kelas_a }"
+                                            placeholder="Contoh: 85"
+                                        >
+                                        <span class="absolute right-3 top-2.5 text-sm font-bold text-slate-400">Poin</span>
+                                    </div>
+                                    <p v-if="form.errors.min_skor_kelas_a" class="text-rose-600 text-[11px] font-bold mt-2">{{ form.errors.min_skor_kelas_a }}</p>
+                                </div>
+                                
+                                <!-- Kelas B -->
+                                <div>
+                                    <label class="block text-sm font-bold text-slate-700 mb-1">Minimal Kelas B</label>
+                                    <div class="relative">
+                                        <input 
+                                            type="number" min="0" max="100" required v-model="form.min_skor_kelas_b" 
+                                            class="w-full border-slate-200 rounded-lg bg-white focus:ring-blue-500 focus:border-blue-500 text-sm font-bold text-blue-700 pr-10" 
+                                            :class="{ 'border-rose-500 ring-1 ring-rose-500': form.errors.min_skor_kelas_b }"
+                                            placeholder="Contoh: 60"
+                                        >
+                                        <span class="absolute right-3 top-2.5 text-sm font-bold text-slate-400">Poin</span>
+                                    </div>
+                                    <p v-if="form.errors.min_skor_kelas_b" class="text-rose-600 text-[11px] font-bold mt-2">{{ form.errors.min_skor_kelas_b }}</p>
+                                </div>
+                                
+                                <!-- Kelas C -->
+                                <div>
+                                    <label class="block text-sm font-bold text-slate-700 mb-1">Minimal Kelas C</label>
+                                    <div class="relative">
+                                        <input 
+                                            type="number" min="0" max="100" required v-model="form.min_skor_kelas_c" 
+                                            class="w-full border-slate-200 rounded-lg bg-white focus:ring-blue-500 focus:border-blue-500 text-sm font-bold text-blue-700 pr-10" 
+                                            :class="{ 'border-rose-500 ring-1 ring-rose-500': form.errors.min_skor_kelas_c }"
+                                            placeholder="Contoh: 30"
+                                        >
+                                        <span class="absolute right-3 top-2.5 text-sm font-bold text-slate-400">Poin</span>
+                                    </div>
+                                    <p v-if="form.errors.min_skor_kelas_c" class="text-rose-600 text-[11px] font-bold mt-2">{{ form.errors.min_skor_kelas_c }}</p>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- <div>

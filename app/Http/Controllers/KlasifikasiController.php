@@ -134,14 +134,17 @@ class KlasifikasiController extends Controller
 
         // Hitung total nilai dari opsi yang dipilih
         $totalNilai = 0;
+        $jumlahPertanyaan = count($validated['jawaban']);
+        
         foreach ($validated['jawaban'] as $jwb) {
             $opsi = Opsi::find($jwb['id_opsi']);
             if ($opsi) {
-                $pertanyaan = Pertanyaan::find($jwb['id_pertanyaan']);
-                if ($pertanyaan) {
-                    $totalNilai += round(($opsi->nilai / 100) * $pertanyaan->bobot);
-                }
+                $totalNilai += $opsi->nilai;
             }
+        }
+        
+        if ($jumlahPertanyaan > 0) {
+            $totalNilai = round(($totalNilai / $jumlahPertanyaan) * 10);
         }
 
         $klasifikasi = DB::transaction(function () use ($supplier, $validated, $totalNilai) {
@@ -194,6 +197,7 @@ class KlasifikasiController extends Controller
 
             $hasSubmittedThisYear = Klasifikasi::where('id_supplier', $supplier->id)
                 ->whereYear('tanggal', now()->year)
+                ->whereIn('status_klasifikasi', ['pending', 'diproses', 'selesai'])
                 ->exists();
         }
 
@@ -333,7 +337,7 @@ class KlasifikasiController extends Controller
     public function adminValidasi(Request $request, Klasifikasi $klasifikasi)
     {
         $validated = $request->validate([
-            'keputusan_admin' => 'required|in:Class A,Class B,Class C,Ditolak',
+            'keputusan_admin' => 'required|in:Kelas A,Kelas B,Kelas C,Ditolak',
         ]);
         if (!$klasifikasi->verifikasi) {
             return response()->json([
