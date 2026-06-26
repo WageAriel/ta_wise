@@ -26,6 +26,16 @@ class DataSupplierController extends Controller
         $user = auth()->user();
         $supplier = $user->supplier()->with('documents')->first();
 
+        // Pengecekan On-The-Fly: Wajib resubmit data tiap tahun.
+        // Jika tahun_periode sudah usang, ubah status ke 'draft' tapi jangan update tahun_periode dulu
+        // agar supplier harus menekan tombol simpan/submit.
+        if ($supplier && $supplier->tahun_periode < date('Y')) {
+            $supplier->update([
+                'status' => 'draft'
+            ]);
+            $supplier->refresh();
+        }
+
         return Inertia::render('Supplier/DataSupplier', [
             'supplier' => $supplier,
         ]);
@@ -100,7 +110,8 @@ class DataSupplierController extends Controller
             'no_rekening' => $request->no_rekening,
             'atas_nama' => $request->atas_nama,
             
-            'status' => 'menunggu review',       
+            'tahun_periode' => date('Y'),
+            'status' => $supplier->status === 'approved' ? 'approved' : 'menunggu review',       
             'submitted_at' => now(),
         ]);
 
@@ -229,25 +240,20 @@ class DataSupplierController extends Controller
         // Validasi input skor dari admin (0 = Tidak Memenuhi, 1 = Cukup, 2 = Memenuhi)
         $request->validate([
             'skor_kelengkapan_dokumen' => 'required|integer|min:0|max:2',
-            'skor_nib' => 'required|integer|min:0|max:2',
-            'skor_npwp' => 'required|integer|min:0|max:2',
-            'skor_akta_pendirian' => 'required|integer|min:0|max:2',
-            'skor_izin_usaha' => 'required|integer|min:0|max:2',
-            'skor_izin_khusus' => 'required|integer|min:0|max:2',
-            'skor_sk_domisili' => 'required|integer|min:0|max:2',
-            'skor_laporan_keuangan' => 'required|integer|min:0|max:2',
             'catatan' => 'nullable|string',
         ]);
 
+        $dokumenList = ['nib', 'npwp', 'akta_pendirian', 'izin_usaha', 'izin_khusus', 'sk_domisili', 'laporan_keuangan'];
+        $calculatedScores = [];
+        
+        foreach ($dokumenList as $jenis) {
+            $doc = $supplier->documents()->where('jenis_dokumen', $jenis)->first();
+            // Jika dokumen ditandai ada dan file path tersedia, nilainya 2. Jika tidak, 0.
+            $calculatedScores["skor_$jenis"] = ($doc && $doc->has_document && $doc->file_path) ? 2 : 0;
+        }
+
         // Kalkulasi Total Skor
-        $totalSkor = $request->skor_kelengkapan_dokumen + 
-                     $request->skor_nib + 
-                     $request->skor_npwp + 
-                     $request->skor_akta_pendirian + 
-                     $request->skor_izin_usaha + 
-                     $request->skor_izin_khusus + 
-                     $request->skor_sk_domisili + 
-                     $request->skor_laporan_keuangan;
+        $totalSkor = $request->skor_kelengkapan_dokumen + array_sum($calculatedScores);
 
         // Simpan nilai ke tabel supplier_scores
         SupplierScore::create([
@@ -256,13 +262,13 @@ class DataSupplierController extends Controller
             'tahun_periode' => $supplier->tahun_periode, // Nilai ini dikunci untuk tahun pengajuan
             
             'skor_kelengkapan_dokumen' => $request->skor_kelengkapan_dokumen,
-            'skor_nib' => $request->skor_nib,
-            'skor_npwp' => $request->skor_npwp,
-            'skor_akta_pendirian' => $request->skor_akta_pendirian,
-            'skor_izin_usaha' => $request->skor_izin_usaha,
-            'skor_izin_khusus' => $request->skor_izin_khusus,
-            'skor_sk_domisili' => $request->skor_sk_domisili,
-            'skor_laporan_keuangan' => $request->skor_laporan_keuangan,
+            'skor_nib' => $calculatedScores['skor_nib'],
+            'skor_npwp' => $calculatedScores['skor_npwp'],
+            'skor_akta_pendirian' => $calculatedScores['skor_akta_pendirian'],
+            'skor_izin_usaha' => $calculatedScores['skor_izin_usaha'],
+            'skor_izin_khusus' => $calculatedScores['skor_izin_khusus'],
+            'skor_sk_domisili' => $calculatedScores['skor_sk_domisili'],
+            'skor_laporan_keuangan' => $calculatedScores['skor_laporan_keuangan'],
             
             'total_skor' => $totalSkor,
             'catatan' => $request->catatan,

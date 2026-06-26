@@ -222,18 +222,18 @@ const formatDate = (dateString) => {
 </script>
 
 <template>
-    <Head title="Supplier Selection | Admin WISE" />
+    <Head title="Seleksi Supplier | Admin WISE" />
 
     <AdminLayout>
         <!-- Header Section -->
         <div class="mb-8">
-            <h1 class="text-2xl font-bold text-gray-800">Supplier Selection</h1>
+            <h1 class="text-2xl font-bold text-gray-800">Seleksi Supplier</h1>
         </div>
 
         <!-- Action Bar: Export/Import -->
         <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
             <div>
-                <h2 class="text-lg font-semibold text-gray-700">Supplier Selection</h2>
+                <h2 class="text-lg font-semibold text-gray-700">Seleksi Supplier</h2>
                 <p class="text-sm text-gray-500">Kelola dan tinjau hasil seleksi kapasitas supplier.</p>
             </div>
             <div class="flex items-center gap-3">

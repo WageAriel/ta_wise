@@ -172,20 +172,20 @@ const submitReturn = async () => {
 </script>
 
 <template>
-    <Head title="Return Management | Admin" />
+    <Head title="Pengembalian Barang | Admin" />
 
     <AdminLayout>
         <!-- Header Page -->
         <div class="mb-8">
-            <h1 class="text-2xl font-bold text-gray-900">Return Management</h1>
+            <h1 class="text-2xl font-bold text-gray-900">Pengembalian Barang</h1>
             <p class="text-gray-500 text-sm mt-1">Kelola data pengembalian barang dari gudang ke supplier.</p>
         </div>
 
         <!-- Action Card -->
         <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
             <div>
-                <h2 class="text-lg font-bold text-gray-800">Return Management</h2>
-                <p class="text-sm text-gray-400 font-medium">Daftar Transaksi Return</p>
+                <h2 class="text-lg font-bold text-gray-800">Pengembalian Barang</h2>
+                <p class="text-sm text-gray-400 font-medium">Daftar Transaksi Pengembalian</p>
             </div>
             <button 
                 @click="handleAddReturn"
@@ -194,7 +194,7 @@ const submitReturn = async () => {
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
                 </svg>
-                Add Return
+                Tambah Pengembalian
             </button>
         </div>
 
@@ -357,7 +357,7 @@ const submitReturn = async () => {
                 <!-- Header -->
                 <div class="px-8 py-6 bg-gray-50 border-b border-gray-100 flex justify-between items-center shrink-0">
                     <div>
-                        <h3 class="text-xl font-black text-gray-800 uppercase tracking-tight">Add New Return</h3>
+                        <h3 class="text-xl font-black text-gray-800 uppercase tracking-tight">Tambah Pengembalian Barang Baru</h3>
                         <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Form Pengembalian Barang ke Supplier</p>
                     </div>
                     <button @click="showAddModal = false" class="p-2 hover:bg-gray-200 rounded-xl transition-colors text-gray-400">
@@ -457,7 +457,7 @@ const submitReturn = async () => {
                 <!-- Footer Actions -->
                 <div class="px-8 py-6 bg-white border-t border-gray-100 flex justify-end gap-3 shrink-0">
                     <button type="button" @click="showAddModal = false" class="px-8 py-4 rounded-xl bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all active:scale-95">
-                        Cancel
+                        Batal
                     </button>
                     <button 
                         form="add-return-form"
@@ -465,7 +465,7 @@ const submitReturn = async () => {
                         :disabled="!returnForm.id_inbound"
                         class="px-8 py-4 rounded-xl bg-red-600 text-white hover:bg-red-700 shadow-lg shadow-red-100 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        Save Return
+                        Save Pengembalian
                     </button>
                 </div>
             </div>

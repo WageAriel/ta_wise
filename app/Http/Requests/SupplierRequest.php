@@ -61,8 +61,8 @@ class SupplierRequest extends FormRequest
                 }
             }
 
-            if ($this->isMethod('PUT') && $hasDocDb) {
-                // If it's an update and document exists in DB, file is not strictly required
+            if ($hasDocDb) {
+                // Jika dokumen sudah ada di database, file opsional (tidak perlu upload ulang)
                 $rules["file_$doc"] = "nullable|file|mimes:pdf,jpg,jpeg,png|max:5120";
             } else {
                 // Require file if 'has_X' is 1 or true
