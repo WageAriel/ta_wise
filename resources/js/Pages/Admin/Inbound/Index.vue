@@ -150,6 +150,7 @@ const handleInboundChange = async () => {
         const response = await axios.get(route('admin.inbound.items', inventoryForm.value.id_inbound));
         inventoryForm.value.items = response.data.map(item => ({
             id_barang: item.id_barang,
+            id_subtype: item.id_subtype,
             nama_barang: item.nama_barang,
             qty: item.qty,
             max_qty: item.qty,
@@ -266,10 +267,7 @@ const availableLocations = computed(() => {
             </div>
 
             <div class="flex items-center gap-3">
-                <Link :href="route('admin.inbound.layout-location')" class="inline-flex items-center px-4 py-2 bg-indigo-50 text-indigo-700 rounded-lg font-medium hover:bg-indigo-100 transition-all">
-                    <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" v-html="icons.layout"></svg>
-                    Kelola Layout & Lokasi
-                </Link>
+
                 <button @click="showInventoryModal = true" class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 shadow-sm transition-all">
                     <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" v-html="icons.package"></svg>
                     Add Inventory

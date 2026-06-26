@@ -138,6 +138,7 @@ class AdminPurchaseOrdersController extends Controller
                 \App\Models\InboundItem::create([
                     'id_inbound' => $inboundId,
                     'id_barang' => $item->barang_id,
+                    'id_subtype' => $item->id_subtype,
                     'qty' => $item->quantity,
                 ]);
             }

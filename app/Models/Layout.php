@@ -13,11 +13,17 @@ class Layout extends Model
     protected $primaryKey = 'id_layout';
 
     protected $fillable = [
+        'id_gudang',
         'nama_layout',
     ];
 
     public function locations()
     {
         return $this->hasMany(Location::class, 'id_layout', 'id_layout');
+    }
+
+    public function gudang()
+    {
+        return $this->belongsTo(Gudang::class, 'id_gudang', 'id_gudang');
     }
 }

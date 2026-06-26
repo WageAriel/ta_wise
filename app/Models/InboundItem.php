@@ -15,6 +15,7 @@ class InboundItem extends Model
     protected $fillable = [
         'id_inbound',
         'id_barang',
+        'id_subtype',
         'qty',
     ];
 
@@ -26,5 +27,10 @@ class InboundItem extends Model
     public function barang()
     {
         return $this->belongsTo(Barang::class, 'id_barang', 'id_barang');
+    }
+
+    public function subtype()
+    {
+        return $this->belongsTo(POItemSubtype::class, 'id_subtype', 'id_subtype');
     }
 }

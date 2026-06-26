@@ -1,13 +1,15 @@
 <script setup>
 import { ref, computed } from 'vue';
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import SidebarAdmin from "@/Components/SidebarAdmin.vue";
 import Swal from 'sweetalert2';
 import axios from 'axios';
 
 const props = defineProps({
     inventories: { type: Array, default: () => [] },
-    locationsData: { type: Array, default: () => [] }
+    locationsData: { type: Array, default: () => [] },
+    layoutsRaw: { type: Array, default: () => [] },
+    gudangsRaw: { type: Array, default: () => [] }
 });
 
 const inventoryData = ref(props.inventories);
@@ -161,6 +163,213 @@ const submitOutbound = async () => {
     }
 };
 
+// --- Gudang, Layout & Location Management State ---
+const subTabLokasi = ref('kapasitas'); // 'kapasitas', 'gudang', 'layouts', 'locations'
+
+// Gudang State
+const showGudangModal = ref(false);
+const isEditGudang = ref(false);
+const gudangForm = ref({ id_gudang: null, nama_gudang: "" });
+
+// Layout State
+const showLayoutModal = ref(false);
+const isEditLayout = ref(false);
+const layoutForm = ref({ id_layout: null, nama_layout: "", id_gudang: "" });
+
+// Location State
+const showLocationModal = ref(false);
+const isEditLocation = ref(false);
+const locationForm = ref({ id_location: null, kode_location: "", kapasitas: 1, id_gudang: "", id_layout: "" });
+
+const availableLayouts = computed(() => {
+    if (!locationForm.value.id_gudang) return [];
+    const gudang = props.gudangsRaw.find(g => g.id_gudang === locationForm.value.id_gudang);
+    return gudang ? gudang.layouts : [];
+});
+
+const allLayoutsRaw = computed(() => {
+    return props.gudangsRaw.flatMap(g => g.layouts.map(l => ({
+        ...l,
+        nama_gudang: g.nama_gudang
+    })));
+});
+
+const allLocationsRaw = computed(() => {
+    return props.gudangsRaw.flatMap(g => g.layouts.flatMap(l => l.locations.map(loc => ({
+        ...loc,
+        nama_layout: l.nama_layout,
+        nama_gudang: g.nama_gudang
+    }))));
+});
+
+// Gudang Actions
+const openAddGudang = () => {
+    isEditGudang.value = false;
+    gudangForm.value = { id_gudang: null, nama_gudang: "" };
+    showGudangModal.value = true;
+};
+
+const openEditGudang = (gudang) => {
+    isEditGudang.value = true;
+    gudangForm.value = { id_gudang: gudang.id_gudang, nama_gudang: gudang.nama_gudang };
+    showGudangModal.value = true;
+};
+
+const saveGudang = () => {
+    if (isEditGudang.value) {
+        router.put(route('admin.inventory.gudang.update', gudangForm.value.id_gudang), gudangForm.value, {
+            onSuccess: () => {
+                showGudangModal.value = false;
+                Swal.fire("Berhasil", "Gudang berhasil diperbarui", "success");
+            },
+            onError: () => Swal.fire("Error", "Gagal memperbarui gudang", "error")
+        });
+    } else {
+        router.post(route('admin.inventory.gudang.store'), gudangForm.value, {
+            onSuccess: () => {
+                showGudangModal.value = false;
+                Swal.fire("Berhasil", "Gudang berhasil ditambahkan", "success");
+            },
+            onError: () => Swal.fire("Error", "Gagal menambahkan gudang", "error")
+        });
+    }
+};
+
+const deleteGudang = (id) => {
+    Swal.fire({
+        title: "Apakah Anda yakin?",
+        text: "Gudang yang dihapus tidak dapat dikembalikan!",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#10b981",
+        cancelButtonColor: "#ef4444",
+        confirmButtonText: "Ya, Hapus!",
+        cancelButtonText: "Batal",
+        reverseButtons: true
+    }).then((result) => {
+        if (result.isConfirmed) {
+            router.delete(route('admin.inventory.gudang.destroy', id), {
+                onSuccess: () => Swal.fire("Terhapus!", "Gudang berhasil dihapus.", "success"),
+                onError: (err) => Swal.fire("Gagal", err?.error || "Tidak dapat menghapus gudang karena masih memiliki layout.", "error")
+            });
+        }
+    });
+};
+
+// Layout Actions
+const openAddLayout = () => {
+    isEditLayout.value = false;
+    layoutForm.value = { id_layout: null, nama_layout: "", id_gudang: "" };
+    showLayoutModal.value = true;
+};
+
+const openEditLayout = (layout) => {
+    isEditLayout.value = true;
+    layoutForm.value = { id_layout: layout.id_layout, nama_layout: layout.nama_layout, id_gudang: layout.id_gudang };
+    showLayoutModal.value = true;
+};
+
+const saveLayout = () => {
+    if (isEditLayout.value) {
+        router.put(route('admin.inventory.layout.update', layoutForm.value.id_layout), layoutForm.value, {
+            onSuccess: () => {
+                showLayoutModal.value = false;
+                Swal.fire("Berhasil", "Layout berhasil diperbarui", "success");
+            },
+            onError: () => Swal.fire("Error", "Gagal memperbarui layout", "error")
+        });
+    } else {
+        router.post(route('admin.inventory.layout.store'), layoutForm.value, {
+            onSuccess: () => {
+                showLayoutModal.value = false;
+                Swal.fire("Berhasil", "Layout berhasil ditambahkan", "success");
+            },
+            onError: () => Swal.fire("Error", "Gagal menambahkan layout", "error")
+        });
+    }
+};
+
+const deleteLayout = (id) => {
+    Swal.fire({
+        title: "Apakah Anda yakin?",
+        text: "Layout yang dihapus tidak dapat dikembalikan!",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#10b981",
+        cancelButtonColor: "#ef4444",
+        confirmButtonText: "Ya, Hapus!",
+        cancelButtonText: "Batal",
+        reverseButtons: true
+    }).then((result) => {
+        if (result.isConfirmed) {
+            router.delete(route('admin.inventory.layout.destroy', id), {
+                onSuccess: () => Swal.fire("Terhapus!", "Layout berhasil dihapus.", "success"),
+                onError: (err) => Swal.fire("Gagal", err?.error || "Tidak dapat menghapus layout karena masih memiliki lokasi.", "error")
+            });
+        }
+    });
+};
+
+// Location Actions
+const openAddLocation = () => {
+    isEditLocation.value = false;
+    locationForm.value = { id_location: null, kode_location: "", kapasitas: 1, id_gudang: "", id_layout: "" };
+    showLocationModal.value = true;
+};
+
+const openEditLocation = (location) => {
+    isEditLocation.value = true;
+    locationForm.value = { 
+        id_location: location.id_location, 
+        kode_location: location.kode_location, 
+        kapasitas: location.kapasitas, 
+        id_gudang: location.id_gudang || (props.gudangsRaw.find(g => g.layouts.some(l => l.id_layout === location.id_layout))?.id_gudang || ""),
+        id_layout: location.id_layout 
+    };
+    showLocationModal.value = true;
+};
+
+const saveLocation = () => {
+    if (isEditLocation.value) {
+        router.put(route('admin.inventory.location.update', locationForm.value.id_location), locationForm.value, {
+            onSuccess: () => {
+                showLocationModal.value = false;
+                Swal.fire("Berhasil", "Location berhasil diperbarui", "success");
+            },
+            onError: () => Swal.fire("Error", "Gagal memperbarui location", "error")
+        });
+    } else {
+        router.post(route('admin.inventory.location.store'), locationForm.value, {
+            onSuccess: () => {
+                showLocationModal.value = false;
+                Swal.fire("Berhasil", "Location berhasil ditambahkan", "success");
+            },
+            onError: () => Swal.fire("Error", "Gagal menambahkan location", "error")
+        });
+    }
+};
+
+const deleteLocation = (id) => {
+    Swal.fire({
+        title: "Apakah Anda yakin?",
+        text: "Location yang dihapus tidak dapat dikembalikan!",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#10b981",
+        cancelButtonColor: "#ef4444",
+        confirmButtonText: "Ya, Hapus!",
+        cancelButtonText: "Batal",
+        reverseButtons: true
+    }).then((result) => {
+        if (result.isConfirmed) {
+            router.delete(route('admin.inventory.location.destroy', id), {
+                onSuccess: () => Swal.fire("Terhapus!", "Location berhasil dihapus.", "success"),
+                onError: (err) => Swal.fire("Gagal", err?.error || "Tidak dapat menghapus location karena mungkin masih berisi inventory.", "error")
+            });
+        }
+    });
+};
+
 </script>
 
 <template>
@@ -250,7 +459,7 @@ const submitOutbound = async () => {
                             </button>
                             <button @click="activeTab = 'locations'" class="pb-4 font-bold flex items-center gap-2 border-b-2 transition-colors text-sm" :class="activeTab === 'locations' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-indigo-500'">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
-                                Kapasitas Lokasi
+                                Manajemen Lokasi
                             </button>
                         </div>
                         
@@ -374,51 +583,191 @@ const submitOutbound = async () => {
                         </div>
                     </div>
                     
-                    <!-- Tab Content: Kapasitas Lokasi -->
+                    <!-- Tab Content: Manajemen Lokasi -->
                     <div v-if="activeTab === 'locations'" class="p-6">
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            <div v-for="loc in locationsData" :key="loc.id_location" class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition">
-                                <div class="flex justify-between items-start mb-4">
-                                    <div>
-                                        <h3 class="text-lg font-bold text-slate-800">{{ loc.layout_name }} - {{ loc.kode_location }}</h3>
-                                        <p class="text-xs text-slate-500 font-medium mt-1">ID: LOC-{{ String(loc.id_location).padStart(3, '0') }}</p>
+                        <!-- Sub-tabs Manajemen Lokasi -->
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 border-b border-slate-100 pb-4">
+                            <div class="flex gap-4">
+                                <button @click="subTabLokasi = 'kapasitas'" :class="subTabLokasi === 'kapasitas' ? 'text-indigo-600 border-b-2 border-indigo-600 font-bold' : 'text-slate-500 hover:text-indigo-500 font-semibold'" class="pb-2 px-1">Kapasitas Gudang</button>
+                                <button @click="subTabLokasi = 'gudang'" :class="subTabLokasi === 'gudang' ? 'text-indigo-600 border-b-2 border-indigo-600 font-bold' : 'text-slate-500 hover:text-indigo-500 font-semibold'" class="pb-2 px-1">Daftar Gudang</button>
+                                <button @click="subTabLokasi = 'layouts'" :class="subTabLokasi === 'layouts' ? 'text-indigo-600 border-b-2 border-indigo-600 font-bold' : 'text-slate-500 hover:text-indigo-500 font-semibold'" class="pb-2 px-1">Daftar Layout</button>
+                                <button @click="subTabLokasi = 'locations'" :class="subTabLokasi === 'locations' ? 'text-indigo-600 border-b-2 border-indigo-600 font-bold' : 'text-slate-500 hover:text-indigo-500 font-semibold'" class="pb-2 px-1">Daftar Lokasi</button>
+                            </div>
+                            <div class="flex gap-3">
+                                <button v-if="subTabLokasi === 'gudang'" @click="openAddGudang" class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-semibold hover:bg-emerald-700 shadow-sm flex items-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                                    Tambah Gudang
+                                </button>
+                                <button v-if="subTabLokasi === 'layouts'" @click="openAddLayout" class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 shadow-sm flex items-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                                    Tambah Layout
+                                </button>
+                                <button v-if="subTabLokasi === 'locations'" @click="openAddLocation" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 shadow-sm flex items-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                                    Tambah Location
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Sub-tab Kapasitas -->
+                        <div v-if="subTabLokasi === 'kapasitas'">
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                <div v-for="loc in locationsData" :key="loc.id_location" class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition">
+                                    <div class="flex justify-between items-start mb-4">
+                                        <div>
+                                            <h3 class="text-lg font-bold text-slate-800">{{ loc.layout_name }} - {{ loc.kode_location }}</h3>
+                                            <p class="text-xs text-slate-500 font-medium mt-1">ID: LOC-{{ String(loc.id_location).padStart(3, '0') }}</p>
+                                        </div>
+                                        <span class="px-2.5 py-1 text-xs font-bold rounded-lg"
+                                            :class="{
+                                                'bg-emerald-100 text-emerald-700': loc.persentase < 50,
+                                                'bg-yellow-100 text-yellow-700': loc.persentase >= 50 && loc.persentase < 80,
+                                                'bg-red-100 text-red-700': loc.persentase >= 80
+                                            }">
+                                            {{ loc.persentase }}% Terisi
+                                        </span>
                                     </div>
-                                    <span class="px-2.5 py-1 text-xs font-bold rounded-lg"
-                                        :class="{
-                                            'bg-emerald-100 text-emerald-700': loc.persentase < 50,
-                                            'bg-yellow-100 text-yellow-700': loc.persentase >= 50 && loc.persentase < 80,
-                                            'bg-red-100 text-red-700': loc.persentase >= 80
-                                        }">
-                                        {{ loc.persentase }}% Terisi
-                                    </span>
-                                </div>
-                                
-                                <!-- Progress Bar -->
-                                <div class="w-full bg-slate-100 rounded-full h-3 mb-3 overflow-hidden border border-slate-200/50">
-                                    <div class="h-full rounded-full transition-all duration-500"
-                                        :class="{
-                                            'bg-emerald-500': loc.persentase < 50,
-                                            'bg-yellow-500': loc.persentase >= 50 && loc.persentase < 80,
-                                            'bg-red-500': loc.persentase >= 80
-                                        }"
-                                        :style="'width: ' + loc.persentase + '%'">
+                                    
+                                    <!-- Progress Bar -->
+                                    <div class="w-full bg-slate-100 rounded-full h-3 mb-3 overflow-hidden border border-slate-200/50">
+                                        <div class="h-full rounded-full transition-all duration-500"
+                                            :class="{
+                                                'bg-emerald-500': loc.persentase < 50,
+                                                'bg-yellow-500': loc.persentase >= 50 && loc.persentase < 80,
+                                                'bg-red-500': loc.persentase >= 80
+                                            }"
+                                            :style="'width: ' + loc.persentase + '%'">
+                                        </div>
                                     </div>
-                                </div>
-                                
-                                <div class="flex justify-between items-center text-sm font-medium">
-                                    <div class="text-slate-600">
-                                        <span class="text-slate-900 font-bold">{{ loc.digunakan }}</span> / {{ loc.kapasitas }} Unit
-                                    </div>
-                                    <div class="text-slate-500 text-xs">
-                                        Sisa: <span class="font-bold" :class="loc.tersisa === 0 ? 'text-red-500' : 'text-slate-700'">{{ loc.tersisa }}</span>
+                                    
+                                    <div class="flex justify-between items-center text-sm font-medium">
+                                        <div class="text-slate-600">
+                                            <span class="text-slate-900 font-bold">{{ loc.digunakan }}</span> / {{ loc.kapasitas }} Unit
+                                        </div>
+                                        <div class="text-slate-500 text-xs">
+                                            Sisa: <span class="font-bold" :class="loc.tersisa === 0 ? 'text-red-500' : 'text-slate-700'">{{ loc.tersisa }}</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
+                            
+                            <div v-if="!locationsData || locationsData.length === 0" class="text-center py-10 bg-slate-50 rounded-xl border border-slate-200 border-dashed">
+                                <p class="text-slate-600 font-bold">Data lokasi penyimpanan tidak tersedia.</p>
+                            </div>
                         </div>
-                        
-                        <div v-if="!locationsData || locationsData.length === 0" class="text-center py-10 bg-slate-50 rounded-xl border border-slate-200 border-dashed">
-                            <p class="text-slate-600 font-bold">Data lokasi penyimpanan tidak tersedia.</p>
+
+                        <!-- Sub-tab Gudang -->
+                        <div v-if="subTabLokasi === 'gudang'">
+                            <div class="overflow-x-auto border border-slate-100 rounded-xl">
+                                <table class="w-full text-left text-sm whitespace-nowrap">
+                                    <thead class="bg-slate-50 border-b border-slate-100">
+                                        <tr>
+                                            <th class="px-6 py-3 text-xs font-bold text-slate-400 uppercase tracking-widest text-center w-16">No</th>
+                                            <th class="px-6 py-3 text-xs font-bold text-slate-400 uppercase tracking-widest">Nama Gudang</th>
+                                            <th class="px-6 py-3 text-xs font-bold text-slate-400 uppercase tracking-widest text-center">Jumlah Layout</th>
+                                            <th class="px-6 py-3 text-xs font-bold text-slate-400 uppercase tracking-widest text-center w-32">Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-50">
+                                        <tr v-for="(gudang, idx) in gudangsRaw" :key="gudang.id_gudang" class="hover:bg-slate-50/60 transition-colors">
+                                            <td class="px-6 py-4 text-center text-slate-500 font-medium">{{ idx + 1 }}</td>
+                                            <td class="px-6 py-4 font-semibold text-slate-900">{{ gudang.nama_gudang }}</td>
+                                            <td class="px-6 py-4 text-center text-slate-600 font-bold">{{ gudang.layouts?.length || 0 }} Layout</td>
+                                            <td class="px-6 py-4 text-center">
+                                                <div class="flex items-center justify-center gap-2">
+                                                    <button @click="openEditGudang(gudang)" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Edit">
+                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                                                    </button>
+                                                    <button @click="deleteGudang(gudang.id_gudang)" class="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Hapus">
+                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        <tr v-if="gudangsRaw.length === 0">
+                                            <td colspan="4" class="px-6 py-12 text-center text-slate-500 font-semibold">Belum ada data gudang.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
+
+                        <!-- Sub-tab Layouts -->
+                        <div v-if="subTabLokasi === 'layouts'">
+                            <div class="overflow-x-auto border border-slate-100 rounded-xl">
+                                <table class="w-full text-left text-sm whitespace-nowrap">
+                                    <thead class="bg-slate-50 border-b border-slate-100">
+                                        <tr>
+                                            <th class="px-6 py-3 text-xs font-bold text-slate-400 uppercase tracking-widest text-center w-16">No</th>
+                                            <th class="px-6 py-3 text-xs font-bold text-slate-400 uppercase tracking-widest">Nama Layout</th>
+                                            <th class="px-6 py-3 text-xs font-bold text-slate-400 uppercase tracking-widest">Gudang</th>
+                                            <th class="px-6 py-3 text-xs font-bold text-slate-400 uppercase tracking-widest text-center">Jumlah Lokasi</th>
+                                            <th class="px-6 py-3 text-xs font-bold text-slate-400 uppercase tracking-widest text-center w-32">Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-50">
+                                        <tr v-for="(layout, idx) in allLayoutsRaw" :key="layout.id_layout" class="hover:bg-slate-50/60 transition-colors">
+                                            <td class="px-6 py-4 text-center text-slate-500 font-medium">{{ idx + 1 }}</td>
+                                            <td class="px-6 py-4 font-semibold text-slate-900">{{ layout.nama_layout }}</td>
+                                            <td class="px-6 py-4 font-medium text-slate-700">{{ layout.nama_gudang }}</td>
+                                            <td class="px-6 py-4 text-center text-slate-600 font-bold">{{ layout.locations?.length || 0 }} Lokasi</td>
+                                            <td class="px-6 py-4 text-center">
+                                                <div class="flex items-center justify-center gap-2">
+                                                    <button @click="openEditLayout(layout)" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Edit">
+                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                                                    </button>
+                                                    <button @click="deleteLayout(layout.id_layout)" class="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Hapus">
+                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        <tr v-if="allLayoutsRaw.length === 0">
+                                            <td colspan="4" class="px-6 py-12 text-center text-slate-500 font-semibold">Belum ada data layout.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Sub-tab Locations -->
+                        <div v-if="subTabLokasi === 'locations'">
+                            <div class="overflow-x-auto border border-slate-100 rounded-xl">
+                                <table class="w-full text-left text-sm whitespace-nowrap">
+                                    <thead class="bg-slate-50 border-b border-slate-100">
+                                        <tr>
+                                            <th class="px-6 py-3 text-xs font-bold text-slate-400 uppercase tracking-widest text-center w-16">No</th>
+                                            <th class="px-6 py-3 text-xs font-bold text-slate-400 uppercase tracking-widest">Layout</th>
+                                            <th class="px-6 py-3 text-xs font-bold text-slate-400 uppercase tracking-widest">Kode Lokasi</th>
+                                            <th class="px-6 py-3 text-xs font-bold text-slate-400 uppercase tracking-widest text-center">Kapasitas Max</th>
+                                            <th class="px-6 py-3 text-xs font-bold text-slate-400 uppercase tracking-widest text-center w-32">Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-50">
+                                        <tr v-for="(loc, idx) in allLocationsRaw" :key="loc.id_location" class="hover:bg-slate-50/60 transition-colors">
+                                            <td class="px-6 py-4 text-center text-slate-500 font-medium">{{ idx + 1 }}</td>
+                                            <td class="px-6 py-4 text-slate-600 font-medium">{{ loc.nama_layout }}</td>
+                                            <td class="px-6 py-4 font-bold text-slate-900">{{ loc.kode_location }}</td>
+                                            <td class="px-6 py-4 text-center text-slate-600 font-bold">{{ loc.kapasitas }} Unit</td>
+                                            <td class="px-6 py-4 text-center">
+                                                <div class="flex items-center justify-center gap-2">
+                                                    <button @click="openEditLocation(loc)" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Edit">
+                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                                                    </button>
+                                                    <button @click="deleteLocation(loc.id_location)" class="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Hapus">
+                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        <tr v-if="allLocationsRaw.length === 0">
+                                            <td colspan="5" class="px-6 py-12 text-center text-slate-500 font-semibold">Belum ada lokasi penyimpanan.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
 
@@ -427,6 +776,96 @@ const submitOutbound = async () => {
 
         <!-- Outbound Modal -->
         
+        <!-- MODAL GUDANG -->
+        <div v-if="showGudangModal" class="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
+            <div class="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+                <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                    <h3 class="font-bold text-slate-800">{{ isEditGudang ? 'Edit Gudang' : 'Tambah Gudang' }}</h3>
+                    <button @click="showGudangModal = false" class="text-slate-400 hover:text-red-500">&times;</button>
+                </div>
+                <div class="p-6">
+                    <form @submit.prevent="saveGudang">
+                        <div class="mb-4">
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">Nama Gudang</label>
+                            <input v-model="gudangForm.nama_gudang" type="text" class="w-full border-slate-300 rounded-lg shadow-sm focus:ring-emerald-500 focus:border-emerald-500 text-sm p-2 bg-slate-50" required placeholder="Gudang Bahan Baku..." />
+                        </div>
+                        <div class="flex justify-end gap-3 mt-6">
+                            <button type="button" @click="showGudangModal = false" class="px-4 py-2 text-slate-600 border border-slate-200 hover:bg-slate-50 rounded-lg text-sm font-semibold">Batal</button>
+                            <button type="submit" class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm font-semibold">Simpan</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL LAYOUT -->
+        <div v-if="showLayoutModal" class="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
+            <div class="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+                <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                    <h3 class="font-bold text-slate-800">{{ isEditLayout ? 'Edit Layout' : 'Tambah Layout' }}</h3>
+                    <button @click="showLayoutModal = false" class="text-slate-400 hover:text-red-500">&times;</button>
+                </div>
+                <div class="p-6">
+                    <form @submit.prevent="saveLayout">
+                        <div class="mb-4">
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">Pilih Gudang</label>
+                            <select v-model="layoutForm.id_gudang" class="w-full border-slate-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm p-2 bg-slate-50" required>
+                                <option value="" disabled>-- Pilih Gudang --</option>
+                                <option v-for="g in gudangsRaw" :key="g.id_gudang" :value="g.id_gudang">{{ g.nama_gudang }}</option>
+                            </select>
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">Nama Layout</label>
+                            <input v-model="layoutForm.nama_layout" type="text" class="w-full border-slate-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm p-2 bg-slate-50" required placeholder="Lorong A, Area B..." />
+                        </div>
+                        <div class="flex justify-end gap-3 mt-6">
+                            <button type="button" @click="showLayoutModal = false" class="px-4 py-2 text-slate-600 border border-slate-200 hover:bg-slate-50 rounded-lg text-sm font-semibold">Batal</button>
+                            <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-semibold">Simpan</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL LOCATION -->
+        <div v-if="showLocationModal" class="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
+            <div class="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+                <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                    <h3 class="font-bold text-slate-800">{{ isEditLocation ? 'Edit Location' : 'Tambah Location' }}</h3>
+                    <button @click="showLocationModal = false" class="text-slate-400 hover:text-red-500">&times;</button>
+                </div>
+                <div class="p-6">
+                    <form @submit.prevent="saveLocation">
+                        <div class="mb-4">
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">Pilih Gudang</label>
+                            <select v-model="locationForm.id_gudang" @change="locationForm.id_layout = ''" class="w-full border-slate-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm p-2 bg-slate-50" required>
+                                <option value="" disabled>-- Pilih Gudang --</option>
+                                <option v-for="g in gudangsRaw" :key="g.id_gudang" :value="g.id_gudang">{{ g.nama_gudang }}</option>
+                            </select>
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">Pilih Layout</label>
+                            <select v-model="locationForm.id_layout" :disabled="!locationForm.id_gudang" class="w-full border-slate-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm p-2 bg-slate-50 disabled:bg-slate-100 disabled:text-slate-400" required>
+                                <option value="" disabled>-- Pilih Layout --</option>
+                                <option v-for="l in availableLayouts" :key="l.id_layout" :value="l.id_layout">{{ l.nama_layout }}</option>
+                            </select>
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">Kode Location</label>
+                            <input v-model="locationForm.kode_location" type="text" class="w-full border-slate-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm p-2 bg-slate-50" required placeholder="A1, B2..." />
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">Kapasitas Maksimal</label>
+                            <input v-model="locationForm.kapasitas" type="number" min="1" class="w-full border-slate-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm p-2 bg-slate-50" required />
+                        </div>
+                        <div class="flex justify-end gap-3 mt-6">
+                            <button type="button" @click="showLocationModal = false" class="px-4 py-2 text-slate-600 border border-slate-200 hover:bg-slate-50 rounded-lg text-sm font-semibold">Batal</button>
+                            <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-semibold">Simpan</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
 
     </div>
 </template>

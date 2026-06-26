@@ -158,15 +158,16 @@ Route::middleware('auth')->group(function () {
         Route::get('/inbound', [\App\Http\Controllers\Admin\InboundController::class, 'index'])->name('inbound');
         Route::get('/inbound/data', [\App\Http\Controllers\Admin\InboundController::class, 'getLayoutLocations'])->name('inbound.data');
         Route::get('/inbound/items/{id_inbound}', [\App\Http\Controllers\Admin\InboundController::class, 'getInboundItems'])->name('inbound.items');
-        Route::post('/inbound/layout', [\App\Http\Controllers\Admin\InboundController::class, 'storeLayout'])->name('inbound.layout.store');
-        Route::post('/inbound/location', [\App\Http\Controllers\Admin\InboundController::class, 'storeLocation'])->name('inbound.location.store');
-        
-        // Layout & Location Management Routes
-        Route::get('/inbound/layout-location', [\App\Http\Controllers\Admin\InboundController::class, 'manageLayoutLocation'])->name('inbound.layout-location');
-        Route::put('/inbound/layout/{id}', [\App\Http\Controllers\Admin\InboundController::class, 'updateLayout'])->name('inbound.layout.update');
-        Route::delete('/inbound/layout/{id}', [\App\Http\Controllers\Admin\InboundController::class, 'destroyLayout'])->name('inbound.layout.destroy');
-        Route::put('/inbound/location/{id}', [\App\Http\Controllers\Admin\InboundController::class, 'updateLocation'])->name('inbound.location.update');
-        Route::delete('/inbound/location/{id}', [\App\Http\Controllers\Admin\InboundController::class, 'destroyLocation'])->name('inbound.location.destroy');
+        // Gudang, Layout & Location Management Routes
+        Route::post('/inventory/gudang', [\App\Http\Controllers\Admin\InventoryController::class, 'storeGudang'])->name('inventory.gudang.store');
+        Route::put('/inventory/gudang/{id}', [\App\Http\Controllers\Admin\InventoryController::class, 'updateGudang'])->name('inventory.gudang.update');
+        Route::delete('/inventory/gudang/{id}', [\App\Http\Controllers\Admin\InventoryController::class, 'destroyGudang'])->name('inventory.gudang.destroy');
+        Route::post('/inventory/layout', [\App\Http\Controllers\Admin\InventoryController::class, 'storeLayout'])->name('inventory.layout.store');
+        Route::post('/inventory/location', [\App\Http\Controllers\Admin\InventoryController::class, 'storeLocation'])->name('inventory.location.store');
+        Route::put('/inventory/layout/{id}', [\App\Http\Controllers\Admin\InventoryController::class, 'updateLayout'])->name('inventory.layout.update');
+        Route::delete('/inventory/layout/{id}', [\App\Http\Controllers\Admin\InventoryController::class, 'destroyLayout'])->name('inventory.layout.destroy');
+        Route::put('/inventory/location/{id}', [\App\Http\Controllers\Admin\InventoryController::class, 'updateLocation'])->name('inventory.location.update');
+        Route::delete('/inventory/location/{id}', [\App\Http\Controllers\Admin\InventoryController::class, 'destroyLocation'])->name('inventory.location.destroy');
         
         Route::post('/inbound/inventory', [\App\Http\Controllers\Admin\InboundController::class, 'storeInventory'])->name('inbound.inventory.store');
         
