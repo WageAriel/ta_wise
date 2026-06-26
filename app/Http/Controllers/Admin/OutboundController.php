@@ -48,19 +48,25 @@ class OutboundController extends Controller
             });
 
         // Inventory with stock > 0 for the picker
-        $inventoryStock = Inventory::with(['barang', 'location.layout'])
+        $inventoryStock = Inventory::with(['barang', 'subtype', 'location.layout'])
             ->where('qty', '>', 0)
             ->get()
-            ->map(fn($inv) => [
-                'id_inventory' => $inv->id_inventory,
-                'id_barang'    => $inv->id_barang,
-                'id_location'  => $inv->id_location,
-                'nama_barang'  => $inv->barang?->nama_barang ?? '-',
-                'satuan'       => $inv->barang?->satuan ?? 'Unit',
-                'kode_location' => $inv->location?->kode_location ?? '-',
-                'nama_layout'  => $inv->location?->layout?->nama_layout ?? '-',
-                'qty'          => $inv->qty,
-            ]);
+            ->map(function($inv) {
+                $category = $inv->barang?->nama_barang ?? '-';
+                $name = $inv->subtype ? $inv->subtype->subtype_name : $category;
+                
+                return [
+                    'id_inventory' => $inv->id_inventory,
+                    'id_barang'    => $inv->id_barang,
+                    'id_subtype'   => $inv->id_subtype,
+                    'id_location'  => $inv->id_location,
+                    'nama_barang'  => $name,
+                    'satuan'       => $inv->barang?->satuan ?? 'Unit',
+                    'kode_location' => $inv->location?->kode_location ?? '-',
+                    'nama_layout'  => $inv->location?->layout?->nama_layout ?? '-',
+                    'qty'          => $inv->qty,
+                ];
+            });
 
         return Inertia::render('Admin/Outbound', [
             'outbounds'     => $outbounds,

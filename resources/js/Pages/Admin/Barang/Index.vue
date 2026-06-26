@@ -78,9 +78,11 @@ const deleteBarang = (id) => {
         text: "Data yang dihapus tidak dapat dikembalikan!",
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#3085d6',
-        confirmButtonText: 'Ya, hapus!'
+        confirmButtonColor: '#10b981',
+        cancelButtonColor: '#ef4444',
+        confirmButtonText: 'Ya, hapus!',
+        cancelButtonText: 'Batal',
+        reverseButtons: true
     }).then((result) => {
         if (result.isConfirmed) {
             form.delete(route('admin.barang.destroy', id), {

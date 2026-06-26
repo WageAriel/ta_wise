@@ -59,100 +59,70 @@ class InboundController extends Controller
      */
     public function getInboundItems($id_inbound)
     {
-        $inbound = Inbound::with(['purchaseOrder.items.barang', 'purchaseOrder.items.subtype', 'purchaseOrder.items.itemType'])
-            ->where('id_inbound', $id_inbound)
-            ->first();
+        // Fetch Inbound items
+        $items = InboundItem::with(['barang', 'subtype'])->where('id_inbound', $id_inbound)->orderBy('id_isi')->get();
 
-        if (!$inbound) {
+        if ($items->isEmpty()) {
             return response()->json([]);
         }
 
-        // Group PO items by barang_id, sorted by id
-        $poItemsGrouped = [];
-        if ($inbound->purchaseOrder) {
-            $poItems = $inbound->purchaseOrder->items()->orderBy('id')->get();
-            foreach ($poItems as $poItem) {
-                $poItemsGrouped[$poItem->barang_id][] = $poItem;
-            }
-        }
-
-        // Fetch Inbound items sorted by id_isi (creation order)
-        $items = InboundItem::with('barang')->where('id_inbound', $id_inbound)->orderBy('id_isi')->get();
-
-        // Calculate how much has already been put away for this inbound per barang
+        // Calculate how much has already been put away for this inbound per item
         $putAways = PutAway::with('inventory')->where('id_inbound', $id_inbound)->get();
 
-        $putAwayQtyPerBarang = [];
+        $putAwayQtyPerItem = [];
         foreach ($putAways as $pa) {
             if ($pa->inventory) {
-                $id_barang = $pa->inventory->id_barang;
-                if (!isset($putAwayQtyPerBarang[$id_barang])) {
-                    $putAwayQtyPerBarang[$id_barang] = 0;
+                $key = $pa->inventory->id_barang . '_' . ($pa->inventory->id_subtype ?? '0');
+                if (!isset($putAwayQtyPerItem[$key])) {
+                    $putAwayQtyPerItem[$key] = 0;
                 }
-                $putAwayQtyPerBarang[$id_barang] += $pa->qty;
+                $putAwayQtyPerItem[$key] += $pa->qty;
             }
         }
 
-        // Calculate how much has already been returned for this inbound per barang
+        // Calculate how much has already been returned for this inbound
         $returns = ReturnBarang::with('details')->where('id_inbound', $id_inbound)->get();
-        $returnQtyPerBarang = [];
+        $returnQtyPerItem = [];
         foreach ($returns as $ret) {
             foreach ($ret->details as $detail) {
-                $id_barang = $detail->id_barang;
-                if (!isset($returnQtyPerBarang[$id_barang])) {
-                    $returnQtyPerBarang[$id_barang] = 0;
+                $key = $detail->id_barang . '_' . ($detail->id_subtype ?? '0');
+                if (!isset($returnQtyPerItem[$key])) {
+                    $returnQtyPerItem[$key] = 0;
                 }
-                $returnQtyPerBarang[$id_barang] += $detail->qty;
+                $returnQtyPerItem[$key] += $detail->qty;
             }
         }
 
-        // Keep track of total putAway + return consumed per id_barang
         $consumedQty = [];
-        $seenCounts = [];
         $formattedItems = [];
 
         foreach ($items as $item) {
             $id_barang = $item->id_barang;
+            $id_subtype = $item->id_subtype;
+            $key = $id_barang . '_' . ($id_subtype ?? '0');
 
-            if (!isset($consumedQty[$id_barang])) {
-                $putAwayQty = $putAwayQtyPerBarang[$id_barang] ?? 0;
-                $returnQty = $returnQtyPerBarang[$id_barang] ?? 0;
-                $consumedQty[$id_barang] = $putAwayQty + $returnQty;
+            if (!isset($consumedQty[$key])) {
+                $putAwayQty = $putAwayQtyPerItem[$key] ?? 0;
+                $returnQty = $returnQtyPerItem[$key] ?? 0;
+                $consumedQty[$key] = $putAwayQty + $returnQty;
             }
 
-            // FIFO depletion of consumed quantity for this item
+            // FIFO depletion
             $inboundQty = $item->qty;
-            $applyConsume = min($inboundQty, $consumedQty[$id_barang]);
-            $consumedQty[$id_barang] -= $applyConsume;
+            $applyConsume = min($inboundQty, $consumedQty[$key]);
+            $consumedQty[$key] -= $applyConsume;
             $remainingQty = $inboundQty - $applyConsume;
-
-            // Track index of id_barang we are currently seeing
-            if (!isset($seenCounts[$id_barang])) {
-                $seenCounts[$id_barang] = 0;
-            }
-            $index = $seenCounts[$id_barang];
-            $seenCounts[$id_barang]++;
 
             if ($remainingQty > 0) {
                 $namaBarang = $item->barang ? $item->barang->nama_barang : 'Unknown';
-
-                // Fetch correct subtype name using the seen count index
-                $subtypeName = null;
-                if (isset($poItemsGrouped[$id_barang][$index])) {
-                    $poItem = $poItemsGrouped[$id_barang][$index];
-                    $subtypeName = $poItem->subtype->subtype_name ?? $poItem->itemType->type_name ?? null;
-                } else {
-                    // Fallback to first if index out of bounds
-                    $firstPoItem = isset($poItemsGrouped[$id_barang][0]) ? $poItemsGrouped[$id_barang][0] : null;
-                    if ($firstPoItem) {
-                        $subtypeName = $firstPoItem->subtype->subtype_name ?? $firstPoItem->itemType->type_name ?? null;
-                    }
-                }
+                $subtypeName = $item->subtype ? $item->subtype->subtype_name : null;
 
                 $displayNama = $subtypeName ? "{$namaBarang} - {$subtypeName}" : $namaBarang;
 
                 $formattedItems[] = [
+                    'id_isi' => $item->id_isi,
                     'id_barang' => $id_barang,
+                    'id_subtype' => $id_subtype,
                     'nama_barang' => $displayNama,
                     'qty' => $remainingQty,
                     'max_qty' => $remainingQty
@@ -163,108 +133,7 @@ class InboundController extends Controller
         return response()->json($formattedItems);
     }
 
-    /**
-     * Store a new layout.
-     */
-    public function storeLayout(Request $request)
-    {
-        $validated = $request->validate([
-            'nama_layout' => 'required|string|max:255'
-        ]);
 
-        $layout = Layout::create($validated);
-
-        return redirect()->back()->with('success', 'Layout created successfully');
-    }
-
-    public function storeLocation(Request $request)
-    {
-        $validated = $request->validate([
-            'kode_location' => 'required|string|max:255',
-            'kapasitas' => 'required|integer|min:1',
-            'id_layout' => 'required|exists:layout,id_layout'
-        ]);
-
-        $location = Location::create($validated);
-
-        return redirect()->back()->with('success', 'Location created successfully');
-    }
-
-    /**
-     * Manage Layout & Location Page
-     */
-    public function manageLayoutLocation()
-    {
-        $layouts = Layout::with('locations')->get();
-        return Inertia::render('Admin/Inbound/LayoutLocationManager', [
-            'layouts' => $layouts
-        ]);
-    }
-
-    /**
-     * Update Layout
-     */
-    public function updateLayout(Request $request, $id)
-    {
-        $request->validate([
-            'nama_layout' => 'required|string|max:255'
-        ]);
-
-        $layout = Layout::findOrFail($id);
-        $layout->update(['nama_layout' => $request->nama_layout]);
-
-        return redirect()->back()->with('success', 'Layout updated successfully');
-    }
-
-    public function destroyLayout($id)
-    {
-        $layout = Layout::withCount('locations')->findOrFail($id);
-
-        if ($layout->locations_count > 0) {
-            return redirect()->back()->with('error', 'Cannot delete layout because it has locations.');
-        }
-
-        $layout->delete();
-
-        return redirect()->back()->with('success', 'Layout deleted successfully');
-    }
-
-    /**
-     * Update Location
-     */
-    public function updateLocation(Request $request, $id)
-    {
-        $request->validate([
-            'kode_location' => 'required|string|max:255',
-            'kapasitas' => 'required|integer|min:1',
-            'id_layout' => 'required|exists:layout,id_layout'
-        ]);
-
-        $location = Location::findOrFail($id);
-        $location->update([
-            'kode_location' => $request->kode_location,
-            'kapasitas' => $request->kapasitas,
-            'id_layout' => $request->id_layout
-        ]);
-
-        return redirect()->back()->with('success', 'Location updated successfully');
-    }
-
-    /**
-     * Delete Location
-     */
-    public function destroyLocation($id)
-    {
-        $location = Location::withCount('inventories')->findOrFail($id);
-
-        if ($location->inventories_count > 0) {
-            return redirect()->back()->with('error', 'Cannot delete location because it has inventory items.');
-        }
-
-        $location->delete();
-
-        return redirect()->back()->with('success', 'Location deleted successfully');
-    }
 
     /**
      * Store a new inventory record.
@@ -276,6 +145,7 @@ class InboundController extends Controller
             'id_inbound' => 'required|string',
             'items' => 'required|array|min:1',
             'items.*.id_barang' => 'required|exists:barang,id_barang',
+            'items.*.id_subtype' => 'nullable|exists:po_item_subtypes,id_subtype',
             'items.*.qty' => 'required|integer|min:1',
             'items.*.max_qty' => 'sometimes|integer|min:1',
             'items.*.id_location' => 'required_unless:items.*.is_returned,true|nullable|exists:location,id_location',
@@ -301,6 +171,7 @@ class InboundController extends Controller
                 $inventory = Inventory::updateOrCreate(
                     [
                         'id_barang' => $item['id_barang'],
+                        'id_subtype' => $item['id_subtype'] ?? null,
                         'id_location' => $item['id_location'],
                     ],
                     [

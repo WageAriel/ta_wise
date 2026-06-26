@@ -15,6 +15,7 @@ class Inventory extends Model
     protected $fillable = [
         'qty',
         'id_barang',
+        'id_subtype',
         'id_location',
     ];
 
@@ -26,5 +27,10 @@ class Inventory extends Model
     public function location()
     {
         return $this->belongsTo(Location::class, 'id_location', 'id_location');
+    }
+
+    public function subtype()
+    {
+        return $this->belongsTo(POItemSubtype::class, 'id_subtype', 'id_subtype');
     }
 }

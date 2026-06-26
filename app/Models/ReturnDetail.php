@@ -15,6 +15,7 @@ class ReturnDetail extends Model
     protected $fillable = [
         'id_return',
         'id_barang',
+        'id_subtype',
         'qty',
         'kondisi',
         'alasan',
@@ -28,5 +29,10 @@ class ReturnDetail extends Model
     public function barang()
     {
         return $this->belongsTo(Barang::class, 'id_barang', 'id_barang');
+    }
+
+    public function subtype()
+    {
+        return $this->belongsTo(POItemSubtype::class, 'id_subtype', 'id_subtype');
     }
 }
