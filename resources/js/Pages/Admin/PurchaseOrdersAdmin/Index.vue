@@ -129,6 +129,20 @@ const selectedSupplierName = computed(() => {
   return found ? found.nama_perusahaan : '';
 });
 
+const selectedSupplierDetails = computed(() => {
+  if (!form.supplier_id) return null;
+  return props.suppliers.find((s) => String(s.id) === String(form.supplier_id)) || null;
+});
+
+const totalRequestQuantity = computed(() => {
+  return form.types.reduce((sum, t) => sum + Number(t.quantity || 0), 0);
+});
+
+const isLimitExceeded = computed(() => {
+  if (!selectedSupplierDetails.value) return false;
+  return totalRequestQuantity.value > selectedSupplierDetails.value.transaction_limit;
+});
+
 const selectSupplier = (supplier) => {
   form.supplier_id = supplier.id;
   supplierSearch.value = '';
@@ -419,6 +433,18 @@ const onBarangChange = () => {
       uom_locked: forceUom,
     }
   ];
+};
+
+const onNumberInput = (obj, key, event) => {
+  let val = event.target.value.replace(/\D/g, '');
+  let num = val ? parseInt(val, 10) : '';
+  obj[key] = num;
+  event.target.value = num !== '' ? new Intl.NumberFormat('id-ID').format(num) : '';
+};
+
+const formatInputValue = (val) => {
+  if (val === null || val === undefined || val === '') return '';
+  return new Intl.NumberFormat('id-ID').format(val);
 };
 
 const onSubtypeChange = (typeLine) => {
@@ -753,13 +779,12 @@ const confirmArrival = () => {
                 <td class="px-4 py-3">
                   <div class="flex items-center gap-2">
                     <button class="text-xs font-semibold text-blue-600" @click="openViewModal(po)">See</button>
-                    <button class="text-xs font-semibold text-emerald-600" @click="openShipmentModal(po)">Status</button>
                     <button
-                      v-if="segment === 'order-request' && (po.status === 'inquiry' || po.status === 'draft')"
-                      class="text-xs font-semibold text-amber-600"
-                      @click="openEditModal(po)"
+                      v-if="po.status !== 'inquiry' && po.status !== 'draft'"
+                      class="text-xs font-semibold text-emerald-600"
+                      @click="openShipmentModal(po)"
                     >
-                      Edit
+                      Status
                     </button>
                     <button
                       v-if="segment === 'order-request' && (po.status === 'inquiry' || po.status === 'draft')"
@@ -923,6 +948,14 @@ const confirmArrival = () => {
                   </div>
                 </div>
               </div>
+              <!-- Warning Limit Transaksi -->
+              <div v-if="isLimitExceeded" class="mt-2 flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-700 font-medium">
+                <svg class="w-4 h-4 text-amber-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                <p>
+                  <span class="font-bold uppercase tracking-wide text-amber-800">Perhatian:</span> Total kuantitas barang yang Anda masukkan ({{ totalRequestQuantity }}) telah melampaui batas untuk <strong>Kelas {{ selectedSupplierDetails.kelas }}</strong> 
+                  (Maksimal: {{ selectedSupplierDetails.transaction_limit }} per transaksi). Anda masih dapat melanjutkan pembuatan order.
+                </p>
+              </div>
             </div>
             <div>
               <label class="text-xs font-semibold text-slate-500">Kelas Supplier</label>
@@ -999,21 +1032,21 @@ const confirmArrival = () => {
               <div class="mt-3 grid gap-3 md:grid-cols-3">
                 <div>
                   <label class="text-xs font-semibold text-slate-500">Price Request</label>
-                  <input v-model.number="t.unit_price" type="number" min="0" class="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" :disabled="modalMode === 'view'" />
+                  <input :value="formatInputValue(t.unit_price)" @input="e => onNumberInput(t, 'unit_price', e)" type="text" class="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" :disabled="modalMode === 'view' || !t.subtype_id" />
                   <div v-if="modalMode === 'review' && t.unit_price !== t.original_price" class="mt-1 text-[10px] text-amber-600 font-medium">
                     Semula: {{ formatCurrency(t.original_price) }}
                   </div>
                 </div>
                 <div>
                   <label class="text-xs font-semibold text-slate-500">Quantity</label>
-                  <input v-model.number="t.quantity" type="number" min="1" class="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" :disabled="modalMode === 'view'" />
+                  <input :value="formatInputValue(t.quantity)" @input="e => onNumberInput(t, 'quantity', e)" type="text" class="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" :disabled="modalMode === 'view' || !t.subtype_id" />
                   <div v-if="modalMode === 'review' && t.quantity !== t.original_quantity" class="mt-1 text-[10px] text-amber-600 font-medium">
                     Semula: {{ t.original_quantity }}
                   </div>
                 </div>
                 <div>
                   <label class="text-xs font-semibold text-slate-500">UoM</label>
-                  <select v-model="t.uom" class="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" :disabled="modalMode === 'view' || modalMode === 'review' || t.uom_locked">
+                  <select v-model="t.uom" class="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" :disabled="modalMode === 'view' || modalMode === 'review' || t.uom_locked || !t.subtype_id">
                     <option value="">Pilih UoM</option>
                     <option v-for="uom in uomOptions" :key="uom" :value="uom">{{ uom }}</option>
                   </select>

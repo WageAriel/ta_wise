@@ -42,6 +42,12 @@ class PurchaseOrderDefault extends Controller
             'admin_description' => ['nullable', 'string', 'max:2000'],
             'uom_options' => ['nullable', 'array'],
             'uom_options.*' => ['nullable', 'string', 'max:50'],
+            'limit_class_a' => ['required', 'integer', 'min:1'],
+            'limit_class_b' => ['required', 'integer', 'min:1', 'lte:limit_class_a'],
+            'limit_class_c' => ['required', 'integer', 'min:1', 'lte:limit_class_b'],
+        ], [
+            'limit_class_b.lte' => 'Batas transaksi Kelas B tidak boleh lebih besar dari Kelas A.',
+            'limit_class_c.lte' => 'Batas transaksi Kelas C tidak boleh lebih besar dari Kelas B.',
         ]);
 
         $settings = PurchaseOrderSetting::current();
@@ -50,6 +56,9 @@ class PurchaseOrderDefault extends Controller
             'supplier_description' => $validated['supplier_description'] ?? $settings->supplier_description ?? PurchaseOrderSetting::defaultDescription(),
             'admin_description' => $validated['admin_description'] ?? $settings->admin_description,
             'uom_options' => array_values(array_filter($validated['uom_options'] ?? $settings->uom_options ?? PurchaseOrderSetting::defaultUomOptions())),
+            'limit_class_a' => $validated['limit_class_a'] ?? 1000,
+            'limit_class_b' => $validated['limit_class_b'] ?? 500,
+            'limit_class_c' => $validated['limit_class_c'] ?? 100,
             'updated_by' => $request->user()?->id,
         ]);
 

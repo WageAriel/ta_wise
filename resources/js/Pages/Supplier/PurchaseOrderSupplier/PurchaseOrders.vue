@@ -122,6 +122,18 @@ const submitWithChanges = () => {
   });
 };
 
+const onNumberInput = (obj, key, event) => {
+  let val = event.target.value.replace(/\D/g, '');
+  let num = val ? parseInt(val, 10) : '';
+  obj[key] = num;
+  event.target.value = num !== '' ? new Intl.NumberFormat('id-ID').format(num) : '';
+};
+
+const formatInputValue = (val) => {
+  if (val === null || val === undefined || val === '') return '';
+  return new Intl.NumberFormat('id-ID').format(val);
+};
+
 /* ── Shipment modal ── */
 const showShipmentModal = ref(false);
 const shipmentForm = useForm({
@@ -383,11 +395,11 @@ const onStatusClick = (po) => {
             <div class="grid gap-3 md:grid-cols-2">
               <div>
                 <label class="text-xs font-semibold text-slate-500">Harga yang ditawarkan</label>
-                <input v-model.number="item.supplier_price" type="number" min="0" class="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+                <input :value="formatInputValue(item.supplier_price)" @input="e => onNumberInput(item, 'supplier_price', e)" type="text" class="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
               </div>
               <div>
                 <label class="text-xs font-semibold text-slate-500">Jumlah yang disanggupi</label>
-                <input v-model.number="item.supplier_quantity" type="number" min="1" class="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+                <input :value="formatInputValue(item.supplier_quantity)" @input="e => onNumberInput(item, 'supplier_quantity', e)" type="text" class="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
               </div>
             </div>
             <div class="mt-2 text-right text-xs text-slate-500">Subtotal: {{ formatCurrency(item.supplier_price * item.supplier_quantity) }}</div>

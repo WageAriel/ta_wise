@@ -185,6 +185,12 @@ Route::middleware('auth')->group(function () {
 
         Route::get('/outbound', [\App\Http\Controllers\Admin\OutboundController::class, 'index'])->name('outbound');
         Route::post('/outbound', [\App\Http\Controllers\Admin\OutboundController::class, 'store'])->name('outbound.store');
+        
+        // Outbound Recipient Master Data
+        Route::post('/outbound/recipients', [\App\Http\Controllers\Admin\OutboundController::class, 'storeRecipient'])->name('outbound.recipients.store');
+        Route::put('/outbound/recipients/{id}', [\App\Http\Controllers\Admin\OutboundController::class, 'updateRecipient'])->name('outbound.recipients.update');
+        Route::delete('/outbound/recipients/{id}', [\App\Http\Controllers\Admin\OutboundController::class, 'destroyRecipient'])->name('outbound.recipients.destroy');
+        
         Route::get('/outbound/{id}', [\App\Http\Controllers\Admin\OutboundController::class, 'show'])->name('outbound.show');
         Route::delete('/outbound/{id}', [\App\Http\Controllers\Admin\OutboundController::class, 'destroy'])->name('outbound.destroy');
         Route::get('/user-management', [\App\Http\Controllers\Admin\UserController::class, 'index'])->name('user-management');

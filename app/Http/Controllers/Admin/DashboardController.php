@@ -9,6 +9,10 @@ use Inertia\Inertia;
 use App\Models\PurchaseOrder;
 use App\Models\Inbound;
 use App\Models\InboundItem;
+use App\Models\Supplier;
+use App\Models\Seleksi;
+use App\Models\Klasifikasi;
+use App\Models\Outbound;
 use Carbon\Carbon;
 
 class DashboardController extends Controller
@@ -100,6 +104,83 @@ class DashboardController extends Controller
             ]);
         }
 
+        // Data Menunggu Persetujuan
+        $pendingSupplier = Supplier::where('status', 'menunggu review')->count();
+        $pendingSeleksi = Seleksi::where('status_seleksi', 'Menunggu Validasi')->count();
+        $pendingKlasifikasi = Klasifikasi::whereIn('status_klasifikasi', ['pending', 'diproses'])->count();
+
+        // Log Aktivitas
+        $activities = collect();
+
+        // PO
+        PurchaseOrder::latest('updated_at')->take(5)->get()->each(function($po) use ($activities) {
+            $activities->push([
+                'type' => 'po',
+                'title' => 'Purchase Order ' . $po->po_number,
+                'description' => 'Status PO diperbarui: ' . $po->status,
+                'date' => $po->updated_at,
+                'url' => route('admin.purchase-orders.index'),
+            ]);
+        });
+
+        // Supplier
+        Supplier::where('status', 'approved')->latest('updated_at')->take(5)->get()->each(function($sup) use ($activities) {
+            $activities->push([
+                'type' => 'supplier',
+                'title' => 'Supplier Disetujui',
+                'description' => $sup->nama_perusahaan . ' telah disetujui.',
+                'date' => $sup->updated_at,
+                'url' => route('admin.supplier.index'),
+            ]);
+        });
+
+        // Seleksi
+        Seleksi::whereIn('status_seleksi', ['Lolos', 'Tidak Lolos'])->with('supplier')->latest('updated_at')->take(5)->get()->each(function($sel) use ($activities) {
+            $activities->push([
+                'type' => 'seleksi',
+                'title' => 'Validasi Seleksi',
+                'description' => 'Seleksi ' . ($sel->supplier->nama_perusahaan ?? 'Supplier') . ' divalidasi (' . $sel->status_seleksi . ')',
+                'date' => $sel->updated_at,
+                'url' => route('admin.supplier.selection.index'),
+            ]);
+        });
+
+        // Klasifikasi
+        Klasifikasi::whereIn('status_klasifikasi', ['disetujui', 'ditolak'])->with('supplier')->latest('updated_at')->take(5)->get()->each(function($klas) use ($activities) {
+            $activities->push([
+                'type' => 'klasifikasi',
+                'title' => 'Validasi Klasifikasi',
+                'description' => 'Klasifikasi ' . ($klas->supplier->nama_perusahaan ?? 'Supplier') . ' divalidasi (' . $klas->status_klasifikasi . ')',
+                'date' => $klas->updated_at,
+                'url' => route('admin.supplier.classification'),
+            ]);
+        });
+
+        // Inbound
+        Inbound::latest('created_at')->take(5)->get()->each(function($in) use ($activities) {
+            $activities->push([
+                'type' => 'inbound',
+                'title' => 'Barang Masuk',
+                'description' => 'Inbound ' . $in->no_inbound . ' dicatat.',
+                'date' => $in->created_at,
+                'url' => route('admin.inbound'),
+            ]);
+        });
+
+        // Outbound
+        Outbound::latest('created_at')->take(5)->get()->each(function($out) use ($activities) {
+            $activities->push([
+                'type' => 'outbound',
+                'title' => 'Barang Keluar',
+                'description' => 'Outbound ' . $out->no_outbound . ' dicatat.',
+                'date' => $out->created_at,
+                'url' => route('admin.outbound'),
+            ]);
+        });
+
+        // Sortir descending
+        $activities = $activities->sortByDesc('date')->values();
+
         return Inertia::render('Dashboard', [
             'stats' => [
                 'poToday'    => $poToday,
@@ -109,7 +190,11 @@ class DashboardController extends Controller
                 'poCompleted' => $poCompleted,
                 'inboundToday' => (int) $inboundToday,
                 'inboundMonth' => (int) $inboundMonth,
+                'pendingSupplier' => $pendingSupplier,
+                'pendingSeleksi' => $pendingSeleksi,
+                'pendingKlasifikasi' => $pendingKlasifikasi,
             ],
+            'activities' => $activities,
             'chartByDate'  => $days,
             'chartByMonth' => $months,
         ]);

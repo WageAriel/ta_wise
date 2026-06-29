@@ -17,6 +17,9 @@ class PurchaseOrderSetting extends Model
         'supplier_description',
         'admin_description',
         'uom_options',
+        'limit_class_a',
+        'limit_class_b',
+        'limit_class_c',
         'updated_by',
     ];
 
@@ -34,6 +37,9 @@ class PurchaseOrderSetting extends Model
                 'supplier_description' => self::defaultDescription(),
                 'admin_description' => null,
                 'uom_options' => self::defaultUomOptions(),
+                'limit_class_a' => 1000,
+                'limit_class_b' => 500,
+                'limit_class_c' => 100,
             ]);
         }
 

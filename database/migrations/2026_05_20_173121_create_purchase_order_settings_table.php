@@ -17,6 +17,9 @@ return new class extends Migration
             $table->text('supplier_description')->nullable();
             $table->text('admin_description')->nullable();
             $table->json('uom_options')->nullable();
+            $table->integer('limit_class_a')->default(1000);
+            $table->integer('limit_class_b')->default(500);
+            $table->integer('limit_class_c')->default(100);
             $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
         });

@@ -73,7 +73,7 @@ class AdminPurchaseOrdersController extends Controller
             ->groupBy('id_supplier')
             ->map(fn ($group) => $group->first());
 
-        $suppliers = $suppliers->map(function ($supplier) use ($supplierClassMap) {
+        $suppliers = $suppliers->map(function ($supplier) use ($supplierClassMap, $settings) {
             $klasifikasi = $supplierClassMap->get($supplier->id);
             $kelas = $klasifikasi?->verifikasi?->keputusan_admin
                 ?? $klasifikasi?->verifikasi?->rekomendasi_sistem
@@ -84,6 +84,14 @@ class AdminPurchaseOrdersController extends Controller
                 return null;
             }
 
+            // Batas kuantitas barang per PO berdasarkan kelas
+            $limit = match (strtoupper($kelas)) {
+                'A' => (int) ($settings->limit_class_a ?? 1000),
+                'B' => (int) ($settings->limit_class_b ?? 500),
+                'C' => (int) ($settings->limit_class_c ?? 100),
+                default => 10,
+            };
+
             return [
                 'id' => $supplier->id,
                 'nama_perusahaan' => $supplier->nama_perusahaan,
@@ -91,6 +99,7 @@ class AdminPurchaseOrdersController extends Controller
                 'class_status' => 'Terverifikasi',
                 'class_name' => $kelas,
                 'kelas' => $kelas,
+                'transaction_limit' => $limit,
             ];
         })->filter()->values(); // filter() membuang null
 

@@ -39,6 +39,9 @@ const adminForm = useForm({
   admin_description: props.settings?.admin_description ?? '',
   uom_options: [...(props.settings?.uom_options?.length ? props.settings.uom_options : props.uomOptions || defaultUomOptions)],
   new_uom: '',
+  limit_class_a: props.settings?.limit_class_a ?? 1000,
+  limit_class_b: props.settings?.limit_class_b ?? 500,
+  limit_class_c: props.settings?.limit_class_c ?? 100,
 });
 
 const saveSupplier = () => {
@@ -240,6 +243,42 @@ const rowSpanForType = (type) => Math.max((type.subtypes || []).length, 0) + 2;
                   Simpan Deskripsi Admin
                 </button>
               </div>
+            </div>
+          </div>
+
+          <div class="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
+            <div class="flex items-start justify-between gap-4">
+              <div>
+                <h3 class="text-lg font-semibold text-slate-800">Batas Transaksi (Kuantitas)</h3>
+                <p class="mt-1 text-sm text-slate-500">Atur maksimal jumlah barang dalam satu kali transaksi (PO) berdasarkan kelas supplier.</p>
+              </div>
+            </div>
+            
+            <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label class="text-xs font-semibold text-emerald-600 uppercase">Kelas A (Tertinggi)</label>
+                <input v-model="adminForm.limit_class_a" type="number" class="mt-2 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100" />
+                <p v-if="adminForm.errors.limit_class_a" class="text-xs text-red-500 mt-1">{{ adminForm.errors.limit_class_a }}</p>
+              </div>
+              <div>
+                <label class="text-xs font-semibold text-blue-600 uppercase">Kelas B (Menengah)</label>
+                <input v-model="adminForm.limit_class_b" type="number" class="mt-2 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100" />
+                <p v-if="adminForm.errors.limit_class_b" class="text-xs text-red-500 mt-1">{{ adminForm.errors.limit_class_b }}</p>
+              </div>
+              <div>
+                <label class="text-xs font-semibold text-amber-600 uppercase">Kelas C (Dasar)</label>
+                <input v-model="adminForm.limit_class_c" type="number" class="mt-2 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100" />
+                <p v-if="adminForm.errors.limit_class_c" class="text-xs text-red-500 mt-1">{{ adminForm.errors.limit_class_c }}</p>
+              </div>
+            </div>
+            <div class="mt-4 flex justify-end">
+              <button
+                class="rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-60"
+                :disabled="adminForm.processing"
+                @click="saveAdmin"
+              >
+                Simpan Batasan Transaksi
+              </button>
             </div>
           </div>
 
