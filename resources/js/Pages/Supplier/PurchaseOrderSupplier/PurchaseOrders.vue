@@ -37,14 +37,14 @@ const yearOptions = computed(() => props.years?.length ? props.years : [new Date
 const formatCurrency = (v) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(Number(v || 0));
 
 const statusConfig = {
-  rfq:          { label: 'Accept Request',       color: 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200', clickable: true, pulse: false },
-  verification: { label: 'Request Verification', color: 'bg-blue-100 text-blue-700 hover:bg-blue-200',         clickable: true, pulse: false },
+  rfq:          { label: 'Accept Request',       color: 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200', clickable: true,  pulse: false },
+  verification: { label: 'Request Verification', color: 'bg-blue-100 text-blue-700 hover:bg-blue-200',         clickable: true,  pulse: false },
   request:      { label: 'Menunggu Admin',        color: 'bg-slate-100 text-slate-500',                          clickable: false, pulse: false },
-  completeness: { label: 'Lengkapi Dokumen',      color: 'bg-purple-100 text-purple-700 hover:bg-purple-200',   clickable: true, pulse: false },
-  approved:     { label: 'Disetujui',             color: 'bg-teal-100 text-teal-700 hover:bg-teal-200',         clickable: true, pulse: false },
-  shipment:     { label: 'Dalam Perjalanan',      color: 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200',   clickable: true, pulse: false },
-  completed:    { label: 'Sudah Diterima',         color: 'bg-slate-100 text-slate-500',                          clickable: false, pulse: false },
-  rejected:     { label: 'Ditolak (Declined)',    color: 'bg-red-100 text-red-700',                              clickable: false, pulse: false },
+  completeness: { label: 'Lengkapi Dokumen',      color: 'bg-purple-100 text-purple-700 hover:bg-purple-200',   clickable: true,  pulse: false },
+  approved:     { label: 'Isi Data Shipment',     color: 'bg-teal-100 text-teal-700 hover:bg-teal-200',         clickable: true,  pulse: false },
+  shipment:     { label: 'Dalam Perjalanan',      color: 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200',   clickable: true,  pulse: false },
+  completed:    { label: 'Sudah Diterima',        color: 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200', clickable: true, pulse: false },
+  rejected:     { label: 'Ditolak',              color: 'bg-red-100 text-red-700',                              clickable: false, pulse: false },
 };
 
 const getStatusConfig = (status) => statusConfig[status] || { label: status, color: 'bg-slate-100 text-slate-500', clickable: false, pulse: false };
@@ -125,19 +125,22 @@ const submitWithChanges = () => {
 /* ── Shipment modal ── */
 const showShipmentModal = ref(false);
 const shipmentForm = useForm({
-  driver_name: '', vehicle_plate: '', carrier: '', tracking_number: '',
-  shipment_notes: '', weighing_note_path: '', delivery_note_path: '',
+  delivery_type: 'self',
+  driver_name: '', vehicle_plate: '', phone_number: '',
+  courier_provider: '', tracking_number: '',
+  shipment_notes: '', supplementary_doc_path: '',
 });
 
 const openShipmentModal = (po) => {
   activePo.value = po;
+  shipmentForm.delivery_type = po.delivery_type || 'self';
   shipmentForm.driver_name = po.driver_name || '';
   shipmentForm.vehicle_plate = po.vehicle_plate || '';
-  shipmentForm.carrier = po.carrier || '';
+  shipmentForm.phone_number = po.phone_number || '';
+  shipmentForm.courier_provider = po.courier_provider || '';
   shipmentForm.tracking_number = po.tracking_number || '';
   shipmentForm.shipment_notes = po.shipment_notes || '';
-  shipmentForm.weighing_note_path = po.weighing_note_path || '';
-  shipmentForm.delivery_note_path = po.delivery_note_path || '';
+  shipmentForm.supplementary_doc_path = po.supplementary_doc_path || '';
   showShipmentModal.value = true;
 };
 
@@ -167,12 +170,20 @@ const submitCompleteness = () => {
   });
 };
 
+/* ── Completed PO Detail modal ── */
+const showCompletedModal = ref(false);
+const openCompletedModal = (po) => {
+  activePo.value = po;
+  showCompletedModal.value = true;
+};
+
 /* ── Status click handler ── */
 const onStatusClick = (po) => {
   if (po.status === 'rfq') return openAcceptModal(po);
   if (po.status === 'verification') return openVerificationModal(po);
   if (po.status === 'completeness') return openCompletenessModal(po);
   if (po.status === 'approved' || po.status === 'shipment') return openShipmentModal(po);
+  if (po.status === 'completed') return openCompletedModal(po);
 };
 </script>
 
@@ -384,14 +395,14 @@ const onStatusClick = (po) => {
         </div>
 
         <div class="flex justify-end gap-2 border-t border-slate-100 px-6 py-4">
-          <button class="rounded-lg border border-slate-200 px-4 py-2 text-sm" @click="showVerificationModal = false">Batal</button>
+          <button class="rounded-lg bg-red-500 px-4 py-2 text-sm font-semibold text-white hover:bg-red-600" @click="showVerificationModal = false">Batal</button>
+          <button class="rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-600"
+            @click="submitWithChanges" :disabled="verificationForm.processing">
+            Ajukan Penawaran
+          </button>
           <button class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
             @click="submitAcceptAsIs" :disabled="verificationForm.processing">
-            Accept Request
-          </button>
-          <button class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
-            @click="submitWithChanges" :disabled="verificationForm.processing">
-            Kirim Perubahan
+            Terima Penawaran
           </button>
         </div>
       </div>
@@ -410,7 +421,24 @@ const onStatusClick = (po) => {
           <button class="text-slate-400 hover:text-slate-600" @click="showShipmentModal = false">✕</button>
         </div>
         <div class="px-6 py-4 space-y-4">
-          <div class="grid gap-4 md:grid-cols-2">
+          <!-- Switch tipe pengiriman -->
+          <div class="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50 p-3">
+            <span class="text-xs font-semibold text-slate-600">Tipe Pengiriman:</span>
+            <button type="button"
+              class="flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-semibold transition"
+              :class="shipmentForm.delivery_type === 'self' ? 'bg-emerald-600 text-white shadow' : 'bg-slate-200 text-slate-600 hover:bg-slate-300'"
+              @click="shipmentForm.delivery_type = 'self'">
+              🚛 Pengiriman Sendiri
+            </button>
+            <button type="button"
+              class="flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-semibold transition"
+              :class="shipmentForm.delivery_type === 'courier' ? 'bg-indigo-600 text-white shadow' : 'bg-slate-200 text-slate-600 hover:bg-slate-300'"
+              @click="shipmentForm.delivery_type = 'courier'">
+              📦 Pengiriman Kurir
+            </button>
+          </div>
+          <!-- Self delivery fields -->
+          <div v-if="shipmentForm.delivery_type === 'self'" class="grid gap-4 md:grid-cols-2">
             <div>
               <label class="text-xs font-semibold text-slate-500">Nama Sopir</label>
               <input v-model="shipmentForm.driver_name" type="text" class="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
@@ -420,23 +448,24 @@ const onStatusClick = (po) => {
               <input v-model="shipmentForm.vehicle_plate" type="text" class="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
             </div>
             <div>
-              <label class="text-xs font-semibold text-slate-500">Carrier</label>
-              <input v-model="shipmentForm.carrier" type="text" class="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+              <label class="text-xs font-semibold text-slate-500">Nomor Telepon</label>
+              <input v-model="shipmentForm.phone_number" type="text" class="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+            </div>
+          </div>
+          <!-- Courier fields -->
+          <div v-else-if="shipmentForm.delivery_type === 'courier'" class="grid gap-4 md:grid-cols-2">
+            <div>
+              <label class="text-xs font-semibold text-slate-500">Penyedia Jasa Kurir</label>
+              <input v-model="shipmentForm.courier_provider" type="text" class="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" placeholder="JNE, JT, SiCepat, dll" />
             </div>
             <div>
-              <label class="text-xs font-semibold text-slate-500">Tracking Number</label>
+              <label class="text-xs font-semibold text-slate-500">Nomor Resi</label>
               <input v-model="shipmentForm.tracking_number" type="text" class="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
             </div>
           </div>
-          <div class="grid gap-4 md:grid-cols-2">
-            <div>
-              <label class="text-xs font-semibold text-slate-500">Nota Timbang (URL)</label>
-              <input v-model="shipmentForm.weighing_note_path" type="text" class="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" placeholder="URL file" />
-            </div>
-            <div>
-              <label class="text-xs font-semibold text-slate-500">Surat Jalan (URL)</label>
-              <input v-model="shipmentForm.delivery_note_path" type="text" class="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" placeholder="URL file" />
-            </div>
+          <div>
+            <label class="text-xs font-semibold text-slate-500">Dokumen Pelengkap (URL)</label>
+            <input v-model="shipmentForm.supplementary_doc_path" type="text" class="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" placeholder="URL dokumen" />
           </div>
           <div>
             <label class="text-xs font-semibold text-slate-500">Catatan Pengiriman</label>
@@ -445,7 +474,7 @@ const onStatusClick = (po) => {
         </div>
         <div class="flex justify-end gap-2 border-t border-slate-100 px-6 py-4">
           <button class="rounded-lg border border-slate-200 px-4 py-2 text-sm" @click="showShipmentModal = false">Batal</button>
-          <button class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white" @click="submitShipment" :disabled="shipmentForm.processing">Simpan Shipment</button>
+          <button class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white" @click="submitShipment" :disabled="shipmentForm.processing">Simpan & Kirim</button>
         </div>
       </div>
     </div>
@@ -485,19 +514,84 @@ const onStatusClick = (po) => {
             </div>
           </div>
 
+          <!-- Status link dokumen -->
+          <div v-if="activePo?.document_path" class="rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+            <div class="flex items-center gap-2 mb-2">
+              <span class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-white text-xs font-bold">✓</span>
+              <span class="text-xs font-bold text-emerald-800">Dokumen sudah dikirim</span>
+            </div>
+            <p class="text-[11px] text-emerald-700 mb-1">Tautan sebelumnya:</p>
+            <a :href="activePo.document_path" target="_blank" class="text-xs text-emerald-600 underline break-all">{{ activePo.document_path }}</a>
+            <p class="mt-2 text-[11px] text-emerald-600">Anda dapat memperbarui tautan di bawah jika perlu.</p>
+          </div>
+          <div v-else class="rounded-lg border border-amber-200 bg-amber-50 p-3">
+            <div class="flex items-center gap-2">
+              <span class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-amber-400 text-white text-xs font-bold">!</span>
+              <span class="text-xs font-bold text-amber-800">Belum ada dokumen yang dikirim</span>
+            </div>
+            <p class="mt-1 text-[11px] text-amber-700">Silakan masukkan tautan dokumen yang sudah ditandatangani.</p>
+          </div>
+
           <div>
             <label class="text-xs font-semibold text-slate-500">Link Dokumen (URL Google Drive / dsb)</label>
             <input v-model="completenessForm.document_path" type="text" class="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" placeholder="Masukkan URL dokumen yang disyaratkan" />
           </div>
-          <div v-if="activePo?.document_path" class="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-800">
-            <span class="font-bold block mb-1">Tautan yang sebelumnya Anda kirim:</span>
-            <a :href="activePo.document_path" target="_blank" class="text-emerald-600 underline break-all">{{ activePo.document_path }}</a>
-          </div>
-          <p class="mt-3 text-xs font-medium text-amber-600">Pastikan dokumen sudah ditandatangani sebelum diunggah.</p>
+          <p class="text-xs font-medium text-amber-600">Pastikan dokumen sudah ditandatangani sebelum diunggah.</p>
         </div>
         <div class="flex justify-end gap-2 border-t border-slate-100 px-6 py-4">
           <button class="rounded-lg border border-slate-200 px-4 py-2 text-sm" @click="showCompletenessModal = false">Batal</button>
           <button class="rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold text-white" @click="submitCompleteness" :disabled="completenessForm.processing">Kirim Dokumen</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════ -->
+    <!-- Completed PO Detail Modal                           -->
+    <!-- ════════════════════════════════════════════════════ -->
+    <div v-if="showCompletedModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div class="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white shadow-xl">
+        <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+          <div>
+            <h2 class="text-lg font-bold text-slate-800">Detail Purchase Order</h2>
+            <p class="text-xs text-slate-500">{{ activePo?.po_number }}</p>
+          </div>
+          <button class="text-slate-400 hover:text-slate-600" @click="showCompletedModal = false">✕</button>
+        </div>
+        <div class="min-h-0 flex-1 overflow-y-auto px-6 py-4 space-y-4">
+          <div class="flex items-center gap-2 rounded-lg bg-emerald-50 border border-emerald-200 px-4 py-3">
+            <span class="text-emerald-600 text-lg">✅</span>
+            <span class="text-sm font-semibold text-emerald-800">PO Sudah Diterima</span>
+          </div>
+          <div class="grid gap-3 md:grid-cols-2 text-sm">
+            <div class="rounded-xl border border-slate-100 p-3">
+              <p class="text-xs font-semibold text-slate-500">PO Number</p>
+              <p class="mt-1 text-slate-800 font-medium">{{ activePo?.po_number }}</p>
+            </div>
+            <div class="rounded-xl border border-slate-100 p-3">
+              <p class="text-xs font-semibold text-slate-500">Total Nilai</p>
+              <p class="mt-1 text-slate-800 font-bold text-emerald-700">{{ formatCurrency(activePo?.total_price) }}</p>
+            </div>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-slate-700 mb-2">Daftar Barang</h3>
+            <div v-for="item in activePo?.items" :key="item.id" class="flex justify-between items-center rounded-lg border border-slate-100 bg-slate-50 p-3 mb-2">
+              <div>
+                <p class="text-sm font-semibold text-slate-800">{{ item.barang?.nama_barang || '-' }}</p>
+                <p class="text-xs text-slate-500">{{ item.subtype?.subtype_name || item.itemType?.type_name || '-' }}</p>
+              </div>
+              <div class="text-right">
+                <p class="text-sm font-semibold text-emerald-600">{{ formatCurrency(item.final_price ?? item.unit_price) }}</p>
+                <p class="text-xs text-slate-500">{{ item.final_quantity ?? item.quantity }} {{ item.uom || 'Unit' }}</p>
+              </div>
+            </div>
+          </div>
+          <div v-if="activePo?.shipment_notes" class="rounded-xl border border-slate-100 p-3">
+            <p class="text-xs font-semibold text-slate-500">Catatan Pengiriman</p>
+            <p class="mt-1 text-sm text-slate-700 whitespace-pre-line">{{ activePo.shipment_notes }}</p>
+          </div>
+        </div>
+        <div class="flex justify-end border-t border-slate-100 px-6 py-4">
+          <button class="rounded-lg border border-slate-200 px-4 py-2 text-sm" @click="showCompletedModal = false">Tutup</button>
         </div>
       </div>
     </div>

@@ -104,12 +104,47 @@ const applyItemTypeSelection = (item) => {
 
 const selectedType = (item) => findItemTypeById(item.item_type_id || item.id_item_type || item.itemType?.id_item_type);
 
-const supplierDisplay = (supplier) => {
-  const statusLabel = supplier.class_status || supplier.kelas_label || supplier.kelas || '';
-  const classificationLabel = supplier.class_name || supplier.kelas_name || supplier.kelas || '';
-  const parts = [supplier.nama_perusahaan, statusLabel, classificationLabel].filter(Boolean);
-  return parts.join(' • ');
+const supplierDisplay = (supplier) => supplier.nama_perusahaan || '';
+
+// ── Supplier search & filter ──
+const supplierSearch = ref('');
+const supplierClassFilter = ref('');
+const showSupplierDropdown = ref(false);
+
+const filteredSuppliers = computed(() => {
+  let list = props.suppliers || [];
+  if (supplierClassFilter.value) {
+    list = list.filter((s) => String(s.kelas || s.class_name || '').toLowerCase() === supplierClassFilter.value.toLowerCase());
+  }
+  if (supplierSearch.value.trim()) {
+    const q = supplierSearch.value.trim().toLowerCase();
+    list = list.filter((s) => (s.nama_perusahaan || '').toLowerCase().includes(q));
+  }
+  return list;
+});
+
+const selectedSupplierName = computed(() => {
+  if (!form.supplier_id) return '';
+  const found = props.suppliers.find((s) => String(s.id) === String(form.supplier_id));
+  return found ? found.nama_perusahaan : '';
+});
+
+const selectSupplier = (supplier) => {
+  form.supplier_id = supplier.id;
+  supplierSearch.value = '';
+  showSupplierDropdown.value = false;
 };
+
+const clearSupplier = () => {
+  form.supplier_id = '';
+  supplierSearch.value = '';
+};
+
+const formatNumber = (value) => {
+  const num = Number(value || 0);
+  return new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(num);
+};
+
 
 const historyAvailable = computed(() => ['order-request', 'order-list'].includes(props.segment));
 const historyEnabled = ref(Boolean(props.filters?.history));
@@ -828,17 +863,66 @@ const confirmArrival = () => {
           <div class="grid gap-4 md:grid-cols-2">
             <div>
               <label class="text-xs font-semibold text-slate-500">Nama Supplier</label>
-              <select
-                v-model="form.supplier_id"
-                class="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                :disabled="modalMode === 'view'"
-              >
-                <option value="">Pilih Supplier</option>
-                <option v-for="supplier in suppliers" :key="supplier.id" :value="supplier.id">
-                  {{ supplierDisplay(supplier) }}
-                </option>
-              </select>
-
+              <!-- Readonly saat review/view -->
+              <div v-if="modalMode === 'review' || modalMode === 'view'"
+                class="mt-2 flex min-h-[42px] items-center rounded-lg border border-slate-200 bg-slate-100 px-3 text-sm text-slate-700 font-medium">
+                {{ selectedSupplierName || '-' }}
+              </div>
+              <!-- Search + Filter saat create/edit -->
+              <div v-else class="relative mt-2">
+                <!-- Selected badge or search input -->
+                <div v-if="form.supplier_id"
+                  class="flex items-center gap-2 w-full rounded-lg border border-blue-300 bg-blue-50 px-3 py-2 text-sm">
+                  <span class="flex-1 font-medium text-blue-800">{{ selectedSupplierName }}</span>
+                  <span class="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-600">{{ suppliers.find(s => String(s.id) === String(form.supplier_id))?.kelas || '-' }}</span>
+                  <button type="button" class="text-slate-400 hover:text-red-500 font-bold text-base leading-none" @click="clearSupplier">✕</button>
+                </div>
+                <div v-else>
+                  <div class="flex gap-2">
+                    <div class="relative flex-1">
+                      <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs">🔍</span>
+                      <input
+                        v-model="supplierSearch"
+                        type="text"
+                        placeholder="Cari nama supplier..."
+                        class="w-full rounded-lg border border-slate-200 pl-8 pr-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                        @focus="showSupplierDropdown = true"
+                        @blur="setTimeout(() => { showSupplierDropdown = false }, 150)"
+                      />
+                    </div>
+                    <select
+                      v-model="supplierClassFilter"
+                      class="rounded-lg border border-slate-200 px-2 py-2 text-sm focus:border-blue-500 text-slate-600 min-w-[70px]"
+                    >
+                      <option value="">Semua Kelas</option>
+                      <option value="A">Kelas A</option>
+                      <option value="B">Kelas B</option>
+                      <option value="C">Kelas C</option>
+                    </select>
+                  </div>
+                  <!-- Dropdown list -->
+                  <div v-if="showSupplierDropdown || supplierSearch.trim() || supplierClassFilter"
+                    class="absolute z-20 left-0 right-0 mt-1 max-h-52 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg">
+                    <div v-if="filteredSuppliers.length === 0" class="px-3 py-3 text-xs text-slate-400 text-center">Tidak ada supplier ditemukan</div>
+                    <button
+                      v-for="supplier in filteredSuppliers"
+                      :key="supplier.id"
+                      type="button"
+                      class="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-sm hover:bg-blue-50 border-b border-slate-50 last:border-0 text-left"
+                      @mousedown.prevent="selectSupplier(supplier)"
+                    >
+                      <span class="font-medium text-slate-800">{{ supplier.nama_perusahaan }}</span>
+                      <span class="text-xs px-2 py-0.5 rounded-full font-semibold"
+                        :class="{
+                          'bg-emerald-100 text-emerald-700': supplier.kelas === 'A',
+                          'bg-blue-100 text-blue-700': supplier.kelas === 'B',
+                          'bg-amber-100 text-amber-700': supplier.kelas === 'C',
+                          'bg-slate-100 text-slate-600': !['A','B','C'].includes(supplier.kelas),
+                        }">{{ supplier.kelas || '-' }}</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
             <div>
               <label class="text-xs font-semibold text-slate-500">Kelas Supplier</label>
@@ -1029,25 +1113,43 @@ const confirmArrival = () => {
         <div class="px-6 py-4 space-y-4" v-if="activeShipmentPo">
           <div class="grid gap-4 md:grid-cols-2 text-sm">
             <div class="rounded-xl border border-slate-100 p-4">
-              <p class="text-xs font-semibold text-slate-500">Driver</p>
-              <p class="mt-1 text-slate-700">{{ activeShipmentPo.driver_name || '-' }}</p>
-            </div>
-            <div class="rounded-xl border border-slate-100 p-4">
-              <p class="text-xs font-semibold text-slate-500">Plat Nomor</p>
-              <p class="mt-1 text-slate-700">{{ activeShipmentPo.vehicle_plate || '-' }}</p>
-            </div>
-            <div class="rounded-xl border border-slate-100 p-4">
-              <p class="text-xs font-semibold text-slate-500">Carrier</p>
-              <p class="mt-1 text-slate-700">{{ activeShipmentPo.carrier || '-' }}</p>
-            </div>
-            <div class="rounded-xl border border-slate-100 p-4">
-              <p class="text-xs font-semibold text-slate-500">Tracking Number</p>
-              <p class="mt-1 text-slate-700">{{ activeShipmentPo.tracking_number || '-' }}</p>
+              <p class="text-xs font-semibold text-slate-500">Tipe Pengiriman</p>
+              <p class="mt-1 text-slate-700 font-medium">
+                <span v-if="activeShipmentPo.delivery_type === 'self'" class="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-emerald-700 text-xs font-semibold">🚛 Pengiriman Sendiri</span>
+                <span v-else-if="activeShipmentPo.delivery_type === 'courier'" class="inline-flex items-center gap-1 rounded-full bg-indigo-100 px-2 py-0.5 text-indigo-700 text-xs font-semibold">📦 Pengiriman Kurir</span>
+                <span v-else class="text-slate-400">-</span>
+              </p>
             </div>
             <div class="rounded-xl border border-slate-100 p-4">
               <p class="text-xs font-semibold text-slate-500">Status PO</p>
               <p class="mt-1 text-slate-700">{{ statusLabel(activeShipmentPo.status) }}</p>
             </div>
+            <!-- Self delivery fields -->
+            <template v-if="activeShipmentPo.delivery_type === 'self'">
+              <div class="rounded-xl border border-slate-100 p-4">
+                <p class="text-xs font-semibold text-slate-500">Nama Sopir</p>
+                <p class="mt-1 text-slate-700">{{ activeShipmentPo.driver_name || '-' }}</p>
+              </div>
+              <div class="rounded-xl border border-slate-100 p-4">
+                <p class="text-xs font-semibold text-slate-500">Plat Nomor</p>
+                <p class="mt-1 text-slate-700">{{ activeShipmentPo.vehicle_plate || '-' }}</p>
+              </div>
+              <div class="rounded-xl border border-slate-100 p-4">
+                <p class="text-xs font-semibold text-slate-500">Nomor Telepon</p>
+                <p class="mt-1 text-slate-700">{{ activeShipmentPo.phone_number || '-' }}</p>
+              </div>
+            </template>
+            <!-- Courier delivery fields -->
+            <template v-else-if="activeShipmentPo.delivery_type === 'courier'">
+              <div class="rounded-xl border border-slate-100 p-4">
+                <p class="text-xs font-semibold text-slate-500">Penyedia Jasa Kurir</p>
+                <p class="mt-1 text-slate-700">{{ activeShipmentPo.courier_provider || '-' }}</p>
+              </div>
+              <div class="rounded-xl border border-slate-100 p-4">
+                <p class="text-xs font-semibold text-slate-500">Nomor Resi</p>
+                <p class="mt-1 text-slate-700">{{ activeShipmentPo.tracking_number || '-' }}</p>
+              </div>
+            </template>
             <div class="rounded-xl border border-slate-100 p-4">
               <p class="text-xs font-semibold text-slate-500">Tanggal Kirim</p>
               <p class="mt-1 text-slate-700">{{ activeShipmentPo.shipped_at || '-' }}</p>
@@ -1061,20 +1163,12 @@ const confirmArrival = () => {
 
           <div class="grid gap-4 md:grid-cols-2">
             <a
-              v-if="activeShipmentPo.weighing_note_path"
-              :href="formatPreviewUrl(activeShipmentPo.weighing_note_path)"
+              v-if="activeShipmentPo.supplementary_doc_path"
+              :href="formatPreviewUrl(activeShipmentPo.supplementary_doc_path)"
               target="_blank"
               class="rounded-xl border border-slate-100 p-4 text-sm font-semibold text-blue-600"
             >
-              Preview Nota Timbang
-            </a>
-            <a
-              v-if="activeShipmentPo.delivery_note_path"
-              :href="formatPreviewUrl(activeShipmentPo.delivery_note_path)"
-              target="_blank"
-              class="rounded-xl border border-slate-100 p-4 text-sm font-semibold text-blue-600"
-            >
-              Preview Surat Jalan
+              📄 Dokumen Pelengkap
             </a>
           </div>
         </div>

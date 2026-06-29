@@ -77,17 +77,22 @@ class AdminPurchaseOrdersController extends Controller
             $klasifikasi = $supplierClassMap->get($supplier->id);
             $kelas = $klasifikasi?->verifikasi?->keputusan_admin
                 ?? $klasifikasi?->verifikasi?->rekomendasi_sistem
-                ?? '-';
+                ?? null;
+
+            // Hanya tampilkan supplier yang sudah terverifikasi DAN terklasifikasi
+            if (!$kelas || $kelas === '-') {
+                return null;
+            }
 
             return [
                 'id' => $supplier->id,
                 'nama_perusahaan' => $supplier->nama_perusahaan,
                 'status' => $supplier->status,
-                'class_status' => $supplier->status === 'approved' ? 'Terverifikasi' : ucfirst($supplier->status),
+                'class_status' => 'Terverifikasi',
                 'class_name' => $kelas,
                 'kelas' => $kelas,
             ];
-        })->values();
+        })->filter()->values(); // filter() membuang null
 
         $itemsCatalog = Barang::orderBy('nama_barang')->get(['id_barang', 'nama_barang', 'satuan']);
         $itemTypes = POItemType::with(['subtypes', 'uomConfig'])->orderBy('sort_order')->get();

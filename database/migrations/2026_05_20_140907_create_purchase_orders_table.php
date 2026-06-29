@@ -51,13 +51,15 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->string('document_path')->nullable(); // Ditambahkan untuk menyimpan link dokumen dari supplier
             $table->decimal('total_price', 15, 2)->default(0);
-            $table->string('driver_name')->nullable();
-            $table->string('vehicle_plate')->nullable();
-            $table->string('carrier')->nullable();
-            $table->string('tracking_number')->nullable();
-            $table->text('shipment_notes')->nullable();
-            $table->string('weighing_note_path')->nullable();
-            $table->string('delivery_note_path')->nullable();
+            // Shipment fields - revamped
+            $table->string('delivery_type')->nullable(); // 'self' | 'courier'
+            $table->string('driver_name')->nullable();   // self: nama sopir
+            $table->string('vehicle_plate')->nullable(); // self: plat nomor
+            $table->string('phone_number')->nullable();  // self: nomor telepon sopir
+            $table->string('courier_provider')->nullable(); // courier: penyedia jasa kurir
+            $table->string('tracking_number')->nullable();  // courier: nomor resi
+            $table->text('shipment_notes')->nullable();     // catatan pengiriman
+            $table->string('supplementary_doc_path')->nullable(); // dokumen pelengkap (URL)
             $table->timestamp('shipped_at')->nullable();
             $table->timestamp('delivered_at')->nullable();
             $table->timestamps();

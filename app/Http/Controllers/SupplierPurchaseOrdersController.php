@@ -240,17 +240,18 @@ class SupplierPurchaseOrdersController extends Controller
         }
 
         $validated = $request->validate([
-            'driver_name' => ['nullable', 'string', 'max:191'],
-            'vehicle_plate' => ['nullable', 'string', 'max:50'],
-            'carrier' => ['nullable', 'string', 'max:191'],
-            'tracking_number' => ['nullable', 'string', 'max:191'],
-            'shipment_notes' => ['nullable', 'string'],
-            'weighing_note_path' => ['nullable', 'string', 'max:255'],
-            'delivery_note_path' => ['nullable', 'string', 'max:255'],
+            'delivery_type'     => ['nullable', 'string', 'in:self,courier'],
+            'driver_name'       => ['nullable', 'string', 'max:191'],
+            'vehicle_plate'     => ['nullable', 'string', 'max:50'],
+            'phone_number'      => ['nullable', 'string', 'max:30'],
+            'courier_provider'  => ['nullable', 'string', 'max:191'],
+            'tracking_number'   => ['nullable', 'string', 'max:191'],
+            'shipment_notes'    => ['nullable', 'string'],
+            'supplementary_doc_path' => ['nullable', 'string', 'max:255'],
         ]);
 
         $po->update(array_merge($validated, [
-            'status' => PurchaseOrder::STATUS_SHIPMENT,
+            'status'     => PurchaseOrder::STATUS_SHIPMENT,
             'shipped_at' => now(),
         ]));
 
