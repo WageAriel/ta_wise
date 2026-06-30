@@ -25,7 +25,7 @@ class ReturnController extends Controller
 
     private function getGroupedReturns()
     {
-        $returns = ReturnBarang::with('details.barang')->latest()->get();
+        $returns = ReturnBarang::with(['details.barang', 'details.subtype'])->latest()->get();
 
         $result = [];
         foreach ($returns as $return) {
@@ -37,9 +37,13 @@ class ReturnController extends Controller
                 'jumlah_item' => $return->details->count(),
                 'notes' => $firstDetail ? $firstDetail->alasan : '-',
                 'items' => $return->details->map(function($detail) {
+                    $namaBarang = $detail->barang ? $detail->barang->nama_barang : '-';
+                    $subtypeName = $detail->subtype ? $detail->subtype->subtype_name : null;
                     return [
                         'id_return' => $detail->id_return,
-                        'nama_barang' => $detail->barang ? $detail->barang->nama_barang : '-',
+                        'id_barang' => $detail->id_barang,
+                        'id_subtype' => $detail->id_subtype,
+                        'nama_barang' => $subtypeName ? "{$namaBarang} - {$subtypeName}" : $namaBarang,
                         'qty' => $detail->qty,
                         'kondisi' => $detail->kondisi,
                         'alasan' => $detail->alasan,
@@ -62,6 +66,7 @@ class ReturnController extends Controller
             'id_inbound' => 'required',
             'items' => 'required|array',
             'items.*.id_barang' => 'required',
+            'items.*.id_subtype' => 'nullable',
             'items.*.qty' => 'required|numeric|min:1',
             'items.*.kondisi' => 'required',
             'items.*.alasan' => 'required',
@@ -76,11 +81,12 @@ class ReturnController extends Controller
 
         foreach ($request->items as $item) {
             ReturnDetail::create([
-                'id_return' => $returnHeader->id_return,
-                'id_barang' => $item['id_barang'],
-                'qty'       => $item['qty'],
-                'kondisi'   => $item['kondisi'],
-                'alasan'    => $item['alasan'],
+                'id_return'  => $returnHeader->id_return,
+                'id_barang'  => $item['id_barang'],
+                'id_subtype' => $item['id_subtype'] ?? null,
+                'qty'        => $item['qty'],
+                'kondisi'    => $item['kondisi'],
+                'alasan'     => $item['alasan'],
             ]);
         }
 

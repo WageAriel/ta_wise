@@ -9,7 +9,6 @@ class Seleksi extends Model
 {
     protected $table = 'seleksi';
     protected $primaryKey = 'id_seleksi';
-    public $timestamps = false;
 
     protected $fillable = [
         'status_seleksi',
