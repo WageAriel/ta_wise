@@ -133,7 +133,7 @@
                 </tr>
                 <tr>
                     <td>c. Quantity</td>
-                    <td>: {{ number_format($po->items->sum('quantity') ?? 0, 0, ',', '.') }} {{ $po->items->first()->uom ?? 'Kg' }}</td>
+                    <td>: {{ implode(' / ', $po->items->map(fn($item) => number_format($item->quantity, 0, ',', '.') . ' ' . ($item->uom ?? 'Kg'))->toArray()) }}</td>
                 </tr>
             </table>
         </li>

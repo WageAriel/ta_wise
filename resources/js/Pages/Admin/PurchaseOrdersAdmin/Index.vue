@@ -756,11 +756,12 @@ const confirmArrival = () => {
                   <!-- Completeness: admin confirms docs — clickable -->
                   <button
                     v-else-if="po.status === 'completeness'"
-                    class="rounded-full bg-purple-100 px-2 py-1 text-xs font-semibold text-purple-700 transition hover:bg-purple-200 cursor-pointer"
+                    class="rounded-full px-2 py-1 text-xs font-semibold transition cursor-pointer"
+                    :class="po.document_path ? 'bg-purple-600 text-white animate-pulse shadow hover:bg-purple-700' : 'bg-purple-100 text-purple-700 hover:bg-purple-200'"
                     @click="openCompletenessModal(po)"
-                    title="Klik untuk verifikasi kelengkapan dokumen"
+                    :title="po.document_path ? 'Klik untuk verifikasi kelengkapan dokumen' : 'Menunggu supplier mengirimkan dokumen'"
                   >
-                    ● {{ statusLabel(po.status) }}
+                    {{ po.document_path ? 'Periksa Dokumen' : 'Menunggu Dokumen' }}
                   </button>
                   <!-- Shipment: admin can confirm arrival — clickable -->
                   <button
@@ -1083,13 +1084,10 @@ const confirmArrival = () => {
               </div>
 
               <!-- Tautan Shipment -->
-              <div v-if="activeViewPo.weighing_note_path || activeViewPo.delivery_note_path" class="rounded-xl border border-emerald-100 bg-emerald-50 p-4 flex flex-col gap-2">
+              <div v-if="activeViewPo.supplementary_doc_path" class="rounded-xl border border-emerald-100 bg-emerald-50 p-4 flex flex-col gap-2">
                 <p class="text-xs font-semibold text-emerald-800 mb-1">Dokumen Pengiriman</p>
-                <a v-if="activeViewPo.weighing_note_path" :href="formatPreviewUrl(activeViewPo.weighing_note_path)" target="_blank" class="text-xs text-emerald-600 underline hover:text-emerald-800 flex items-center gap-1">
-                  📄 Nota Timbang
-                </a>
-                <a v-if="activeViewPo.delivery_note_path" :href="formatPreviewUrl(activeViewPo.delivery_note_path)" target="_blank" class="text-xs text-emerald-600 underline hover:text-emerald-800 flex items-center gap-1">
-                  📄 Surat Jalan
+                <a :href="formatPreviewUrl(activeViewPo.supplementary_doc_path)" target="_blank" class="text-xs text-emerald-600 underline hover:text-emerald-800 flex items-center gap-1">
+                  📄 Dokumen Pelengkap
                 </a>
               </div>
             </div>

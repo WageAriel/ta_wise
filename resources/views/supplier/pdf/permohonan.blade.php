@@ -114,6 +114,10 @@
                 <td>Rp {{ number_format($item->subtotal, 2, ',', '.') }}</td>
             </tr>
             @endforeach
+            <tr>
+                <td colspan="4" style="text-align: right; font-weight: bold;">TOTAL KESELURUHAN</td>
+                <td style="font-weight: bold;">Rp {{ number_format($po->total_price ?? $po->items->sum('subtotal'), 2, ',', '.') }}</td>
+            </tr>
         </tbody>
     </table>
 

@@ -192,7 +192,8 @@
         <tr>
             <td style="text-align: left; padding-left: 50px;">
                 Yang Menerima,<br>
-                Supplierk<br><br><br><br><br>
+                Supplier<br>
+                <br><br><br><br><br>
                 <strong>........................................</strong>
             </td>
             <td style="text-align: center;">

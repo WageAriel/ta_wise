@@ -75,17 +75,20 @@ class AdminPurchaseOrdersController extends Controller
 
         $suppliers = $suppliers->map(function ($supplier) use ($supplierClassMap, $settings) {
             $klasifikasi = $supplierClassMap->get($supplier->id);
-            $kelas = $klasifikasi?->verifikasi?->keputusan_admin
+            $kelasFull = $klasifikasi?->verifikasi?->keputusan_admin
                 ?? $klasifikasi?->verifikasi?->rekomendasi_sistem
                 ?? null;
 
             // Hanya tampilkan supplier yang sudah terverifikasi DAN terklasifikasi
-            if (!$kelas || $kelas === '-') {
+            if (!$kelasFull || $kelasFull === '-') {
                 return null;
             }
 
+            // Extract just the letter if it contains 'Kelas '
+            $kelasLetter = str_replace('Kelas ', '', $kelasFull);
+
             // Batas kuantitas barang per PO berdasarkan kelas
-            $limit = match (strtoupper($kelas)) {
+            $limit = match (strtoupper($kelasLetter)) {
                 'A' => (int) ($settings->limit_class_a ?? 1000),
                 'B' => (int) ($settings->limit_class_b ?? 500),
                 'C' => (int) ($settings->limit_class_c ?? 100),
@@ -97,8 +100,8 @@ class AdminPurchaseOrdersController extends Controller
                 'nama_perusahaan' => $supplier->nama_perusahaan,
                 'status' => $supplier->status,
                 'class_status' => 'Terverifikasi',
-                'class_name' => $kelas,
-                'kelas' => $kelas,
+                'class_name' => 'Kelas ' . $kelasLetter,
+                'kelas' => $kelasLetter,
                 'transaction_limit' => $limit,
             ];
         })->filter()->values(); // filter() membuang null

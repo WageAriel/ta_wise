@@ -901,7 +901,7 @@ const deleteOutbound = (id) => {
 
                         <!-- Right Details Card -->
                         <div class="bg-slate-50 p-5 rounded-xl border border-slate-100 space-y-4">
-                            <h4 class="text-xs font-bold text-gray-400 uppercase tracking-widest border-b pb-2">Informasi Driver & Ekspedisi</h4>
+                            <h4 class="text-xs font-bold text-gray-400 uppercase tracking-widest border-b pb-2">Informasi Pengiriman</h4>
                             
                             <div class="grid grid-cols-3 gap-2 text-sm">
                                 <div class="text-gray-500 font-medium">Tipe Pengiriman</div>

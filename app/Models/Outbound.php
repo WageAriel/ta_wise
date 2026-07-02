@@ -14,19 +14,21 @@ class Outbound extends Model
 
     protected $fillable = [
         'no_outbound',
+        'recipient_id',
         'nama_penerima',
         'alamat_tujuan',
         'kota_tujuan',
         'telepon_penerima',
         'keterangan_tujuan',
+        'delivery_type',
         'nama_driver',
         'plat_nomor',
-        'carrier',
+        'phone_number',
+        'courier_provider',
         'no_resi',
         'tanggal_keluar',
         'catatan_pengiriman',
-        'nota_timbang_path',
-        'surat_jalan_path',
+        'supplementary_doc_path',
         'created_by',
     ];
 
