@@ -23,7 +23,7 @@ class PurchaseOrderTest extends TestCase
     }
 
     /**
-     * FR-01: Pembuatan Order Request (Draft/RFQ)
+     * UJI-UNIT-01: Pembuatan Order Request (Draft/RFQ)
      */
     public function test_fr01_admin_can_create_order_request_as_draft_or_rfq(): void
     {
@@ -57,7 +57,7 @@ class PurchaseOrderTest extends TestCase
     }
 
     /**
-     * FR-02: Negosiasi Harga PO (Counter-Offer)
+     * UJI-UNIT-02: Negosiasi Harga PO (Counter-Offer)
      */
     public function test_fr02_supplier_and_admin_can_negotiate_po_price(): void
     {
@@ -107,7 +107,7 @@ class PurchaseOrderTest extends TestCase
     }
 
     /**
-     * FR-03: Pengelolaan Dokumen Kelengkapan PO
+     * UJI-UNIT-03: Pengelolaan Dokumen Kelengkapan PO
      */
     public function test_fr03_supplier_can_upload_documents_and_admin_verifies(): void
     {
@@ -153,7 +153,7 @@ class PurchaseOrderTest extends TestCase
     }
 
     /**
-     * FR-04: Pengiriman dan Konfirmasi Kedatangan Barang
+     * UJI-UNIT-04: Pengiriman dan Konfirmasi Kedatangan Barang
      */
     public function test_fr04_supplier_inputs_shipment_and_admin_confirms_arrival(): void
     {
@@ -193,7 +193,7 @@ class PurchaseOrderTest extends TestCase
     }
 
     /**
-     * FR-05: Manajemen Layout dan Lokasi Penyimpanan
+     * UJI-UNIT-05: Manajemen Layout dan Lokasi Penyimpanan
      */
     public function test_fr05_admin_manages_warehouse_layout_and_storage_locations(): void
     {
@@ -218,7 +218,7 @@ class PurchaseOrderTest extends TestCase
     }
 
     /**
-     * FR-06: Alokasi Penyimpanan (Put Away) dan Retur Inbound
+     * UJI-UNIT-06: Alokasi Penyimpanan (Put Away) dan Retur Inbound
      */
     public function test_fr06_admin_allocates_storage_and_records_inbound_returns(): void
     {
@@ -245,7 +245,7 @@ class PurchaseOrderTest extends TestCase
     }
 
     /**
-     * FR-07: Pencatatan Outbound dan Pengurangan Stok
+     * UJI-UNIT-07: Pencatatan Outbound dan Pengurangan Stok
      */
     public function test_fr07_admin_records_outbound_and_reduces_stock(): void
     {
@@ -265,7 +265,7 @@ class PurchaseOrderTest extends TestCase
     }
 
     /**
-     * FR-08: Visualisasi Statistik dan Analisis Kinerja
+     * UJI-UNIT-08: Visualisasi Statistik dan Analisis Kinerja
      */
     public function test_fr08_visualizes_statistics_and_performance_analysis(): void
     {

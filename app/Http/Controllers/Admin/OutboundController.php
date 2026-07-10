@@ -160,10 +160,6 @@ class OutboundController extends Controller
                 ]);
 
                 $inventory->decrement('qty', $item['qty']);
-
-                if ($inventory->fresh()->qty <= 0) {
-                    $inventory->delete();
-                }
             }
 
             DB::commit();
