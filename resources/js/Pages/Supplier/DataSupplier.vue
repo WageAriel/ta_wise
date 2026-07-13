@@ -1067,7 +1067,7 @@ const confirmSubmit = async () => {
                                 <div
                                     v-if="
                                         !previews[doc.id] &&
-                                        props.supplier.documents.find(
+                                        props.supplier?.documents?.find(
                                             (d) => d.jenis_dokumen === doc.id,
                                         )?.file_path
                                     "
@@ -1089,22 +1089,22 @@ const confirmSubmit = async () => {
                                                         'gif',
                                                     ].some(
                                                         (ext) =>
-                                                            props.supplier.documents
-                                                                .find(
+                                                            props.supplier?.documents
+                                                                ?.find(
                                                                     (d) =>
                                                                         d.jenis_dokumen ===
                                                                         doc.id,
                                                                 )
-                                                                .file_path.toLowerCase()
-                                                                .endsWith(
+                                                                ?.file_path?.toLowerCase()
+                                                                ?.endsWith(
                                                                     ext,
                                                                 ) ||
                                                             (
-                                                                props.supplier.documents.find(
+                                                                props.supplier?.documents?.find(
                                                                     (d) =>
                                                                         d.jenis_dokumen ===
                                                                         doc.id,
-                                                                ).file_name ||
+                                                                )?.file_name ||
                                                                 ''
                                                             )
                                                                 .toLowerCase()
@@ -1115,11 +1115,11 @@ const confirmSubmit = async () => {
                                                 <img
                                                     :src="
                                                         '/storage/' +
-                                                        props.supplier.documents.find(
+                                                        props.supplier?.documents?.find(
                                                             (d) =>
                                                                 d.jenis_dokumen ===
                                                                 doc.id,
-                                                        ).file_path
+                                                        )?.file_path
                                                     "
                                                     class="w-full h-full object-contain"
                                                     alt="Preview Dokumen"
@@ -1129,22 +1129,22 @@ const confirmSubmit = async () => {
                                                 v-else-if="
                                                     ['pdf'].some(
                                                         (ext) =>
-                                                            props.supplier.documents
-                                                                .find(
+                                                            props.supplier?.documents
+                                                                ?.find(
                                                                     (d) =>
                                                                         d.jenis_dokumen ===
                                                                         doc.id,
                                                                 )
-                                                                .file_path.toLowerCase()
-                                                                .endsWith(
+                                                                ?.file_path?.toLowerCase()
+                                                                ?.endsWith(
                                                                     ext,
                                                                 ) ||
                                                             (
-                                                                props.supplier.documents.find(
+                                                                props.supplier?.documents?.find(
                                                                     (d) =>
                                                                         d.jenis_dokumen ===
                                                                         doc.id,
-                                                                ).file_name ||
+                                                                )?.file_name ||
                                                                 ''
                                                             )
                                                                 .toLowerCase()
@@ -1155,11 +1155,11 @@ const confirmSubmit = async () => {
                                                 <iframe
                                                     :src="
                                                         '/storage/' +
-                                                        props.supplier.documents.find(
+                                                        props.supplier?.documents?.find(
                                                             (d) =>
                                                                 d.jenis_dokumen ===
                                                                 doc.id,
-                                                        ).file_path
+                                                        )?.file_path
                                                     "
                                                     class="w-full h-full"
                                                     frameborder="0"
@@ -1196,11 +1196,11 @@ const confirmSubmit = async () => {
                                             <a
                                                 :href="
                                                     '/storage/' +
-                                                    props.supplier.documents.find(
+                                                    props.supplier?.documents?.find(
                                                         (d) =>
                                                             d.jenis_dokumen ===
                                                             doc.id,
-                                                    ).file_path
+                                                    )?.file_path
                                                 "
                                                 target="_blank"
                                                 class="flex items-center justify-center gap-2 text-[10px] font-bold text-blue-600 hover:text-blue-700 bg-blue-50 px-3 py-2 rounded-lg border border-blue-100 w-full"
