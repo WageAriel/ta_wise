@@ -20,9 +20,9 @@ const chartData = computed(() =>
 const xKey = computed(() => chartMode.value === 'date' ? 'date' : 'month');
 
 // ─── Simple SVG bar chart helpers ───────────────────────
-const BAR_W   = 10;
-const GAP     = 4;
-const H       = 120;
+const BAR_W   = 18;
+const GAP     = 8;
+const H       = 160;
 
 const maxPo      = computed(() => Math.max(...chartData.value.map(d => d.po), 1));
 const maxInbound = computed(() => Math.max(...chartData.value.map(d => d.inbound), 1));

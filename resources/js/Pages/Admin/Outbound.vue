@@ -307,7 +307,7 @@ const deleteOutbound = (id) => {
 </script>
 
 <template>
-    <Head title="Barang Keluar" />
+    <Head title="Manajemen Barang Keluar" />
 
     <AdminLayout>
         <!-- Page Header -->
@@ -324,16 +324,16 @@ const deleteOutbound = (id) => {
             <div class="flex gap-2">
                 <button 
                     @click="openRecipientModal" 
-                    class="inline-flex items-center px-4 py-2.5 bg-slate-100 text-slate-700 border border-slate-200 rounded-lg font-semibold hover:bg-slate-200 shadow-sm transition-all duration-200"
+                    class="inline-flex items-center whitespace-nowrap px-4 py-2.5 bg-slate-100 text-slate-700 border border-slate-200 rounded-lg font-semibold hover:bg-slate-200 shadow-sm transition-all duration-200"
                 >
                     Master Penerima
                 </button>
                 <button 
                     @click="showAddModal = true" 
-                    class="inline-flex items-center px-4 py-2.5 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 shadow-md transition-all duration-200 active:scale-95"
+                    class="inline-flex items-center whitespace-nowrap gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 shadow-md transition-all duration-200 active:scale-95"
                 >
-                    <svg class="w-4.5 h-4.5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                     </svg>
                     Catat Barang Keluar
                 </button>

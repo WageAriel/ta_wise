@@ -251,19 +251,19 @@ const availableLocations = computed(() => {
 </script>
 
 <template>
-    <Head title="Inbound Barang" />
+    <Head title="Manajemen Barang Masuk" />
 
     <AdminLayout>
         <!-- Header Halaman -->
         <div class="mb-8">
-            <h1 class="text-2xl font-bold text-gray-800">Inbound</h1>
+            <h1 class="text-2xl font-bold text-gray-800">Barang Masuk</h1>
         </div>
 
         <!-- Section 1: Title & Action Buttons -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 mb-5 flex flex-col sm:flex-row justify-between items-center gap-4">
             <div>
-                <h2 class="text-lg font-semibold text-gray-700">Inbound Barang</h2>
-                <p class="text-sm text-gray-500">Kelola data inbound dan inventaris dengan mudah.</p>
+                <h2 class="text-lg font-semibold text-gray-700">Manajemen Barang Masuk</h2>
+                <p class="text-sm text-gray-500">Kelola data barang masuk dan inventaris dengan mudah.</p>
             </div>
 
             <div class="flex items-center gap-3">
