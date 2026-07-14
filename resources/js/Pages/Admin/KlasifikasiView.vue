@@ -148,6 +148,7 @@ function kategoriClass(k) {
     return "bg-slate-100 text-slate-500";
 }
 
+
 // ─── Pagination Helpers ────────────────────────────────────────────────────
 const paginationLinks = computed(() => {
     if (!pagination.value.links) return [];
@@ -266,10 +267,10 @@ async function handleValidasi(kelas) {
 
 // Hitung poin dari jawaban verifikasi petugas
 function hitungPoinJawaban(jawaban) {
-    if (!jawaban.opsi_verifikasi) return jawaban.opsi?.nilai ?? 0;
-    const bobot = jawaban.pertanyaan?.bobot ?? 0;
-    const nilai = jawaban.opsi_verifikasi?.nilai ?? 0;
-    return Math.round((nilai / 100) * bobot);
+    if (jawaban.jawaban_verifikasi === 'invalid') {
+        return jawaban.opsi_verifikasi?.nilai || 0;
+    }
+    return jawaban.opsi?.nilai || 0;
 }
 </script>
 
@@ -750,6 +751,9 @@ function hitungPoinJawaban(jawaban) {
                                                         </span>
                                                     </template>
                                                 </div>
+
+                                                <!-- Foto Bukti -->
+                                                
 
                                                 <!-- Catatan petugas -->
                                                 <p
