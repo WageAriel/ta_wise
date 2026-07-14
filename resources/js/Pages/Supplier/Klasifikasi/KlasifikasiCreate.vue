@@ -44,7 +44,6 @@ function hitungPoin(opsi, bobot) {
     return opsi ? opsi.nilai : 0;
 }
 
-// ── Computed ──────────────────────────────────────────────────────────────────
 const totalSkor = computed(() => {
     const totalPoints = pertanyaans.value.reduce((acc, p) => {
         const opsi = getOpsiDipilih(p);
@@ -129,7 +128,7 @@ async function submitPengajuan(e) {
 
         <!-- ── Main Content (Scrollable) ── -->
         <main class="flex-1 h-full overflow-y-auto">
-            <div class="space-y-5 max-w-7xl mx-auto px-6 py-10">
+            <div class="space-y-5 max-w-9xl mx-auto px-6 py-10">
 
                 <!-- Loading -->
                 <div v-if="isLoading" class="flex flex-col items-center justify-center py-32 gap-4">

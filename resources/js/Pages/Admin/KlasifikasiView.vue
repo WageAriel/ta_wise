@@ -1,10 +1,17 @@
-﻿<script setup>
+<script setup>
 import { ref, computed, onMounted } from "vue";
 import { Head, router } from "@inertiajs/vue3";
 import SidebarAdmin from "@/Components/SidebarAdmin.vue";
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import axios from "axios";
 import Swal from 'sweetalert2';
+
+const props = defineProps({
+    appSettings: {
+        type: Object,
+        default: () => ({})
+    }
+});
 
 // ─── Stats & Data State ──────────────────────────────────────────────────
 const stats = ref({
@@ -84,6 +91,27 @@ function statusClass(row) {
         return "bg-blue-50 text-blue-700 border border-blue-200";
     }
     return "bg-amber-50 text-amber-700 border border-amber-200";
+}
+
+function getKelasRange(kelas) {
+    const minA = parseInt(props.appSettings?.min_skor_kelas_a || 85);
+    const minB = parseInt(props.appSettings?.min_skor_kelas_b || 60);
+    const minC = parseInt(props.appSettings?.min_skor_kelas_c || 0);
+    
+    if (kelas === 'Kelas A') return `(Poin: ${minA} - 100)`;
+    if (kelas === 'Kelas B') return `(Poin: ${minB} - ${minA - 1})`;
+    return `(Poin: ${minC} - ${minB - 1})`;
+}
+
+function getNarasiRekomendasi(kelas) {
+    const minA = parseInt(props.appSettings?.min_skor_kelas_a || 85);
+    const minB = parseInt(props.appSettings?.min_skor_kelas_b || 60);
+    const minC = parseInt(props.appSettings?.min_skor_kelas_c || 0);
+    
+    if (kelas === 'Kelas A') return `Premium — Memenuhi kriteria utama dengan perolehan skor di rentang ${minA} hingga 100 poin.`;
+    if (kelas === 'Kelas B') return `Standard — Memenuhi sebagian besar kriteria dengan perolehan skor di rentang ${minB} hingga ${minA - 1} poin.`;
+    if (kelas === 'Kelas C') return `Basic — Memenuhi kriteria minimal dengan perolehan skor di rentang ${minC} hingga ${minB - 1} poin.`;
+    return 'Nilai tidak mencukupi standar minimum.';
 }
 
 function getStatusLabel(row) {
@@ -765,10 +793,7 @@ function hitungPoinJawaban(jawaban) {
                                 {{ selectedRow.verifikasi?.rekomendasi_sistem || '-' }}
                             </p>
                             <p class="text-slate-500 text-xs mt-1">
-                                <span v-if="selectedRow.verifikasi?.rekomendasi_sistem === 'Kelas A'">Premium — semua kriteria utama terpenuhi</span>
-                                <span v-else-if="selectedRow.verifikasi?.rekomendasi_sistem === 'Kelas B'">Standard — sebagian besar kriteria terpenuhi</span>
-                                <span v-else-if="selectedRow.verifikasi?.rekomendasi_sistem === 'Kelas C'">Basic — kriteria minimal terpenuhi</span>
-                                <span v-else>Nilai tidak mencukupi standar minimum</span>
+                                {{ getNarasiRekomendasi(selectedRow.verifikasi?.rekomendasi_sistem) }}
                             </p>
                         </div>
 
@@ -801,9 +826,14 @@ function hitungPoinJawaban(jawaban) {
                                 >
                                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/></svg>
                                     <span class="text-base">{{ kelas }}</span>
-                                    <span class="text-xs font-normal opacity-70">
-                                        {{ kelas === 'Kelas A' ? 'Premium' : kelas === 'Kelas B' ? 'Standard' : 'Basic' }}
-                                    </span>
+                                    <div class="flex flex-col items-center gap-0.5 mt-[-4px]">
+                                        <span class="text-xs font-normal opacity-90">
+                                            {{ kelas === 'Kelas A' ? 'Premium' : kelas === 'Kelas B' ? 'Standard' : 'Basic' }}
+                                        </span>
+                                        <span class="text-[11px] font-medium opacity-70">
+                                            {{ getKelasRange(kelas) }}
+                                        </span>
+                                    </div>
                                 </button>
                             </div>
                             <!-- Tombol Tolak -->

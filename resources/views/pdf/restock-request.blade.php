@@ -44,7 +44,7 @@
             margin-bottom: 30px;
         }
         .content {
-            margin-bottom: 40px;
+            margin-bottom: 20px;
         }
         .table-info {
             width: 100%;
@@ -62,7 +62,7 @@
             width: 40%;
         }
         .footer {
-            margin-top: 50px;
+            margin-top: 30px;
         }
         .signature-box {
             float: right;
@@ -70,7 +70,7 @@
             text-align: center;
         }
         .signature-space {
-            height: 100px;
+            height: 70px;
         }
         .status-badge {
             font-weight: bold;
@@ -86,7 +86,7 @@
     </div>
 
     <div class="date">
-        Tanggal: {{ now()->format('d F Y') }}
+        Tanggal: {{ \Carbon\Carbon::now()->locale('id')->translatedFormat('d F Y') }}
     </div>
 
     <div class="content">
@@ -102,7 +102,7 @@
         <table class="table-info">
             <tr>
                 <th>ID Barang</th>
-                <td>{{ $barang->id_barang }}</td>
+                <td>BRG-{{ str_pad($barang->id_barang, 3, '0', STR_PAD_LEFT) }}</td>
             </tr>
             <tr>
                 <th>Nama Barang</th>

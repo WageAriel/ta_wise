@@ -387,7 +387,7 @@ const deleteLocation = (id) => {
                 <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
                     <div>
                         <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">
-                            Inventory Management
+                            Manajemen Inventaris
                         </h1>
                         <p class="text-slate-500 mt-1 text-sm">
                             Monitor dan kelola stok barang secara real-time.
@@ -414,7 +414,7 @@ const deleteLocation = (id) => {
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
                         </div>
                         <div>
-                            <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Total Items</p>
+                            <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Total Barang</p>
                             <p class="text-3xl font-extrabold text-slate-900 mt-0.5">{{ totalItems }}</p>
                         </div>
                     </div>
@@ -425,7 +425,7 @@ const deleteLocation = (id) => {
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
                         </div>
                         <div>
-                            <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Low Stock Items</p>
+                            <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Stok Menipis</p>
                             <p class="text-3xl font-extrabold text-slate-900 mt-0.5">{{ lowStock }}</p>
                         </div>
                     </div>
@@ -436,7 +436,7 @@ const deleteLocation = (id) => {
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
                         </div>
                         <div>
-                            <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Critical Stock</p>
+                            <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Stok Kritis</p>
                             <p class="text-3xl font-extrabold text-slate-900 mt-0.5">{{ criticalStock }}</p>
                         </div>
                     </div>
@@ -556,9 +556,9 @@ const deleteLocation = (id) => {
                                                 :class="item.status === 'critical' ? 'bg-red-600' : 'bg-orange-500'">
                                                 {{ item.status === 'critical' ? 'Critical' : 'Low Stock' }}
                                             </span>
-                                            <span class="text-slate-800 text-sm font-semibold">{{ item.id }}</span>
+                                            <span class="text-slate-800 text-sm font-semibold">BRG-{{ String(item.id_barang).padStart(3, '0') }}</span>
                                         </div>
-                                        <h4 class="text-slate-900 font-extrabold text-xl mb-2">{{ item.name }}</h4>
+                                        <h4 class="text-slate-900 font-extrabold text-xl mb-2">{{ item.category }}</h4>
                                         <div class="text-[13px] text-slate-800 font-medium flex items-center gap-2 mb-1.5">
                                             <span>Total Stock: <strong :class="item.status === 'critical' ? 'text-red-600' : 'text-orange-600'">{{ item.totalStock }} {{ item.unit }}</strong></span>
                                             <span class="text-black font-bold border-l-2 border-black/20 h-3 mx-1"></span>

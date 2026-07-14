@@ -45,7 +45,19 @@ class UserController extends Controller
      */
     public function store(Request $request)
     {
-        // Logic for adding user will go here
+        $validated = $request->validate([
+            'username' => 'required|string|max:255|unique:users',
+            'email'    => 'required|string|email|max:255|unique:users',
+            'role'     => 'required|string|in:manajer,admin,supplier,petugas_lapangan',
+            'password' => 'required|string|min:8',
+        ]);
+
+        $validated['password'] = bcrypt($validated['password']);
+        $validated['is_active'] = 1;
+
+        User::create($validated);
+
+        return redirect()->back()->with('success', 'User berhasil ditambahkan');
     }
 
     /**
@@ -53,6 +65,23 @@ class UserController extends Controller
      */
     public function update(Request $request, $id)
     {
-        // Logic for updating user will go here
+        $user = User::findOrFail($id);
+
+        $validated = $request->validate([
+            'username' => 'required|string|max:255|unique:users,username,' . $user->id,
+            'email'    => 'required|string|email|max:255|unique:users,email,' . $user->id,
+            'role'     => 'required|string|in:manajer,admin,supplier,petugas_lapangan',
+            'password' => 'nullable|string|min:8',
+        ]);
+
+        if (!empty($validated['password'])) {
+            $validated['password'] = bcrypt($validated['password']);
+        } else {
+            unset($validated['password']);
+        }
+
+        $user->update($validated);
+
+        return redirect()->back()->with('success', 'User berhasil diperbarui');
     }
 }

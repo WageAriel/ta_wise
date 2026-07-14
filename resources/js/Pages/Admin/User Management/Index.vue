@@ -1,7 +1,8 @@
 <script setup>
 import { ref, computed } from 'vue';
-import { Head, router } from '@inertiajs/vue3';
+import { Head, router, useForm } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
+import Swal from 'sweetalert2';
 
 const props = defineProps({
     users: {
@@ -15,8 +16,18 @@ const searchQuery = ref('');
 const filterRole = ref('');
 const perPage = ref(10);
 const showModal = ref(false);
+const showFormModal = ref(false);
+const isEditMode = ref(false);
 const showConfirmDelete = ref(false);
 const selectedUser = ref(null);
+
+const form = useForm({
+    id: null,
+    username: '',
+    email: '',
+    role: '',
+    password: '',
+});
 
 // Filter Logic
 const filteredUsers = computed(() => {
@@ -45,6 +56,67 @@ const confirmDelete = () => {
             onSuccess: () => {
                 showConfirmDelete.value = false;
                 selectedUser.value = null;
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil!',
+                    text: 'User berhasil dihapus',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+            }
+        });
+    }
+};
+
+const openAddModal = () => {
+    isEditMode.value = false;
+    form.reset();
+    form.clearErrors();
+    showFormModal.value = true;
+};
+
+const openEditModal = (user) => {
+    isEditMode.value = true;
+    form.clearErrors();
+    form.id = user.id;
+    form.username = user.username;
+    form.email = user.email;
+    form.role = user.role;
+    form.password = '';
+    showFormModal.value = true;
+};
+
+const closeFormModal = () => {
+    showFormModal.value = false;
+    form.reset();
+    form.clearErrors();
+};
+
+const submitForm = () => {
+    if (isEditMode.value) {
+        form.put(route('admin.user-management.update', form.id), {
+            onSuccess: () => {
+                closeFormModal();
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil!',
+                    text: 'User berhasil diperbarui',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+            }
+        });
+    } else {
+        form.post(route('admin.user-management.store'), {
+            onSuccess: () => {
+                closeFormModal();
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil!',
+                    text: 'User berhasil ditambahkan',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
             }
         });
     }
@@ -77,6 +149,10 @@ const getRoleBadge = (role) => {
                 <h2 class="text-lg font-bold text-slate-800">User Management</h2>
                 <p class="text-xs text-slate-400 font-medium">Daftar Pengguna Sistem</p>
             </div>
+            <button @click="openAddModal" class="px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold shadow-sm hover:bg-indigo-700 hover:shadow-indigo-500/30 transition-all flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                Tambah User
+            </button>
         </div>
 
         <!-- Filters & Search Section -->
@@ -145,6 +221,9 @@ const getRoleBadge = (role) => {
                                 <div class="flex items-center justify-center gap-2">
                                     <button @click="handleView(user)" class="p-2 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-600 hover:text-white transition-all">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0zM2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                    </button>
+                                    <button v-if="user.role !== 'manajer'" @click="openEditModal(user)" class="p-2 bg-amber-50 text-amber-600 rounded-xl hover:bg-amber-600 hover:text-white transition-all">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                                     </button>
                                     <button @click="handleDelete(user)" class="p-2 bg-rose-50 text-rose-600 rounded-xl hover:bg-rose-600 hover:text-white transition-all">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
@@ -234,6 +313,64 @@ const getRoleBadge = (role) => {
                     Ya, Hapus
                 </button>
             </div>
+        </div>
+    </div>
+
+    <!-- Modal Add/Edit User -->
+    <div v-if="showFormModal" class="fixed inset-0 z-[60] overflow-y-auto px-4 py-6 sm:px-0 flex items-center justify-center">
+        <div class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" @click="closeFormModal"></div>
+
+        <div class="bg-white rounded-[32px] overflow-hidden shadow-2xl transform transition-all sm:max-w-md w-full border border-slate-100/50 relative">
+            <div class="flex items-center justify-between p-6 border-b border-slate-100">
+                <h3 class="text-lg font-bold text-slate-900">{{ isEditMode ? 'Edit User' : 'Tambah User' }}</h3>
+                <button @click="closeFormModal" class="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            
+            <form @submit.prevent="submitForm" class="p-6">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1">Username <span class="text-red-500">*</span></label>
+                        <input v-model="form.username" type="text" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500" required>
+                        <p v-if="form.errors.username" class="text-xs text-red-500 mt-1">{{ form.errors.username }}</p>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1">Email <span class="text-red-500">*</span></label>
+                        <input v-model="form.email" type="email" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500" required>
+                        <p v-if="form.errors.email" class="text-xs text-red-500 mt-1">{{ form.errors.email }}</p>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1">Role <span class="text-red-500">*</span></label>
+                        <select v-model="form.role" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500" required>
+                            <option value="" disabled>Pilih Role</option>
+                            <option value="manajer">Manajer</option>
+                            <option value="admin">Admin</option>
+                            <option value="supplier">Supplier</option>
+                            <option value="petugas_lapangan">Petugas Lapangan</option>
+                        </select>
+                        <p v-if="form.errors.role" class="text-xs text-red-500 mt-1">{{ form.errors.role }}</p>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1">Password <span v-if="!isEditMode" class="text-red-500">*</span></label>
+                        <input v-model="form.password" type="password" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500" :required="!isEditMode">
+                        <p v-if="isEditMode" class="text-[10px] text-slate-400 mt-1">Kosongkan jika tidak ingin mengubah password.</p>
+                        <p v-if="form.errors.password" class="text-xs text-red-500 mt-1">{{ form.errors.password }}</p>
+                    </div>
+                </div>
+                
+                <div class="mt-8 flex justify-end gap-3">
+                    <button type="button" @click="closeFormModal" class="px-5 py-2.5 rounded-xl text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-all">
+                        Batal
+                    </button>
+                    <button type="submit" :disabled="form.processing" class="px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-70 disabled:cursor-not-allowed transition-all">
+                        {{ isEditMode ? 'Simpan Perubahan' : 'Tambah User' }}
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </template>

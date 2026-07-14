@@ -73,7 +73,11 @@ onMounted(() => {
 });
 
 // Helper labels & classes
-function getStatusLabel(status) {
+function getStatusLabel(row) {
+    const status = typeof row === 'string' ? row : row.status_klasifikasi;
+    if (status === 'diproses' && typeof row === 'object' && row.verifikasi?.total_nilai !== null && row.verifikasi?.total_nilai !== undefined) {
+        return 'Menunggu Validasi';
+    }
     const map = {
         'pending': 'Menunggu Validasi',
         'diproses': 'Sedang Diproses',
@@ -83,7 +87,11 @@ function getStatusLabel(status) {
     return map[status] || status;
 }
 
-function statusClass(status) {
+function statusClass(row) {
+    const status = typeof row === 'string' ? row : row.status_klasifikasi;
+    if (status === 'diproses' && typeof row === 'object' && row.verifikasi?.total_nilai !== null && row.verifikasi?.total_nilai !== undefined) {
+        return "bg-amber-50 text-amber-700 border border-amber-200";
+    }
     if (status === "selesai") return "bg-emerald-50 text-emerald-700 border border-emerald-200";
     if (status === "ditolak") return "bg-red-50 text-red-700 border border-red-200";
     if (status === "diproses") return "bg-blue-50 text-blue-700 border border-blue-200";
@@ -124,8 +132,6 @@ const paginationLinks = computed(() => {
 
 function getPetugas(row) {
     if (row.verifikasi?.petugas?.profil_petugas?.nama_petugas) return row.verifikasi.petugas.profil_petugas.nama_petugas;
-    if (row.verifikasi?.petugas?.username) return row.verifikasi.petugas.username;
-    if (row.jadwal_kunjungan?.petugas?.profil_petugas?.nama_petugas) return row.jadwal_kunjungan.petugas.profil_petugas.nama_petugas;
     if (row.jadwal_kunjungan?.petugas?.username) return row.jadwal_kunjungan.petugas.username;
     return '-';
 }
@@ -274,9 +280,9 @@ function formatDate(dateStr) {
                                     <td class="px-6 py-4">
                                         <span
                                             class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold capitalize"
-                                            :class="statusClass(row.status_klasifikasi)"
+                                            :class="statusClass(row)"
                                         >
-                                            {{ getStatusLabel(row.status_klasifikasi) }}
+                                            {{ getStatusLabel(row) }}
                                         </span>
                                     </td>
                                     <td class="px-6 py-4 text-slate-700 whitespace-nowrap">
@@ -472,7 +478,7 @@ function formatDate(dateStr) {
                         <div v-else
                             class="p-5 rounded-xl border-2 border-slate-200 bg-slate-50 text-center">
                             <p class="text-slate-600 text-xs font-bold tracking-widest mb-1">Status saat ini</p>
-                            <p class="text-lg font-bold text-slate-800">{{ getStatusLabel(selectedRow.status_klasifikasi) }}</p>
+                            <p class="text-lg font-bold text-slate-800">{{ getStatusLabel(selectedRow) }}</p>
                         </div>
 
                     </div>

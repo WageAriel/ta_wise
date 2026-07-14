@@ -111,7 +111,10 @@ Route::middleware('auth')->group(function () {
 
         // Klasifikasi - Admin
         Route::get('/supplier/classification', function() {
-            return Inertia::render('Admin/KlasifikasiView');
+            $settings = \App\Models\AppSetting::whereIn('key', ['min_skor_kelas_a', 'min_skor_kelas_b', 'min_skor_kelas_c'])->pluck('value', 'key');
+            return Inertia::render('Admin/KlasifikasiView', [
+                'appSettings' => $settings
+            ]);
         })->name('supplier.classification');
         Route::get('/supplier/classification/export', [KlasifikasiController::class, 'adminExport'])->name('supplier.classification.export');
         Route::get('/supplier/classification/{klasifikasi}', [KlasifikasiController::class, 'adminShow'])->name('supplier.classification.show');
@@ -194,6 +197,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/outbound/{id}', [\App\Http\Controllers\Admin\OutboundController::class, 'show'])->name('outbound.show');
         Route::delete('/outbound/{id}', [\App\Http\Controllers\Admin\OutboundController::class, 'destroy'])->name('outbound.destroy');
         Route::get('/user-management', [\App\Http\Controllers\Admin\UserController::class, 'index'])->name('user-management');
+        Route::post('/user-management', [\App\Http\Controllers\Admin\UserController::class, 'store'])->name('user-management.store');
+        Route::put('/user-management/{id}', [\App\Http\Controllers\Admin\UserController::class, 'update'])->name('user-management.update');
         Route::delete('/user-management/{id}', [\App\Http\Controllers\Admin\UserController::class, 'destroy'])->name('user-management.destroy');
     });
 
