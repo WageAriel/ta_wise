@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import SidebarAdmin from "@/Components/SidebarAdmin.vue";
 import Swal from 'sweetalert2';
@@ -16,8 +16,14 @@ const inventoryData = ref(props.inventories);
 
 const activeTab = ref('overview');
 const searchQuery = ref('');
+const categoryFilter = ref('');
 const entriesPerPage = ref(10);
 const yearFilter = ref('2026');
+const currentPage = ref(1);
+
+const availableCategories = computed(() => {
+    return Array.from(new Set(inventoryData.value.map(item => item.category)));
+});
 
 // Menghitung total stok per id_barang
 const totalStockByBarang = computed(() => {
@@ -71,9 +77,37 @@ const lowStock = computed(() => uniqueBarangs.value.filter(item => item.status =
 
 const filteredInventory = computed(() => {
     return processedInventory.value.filter(item => {
-        return item.name.toLowerCase().includes(searchQuery.value.toLowerCase()) || 
-               item.id.toLowerCase().includes(searchQuery.value.toLowerCase());
+        const matchSearch = item.name.toLowerCase().includes(searchQuery.value.toLowerCase()) || 
+                            item.id.toLowerCase().includes(searchQuery.value.toLowerCase());
+        const matchCategory = categoryFilter.value === '' || item.category === categoryFilter.value;
+        return matchSearch && matchCategory;
     });
+});
+
+const totalPages = computed(() => {
+    return Math.ceil(filteredInventory.value.length / entriesPerPage.value) || 1;
+});
+
+const paginatedInventory = computed(() => {
+    const start = (currentPage.value - 1) * entriesPerPage.value;
+    const end = start + parseInt(entriesPerPage.value);
+    return filteredInventory.value.slice(start, end);
+});
+
+const nextPage = () => {
+    if (currentPage.value < totalPages.value) currentPage.value++;
+};
+
+const prevPage = () => {
+    if (currentPage.value > 1) currentPage.value--;
+};
+
+const goToPage = (page) => {
+    if (page >= 1 && page <= totalPages.value) currentPage.value = page;
+};
+
+watch([searchQuery, categoryFilter, entriesPerPage], () => {
+    currentPage.value = 1;
 });
 
 const alertItems = computed(() => {
@@ -81,87 +115,8 @@ const alertItems = computed(() => {
         item.status === 'low' || item.status === 'critical');
 });
 
-// Outbound Modal Logic
-const showOutboundModal = ref(false);
-const availableItems = ref([]);
-const isSubmittingOutbound = ref(false);
-const outboundForm = ref({
-    tanggal: new Date().toISOString().split('T')[0],
-    tujuan: '',
-    items: []
-});
 
-const openOutboundModal = async () => {
-    showOutboundModal.value = true;
-    outboundForm.value = {
-        tanggal: new Date().toISOString().split('T')[0],
-        tujuan: '',
-        items: []
-    };
-    try {
-        const response = await axios.get('/admin/outbound/items');
-        availableItems.value = response.data;
-    } catch (error) {
-        console.error("Gagal mengambil data barang:", error);
-    }
-};
 
-const addOutboundItemRow = () => {
-    outboundForm.value.items.push({ inventoryObj: null, id_barang: '', name: '', max_qty: 0, qty: 1, location: '' });
-};
-
-const removeOutboundItemRow = (index) => {
-    outboundForm.value.items.splice(index, 1);
-};
-
-const onBarangSelect = (index) => {
-    const item = outboundForm.value.items[index];
-    if (item.inventoryObj) {
-        item.id_barang = item.inventoryObj.id_barang;
-        item.name = item.inventoryObj.barang?.nama_barang || item.inventoryObj.barang?.name || 'Unknown';
-        item.location = item.inventoryObj.location?.kode_location || 'Unknown';
-        item.max_qty = item.inventoryObj.qty;
-        if (item.qty > item.max_qty) item.qty = item.max_qty;
-    }
-};
-
-const submitOutbound = async () => {
-    if (outboundForm.value.items.length === 0) {
-        Swal.fire("Peringatan", "Pilih minimal 1 barang.", "warning");
-        return;
-    }
-    isSubmittingOutbound.value = true;
-    try {
-        const payload = {
-            tanggal: outboundForm.value.tanggal,
-            tujuan: outboundForm.value.tujuan,
-            barang_id: outboundForm.value.items.map(i => i.id_barang),
-            qty: outboundForm.value.items.map(i => i.qty),
-        };
-        await axios.post('/admin/outbound', payload);
-        showOutboundModal.value = false;
-        
-        Swal.fire({
-            title: "Berhasil!",
-            text: "Data outbound berhasil disimpan dan stok diperbarui.",
-            icon: "success",
-            confirmButtonColor: "#3b82f6"
-        }).then(() => {
-            window.location.reload();
-        });
-    } catch (error) {
-        console.error(error);
-        const errorMsg = error.response?.data?.message || "Terjadi kesalahan saat menyimpan data.";
-        Swal.fire({
-            title: "Gagal!",
-            text: errorMsg,
-            icon: "error",
-            confirmButtonColor: "#ef4444"
-        });
-    } finally {
-        isSubmittingOutbound.value = false;
-    }
-};
 
 // --- Gudang, Layout & Location Management State ---
 const subTabLokasi = ref('kapasitas'); // 'kapasitas', 'gudang', 'layouts', 'locations'
@@ -422,7 +377,7 @@ const deleteLocation = (id) => {
                     <!-- Low Stock Items -->
                     <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex items-center gap-4">
                         <div class="p-3 rounded-xl bg-amber-100 text-amber-600 flex-shrink-0">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"></path></svg>
                         </div>
                         <div>
                             <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Stok Menipis</p>
@@ -479,6 +434,10 @@ const deleteLocation = (id) => {
                                 <span class="text-sm font-medium text-slate-500">entri</span>
                             </div>
                             <div class="flex items-center gap-3">
+                                <select v-model="categoryFilter" class="border-slate-200 rounded-lg text-sm p-2 bg-slate-50 focus:ring-blue-500 focus:border-blue-500 font-semibold">
+                                    <option value="">Semua Kategori</option>
+                                    <option v-for="cat in availableCategories" :key="cat" :value="cat">{{ cat }}</option>
+                                </select>
                                 <select v-model="yearFilter" class="border-slate-200 rounded-lg text-sm p-2 bg-slate-50 focus:ring-blue-500 focus:border-blue-500 font-semibold">
                                     <option value="2026">2026</option>
                                     <option value="2025">2025</option>
@@ -500,21 +459,26 @@ const deleteLocation = (id) => {
                                         <th class="px-6 py-3 text-xs font-bold text-slate-400 uppercase tracking-widest">Item Name</th>
                                         <th class="px-6 py-3 text-xs font-bold text-slate-400 uppercase tracking-widest">Kategori</th>
                                         <th class="px-6 py-3 text-xs font-bold text-slate-400 uppercase tracking-widest">Current Stock</th>
-                                        <th class="px-6 py-3 text-xs font-bold text-slate-400 uppercase tracking-widest">Min/Max</th>
+                                        <th class="px-6 py-3 text-xs font-bold text-slate-400 uppercase tracking-widest">Min/Max (Kategori)</th>
                                         <th class="px-6 py-3 text-xs font-bold text-slate-400 uppercase tracking-widest">Location</th>
                                         <th class="px-6 py-3 text-xs font-bold text-slate-400 uppercase tracking-widest">Status</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-slate-50">
-                                    <tr v-for="(item, idx) in filteredInventory" :key="item.id" class="hover:bg-slate-50/60 transition-colors">
-                                        <td class="px-6 py-4 text-slate-400 text-xs">{{ idx + 1 }}</td>
+                                    <tr v-for="(item, idx) in paginatedInventory" :key="item.id" class="hover:bg-slate-50/60 transition-colors">
+                                        <td class="px-6 py-4 text-slate-400 text-xs">{{ (currentPage - 1) * entriesPerPage + idx + 1 }}</td>
                                         <td class="px-6 py-4 font-mono font-bold text-slate-800">{{ item.id }}</td>
                                         <td class="px-6 py-4 font-semibold text-slate-900">{{ item.name }}</td>
                                         <td class="px-6 py-4">
                                             <span class="px-2 py-1 bg-slate-100 text-slate-600 rounded text-xs font-bold">{{ item.category }}</span>
                                         </td>
                                         <td class="px-6 py-4 font-extrabold text-slate-900">{{ item.currentStock }} {{ item.unit }}</td>
-                                        <td class="px-6 py-4 text-slate-500 text-xs font-medium">{{ item.minStock }} / {{ item.maxStock }}</td>
+                                        <td class="px-6 py-4">
+                                            <div class="text-slate-700 text-xs font-bold">{{ item.minStock }} / {{
+                                                item.maxStock }}</div>
+                                            <div class="text-slate-400 text-[10px] mt-0.5">Total {{ item.category }}:
+                                                <b>{{ item.totalStock }}</b> unit</div>
+                                        </td>
                                         <td class="px-6 py-4 text-slate-600 text-sm font-medium">{{ item.location }}</td>
                                         <td class="px-6 py-4">
                                             <span v-if="item.status === 'normal'" class="inline-flex items-center px-2 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-md text-xs font-bold">Normal</span>
@@ -531,6 +495,43 @@ const deleteLocation = (id) => {
                                 </tbody>
                             </table>
                         </div>
+
+                        <!-- Pagination Controls -->
+                        <div v-if="filteredInventory.length > 0" class="flex flex-col sm:flex-row items-center justify-between mt-4 gap-4 px-2">
+                            <div class="text-sm text-slate-500">
+                                Menampilkan <span class="font-bold text-slate-800">{{ (currentPage - 1) * entriesPerPage + 1 }}</span> hingga 
+                                <span class="font-bold text-slate-800">{{ Math.min(currentPage * entriesPerPage, filteredInventory.length) }}</span> dari 
+                                <span class="font-bold text-slate-800">{{ filteredInventory.length }}</span> entri
+                            </div>
+                            
+                            <div class="flex items-center gap-1 bg-white border border-slate-200 rounded-lg p-1 shadow-sm">
+                                <button @click="prevPage" :disabled="currentPage === 1" 
+                                        class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors"
+                                        :class="currentPage === 1 ? 'text-slate-300 cursor-not-allowed' : 'text-slate-600 hover:bg-slate-100'">
+                                    <
+                                </button>
+                                
+                                <div class="flex px-1 gap-1">
+                                    <template v-for="page in totalPages" :key="page">
+                                        <button v-if="page === 1 || page === totalPages || Math.abs(page - currentPage) <= 1"
+                                                @click="goToPage(page)"
+                                                class="w-8 h-8 flex items-center justify-center rounded-md text-sm font-bold transition-colors"
+                                                :class="currentPage === page ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'">
+                                            {{ page }}
+                                        </button>
+                                        <span v-else-if="Math.abs(page - currentPage) === 2" class="w-8 h-8 flex items-center justify-center text-slate-400 text-sm">
+                                            ...
+                                        </span>
+                                    </template>
+                                </div>
+
+                                <button @click="nextPage" :disabled="currentPage === totalPages"
+                                        class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors"
+                                        :class="currentPage === totalPages ? 'text-slate-300 cursor-not-allowed' : 'text-slate-600 hover:bg-slate-100'">
+                                    >
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Tab Content: Stock Alert -->
@@ -546,7 +547,7 @@ const deleteLocation = (id) => {
                                     <div class="w-16 h-16 rounded-xl border-2 flex items-center justify-center flex-shrink-0 bg-white/50"
                                         :class="item.status === 'critical' ? 'border-red-600 text-red-600' : 'border-orange-500 text-orange-600'">
                                         <svg v-if="item.status === 'critical'" class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-                                        <svg v-else class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+                                        <svg v-else class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"></path></svg>
                                     </div>
                                     
                                     <!-- Content -->

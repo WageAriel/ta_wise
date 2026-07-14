@@ -236,7 +236,7 @@ const icons = {
                                 icon: 'inbound',
                             },
                             'admin.inventory': {
-                                label: 'Penyimpanan Barang',
+                                label: 'Manajemen Inventaris',
                                 icon: 'inventory',
                             },
                             'admin.return-management': {
