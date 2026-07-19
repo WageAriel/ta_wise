@@ -25,13 +25,20 @@ class ReturnController extends Controller
 
     private function getGroupedReturns()
     {
-        $returns = ReturnBarang::with(['details.barang', 'details.subtype'])->latest()->get();
+        $returns = ReturnBarang::with(['details.barang', 'details.subtype', 'inbound.purchaseOrder'])->latest()->get();
 
         $result = [];
         foreach ($returns as $return) {
             $firstDetail = $return->details->first();
+            
+            $idPo = '-';
+            if ($return->inbound && $return->inbound->purchaseOrder) {
+                $idPo = $return->inbound->purchaseOrder->po_number;
+            }
+
             $result[] = [
                 'id_return' => $return->id_return,
+                'id_po' => $idPo,
                 'id_inbound' => $return->id_inbound,
                 'tanggal_return' => \Carbon\Carbon::parse($return->tanggal)->format('d-M-Y'),
                 'jumlah_item' => $return->details->count(),

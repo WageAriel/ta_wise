@@ -52,7 +52,11 @@
             </table>
         </div>
 
-        <p style="text-align: justify;">Atas hasil tersebut, perusahaan Saudara dinyatakan memenuhi kualifikasi dan lolos dari tahap seleksi supplier kami. Selanjutnya, perusahaan Saudara akan diarahkan untuk mengikuti tahap klasifikasi</p>
+        @if(strtolower($selection->status_seleksi) === 'lolos')
+            <p style="text-align: justify;">Atas hasil tersebut, perusahaan Saudara dinyatakan memenuhi kualifikasi dan lolos dari tahap seleksi supplier kami. Selanjutnya, perusahaan Saudara akan diarahkan untuk mengikuti tahap klasifikasi.</p>
+        @else
+            <p style="text-align: justify;">Atas hasil tersebut, kami sampaikan bahwa perusahaan Saudara saat ini belum memenuhi kualifikasi pada tahap seleksi supplier kami. Kami mengucapkan terima kasih atas partisipasi dan ketertarikan Saudara.</p>
+        @endif
 
         <p style="text-align: justify;">Demikian surat penetapan ini dibuat untuk dipergunakan sebagaimana mestinya.</p>
     </div>
