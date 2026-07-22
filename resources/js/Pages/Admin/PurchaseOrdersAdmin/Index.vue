@@ -749,7 +749,7 @@ const confirmArrival = () => {
           <table class="w-full text-sm">
             <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
               <tr>
-                <th class="px-4 py-3 text-left">ID PO</th>
+                <th class="px-4 py-3 text-left">No. PO</th>
                 <th class="px-4 py-3 text-left">Supplier</th>
                 <th class="px-4 py-3 text-left">Nama Barang</th>
                 <th class="px-4 py-3 text-left">Total Quantity</th>
@@ -774,7 +774,7 @@ const confirmArrival = () => {
                   <span
                     v-else
                     class="inline-flex items-center rounded-md bg-blue-50 px-2 py-0.5 font-mono text-xs font-semibold text-blue-700 ring-1 ring-inset ring-blue-200"
-                  >#{{ po.id }}</span>
+                  >{{ po.po_number }}</span>
                 </td>
                 <td class="px-4 py-3">
                   {{ po.supplier?.nama_perusahaan || '-' }}
