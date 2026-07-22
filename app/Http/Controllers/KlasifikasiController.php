@@ -279,6 +279,8 @@ class KlasifikasiController extends Controller
             'selesai'             => Klasifikasi::where('status_klasifikasi', 'selesai')->count(),
             'pengajuan_bulan_ini' => Klasifikasi::whereMonth('created_at', now()->month)
                 ->whereYear('created_at', now()->year)->count(),
+            'belum_dijadwalkan' => Klasifikasi::where('status_klasifikasi', 'pending')
+                ->whereDoesntHave('jadwalKunjungan')->count(),
         ];
 
         return response()->json([

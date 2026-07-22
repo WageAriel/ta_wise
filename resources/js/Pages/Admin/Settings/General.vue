@@ -19,6 +19,26 @@ const form = useForm({
 });
 
 const submit = () => {
+    if (form.min_skor_kelas_c >= form.min_skor_kelas_b) {
+        Swal.fire({
+            title: 'Validasi Gagal',
+            text: 'Minimal skor Kelas C tidak boleh lebih besar atau sama dengan Minimal skor Kelas B.',
+            icon: 'warning',
+            confirmButtonColor: '#f59e0b',
+        });
+        return;
+    }
+    
+    if (form.min_skor_kelas_b >= form.min_skor_kelas_a) {
+        Swal.fire({
+            title: 'Validasi Gagal',
+            text: 'Minimal skor Kelas B tidak boleh lebih besar atau sama dengan Minimal skor Kelas A.',
+            icon: 'warning',
+            confirmButtonColor: '#f59e0b',
+        });
+        return;
+    }
+
     form.post(route('admin.settings.general.update'), {
         preserveScroll: true,
         onSuccess: () => {

@@ -18,6 +18,7 @@ const stats = ref({
     menunggu_validasi: 0,
     total_pengajuan: 0,
     pengajuan_bulan_ini: 0,
+    belum_dijadwalkan: 0,
 });
 
 const rows = ref([]);
@@ -219,7 +220,7 @@ function closeDetailModal() {
 
 const rekomendasiConfig = {
     'Kelas A': { color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0' },
-    'Kelas B': { color: '#ea580c', bg: '#fff7ed', border: '#fed7aa' },
+    'Kelas B': { color: '#9333ea', bg: '#faf5ff', border: '#e9d5ff' },
     'Kelas C': { color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe' },
     'Ditolak': { color: '#dc2626', bg: '#fef2f2', border: '#fecaca' },
     'Belum Memenuhi': { color: '#64748b', bg: '#f8fafc', border: '#e2e8f0' },
@@ -347,6 +348,20 @@ function hitungPoinJawaban(jawaban) {
                             <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Pengajuan Bulan Ini</p>
                             <p class="text-3xl font-extrabold text-slate-900 mt-0.5">
                                 {{ stats.pengajuan_bulan_ini }}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex items-center gap-4">
+                        <div class="p-3 rounded-xl bg-emerald-100 text-emerald-600 flex-shrink-0">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Belum Dijadwalkan</p>
+                            <p class="text-3xl font-extrabold text-slate-900 mt-0.5">
+                                {{ stats.belum_dijadwalkan }}
                             </p>
                         </div>
                     </div>
@@ -820,25 +835,34 @@ function hitungPoinJawaban(jawaban) {
                             <h4 class="text-slate-700 text-sm font-bold mb-1">Validasi Klasifikasi Supplier</h4>
                             <p class="text-slate-400 text-xs mb-4">Pilih kelas yang sesuai berdasarkan hasil verifikasi. Keputusan tidak dapat diubah setelah dikonfirmasi.</p>
                             <div class="grid grid-cols-3 gap-3 mb-3">
-                                <button
+                                <div
                                     v-for="kelas in ['Kelas A', 'Kelas B', 'Kelas C']"
                                     :key="kelas"
-                                    @click="handleValidasi(kelas)"
-                                    :disabled="isValidating"
-                                    class="flex flex-col items-center gap-2 py-5 rounded-xl border-2 font-bold transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
-                                    :style="{ background: getCfg(kelas).bg, borderColor: getCfg(kelas).border, color: getCfg(kelas).color }"
+                                    class="flex flex-col justify-between gap-3 p-4 rounded-xl border-2 transition-all"
+                                    :style="{ background: getCfg(kelas).bg, borderColor: getCfg(kelas).border }"
                                 >
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/></svg>
-                                    <span class="text-base">{{ kelas }}</span>
-                                    <div class="flex flex-col items-center gap-0.5 mt-[-4px]">
-                                        <span class="text-xs font-normal opacity-90">
-                                            {{ kelas === 'Kelas A' ? 'Premium' : kelas === 'Kelas B' ? 'Standard' : 'Basic' }}
-                                        </span>
-                                        <span class="text-[11px] font-medium opacity-70">
-                                            {{ getKelasRange(kelas) }}
-                                        </span>
+                                    <div class="flex flex-col items-center gap-1 text-center" :style="{ color: getCfg(kelas).color }">
+                                        <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/></svg>
+                                        <span class="text-base font-bold">{{ kelas }}</span>
+                                        <div class="flex flex-col items-center gap-0.5">
+                                            <span class="text-xs font-medium opacity-90">
+                                                {{ kelas === 'Kelas A' ? 'Premium' : kelas === 'Kelas B' ? 'Standard' : 'Basic' }}
+                                            </span>
+                                            <span class="text-[11px] font-normal opacity-80">
+                                                {{ getKelasRange(kelas) }}
+                                            </span>
+                                        </div>
                                     </div>
-                                </button>
+                                    <button
+                                        @click="handleValidasi(kelas)"
+                                        :disabled="isValidating"
+                                        class="w-full py-2 rounded-lg text-sm font-bold shadow-sm transition-all hover:opacity-90 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 mt-1"
+                                        :style="{ background: getCfg(kelas).color, color: '#fff' }"
+                                    >
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                                        Tetapkan
+                                    </button>
+                                </div>
                             </div>
                             <!-- Tombol Tolak -->
                             <button

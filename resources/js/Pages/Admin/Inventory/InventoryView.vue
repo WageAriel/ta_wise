@@ -25,8 +25,8 @@ const availableCategories = computed(() => {
     return Array.from(new Set(inventoryData.value.map(item => item.category)));
 });
 
-// Menghitung total stok per id_barang
-const totalStockByBarang = computed(() => {
+// Menghitung total stok per kategori (id_barang) untuk penentuan status min/max
+const totalStockByCategory = computed(() => {
     const totals = {};
     inventoryData.value.forEach(item => {
         if (!totals[item.id_barang]) {
@@ -37,35 +37,60 @@ const totalStockByBarang = computed(() => {
     return totals;
 });
 
-// Computed property untuk menghitung status secara dinamis berdasarkan total stok gabungan
+// Menghitung total stok per subtipe (nama spesifik) untuk currentStock
+const totalStockByName = computed(() => {
+    const totals = {};
+    inventoryData.value.forEach(item => {
+        if (!totals[item.name]) {
+            totals[item.name] = 0;
+        }
+        totals[item.name] += item.currentStock;
+    });
+    return totals;
+});
+
+// Computed property untuk menghitung status secara dinamis berdasarkan total stok gabungan kategori
 const processedInventory = computed(() => {
     return inventoryData.value.map(item => {
         let status = 'normal';
-        const totalStock = totalStockByBarang.value[item.id_barang];
+        const totalCategoryStock = totalStockByCategory.value[item.id_barang];
         
-        // Critical jika total stok <= 50% dari batas minimal
-        if (totalStock <= (item.minStock * 0.5)) {
+        // Critical jika total stok kategori <= 50% dari batas minimal
+        if (totalCategoryStock <= (item.minStock * 0.5)) {
             status = 'critical';
         } 
-        // Low Stock jika total stok <= batas minimal (tapi > 50% minStock)
-        else if (totalStock <= item.minStock) {
+        // Low Stock jika total stok kategori <= batas minimal (tapi > 50% minStock)
+        else if (totalCategoryStock <= item.minStock) {
             status = 'low';
         }
-        return { ...item, status, totalStock };
+        return { ...item, status, totalStock: totalCategoryStock };
     });
 });
 
-// Mengelompokkan berdasarkan id_barang agar statistik & alert tidak double
+// Mengelompokkan berdasarkan name agar statistik & alert tidak double
 const uniqueBarangs = computed(() => {
     const map = new Map();
     processedInventory.value.forEach(item => {
-        if (!map.has(item.id_barang)) {
+        if (!map.has(item.name)) {
             // Kita kumpulkan semua lokasi untuk barang ini
             const locations = processedInventory.value
-                .filter(i => i.id_barang === item.id_barang)
+                .filter(i => i.name === item.name)
                 .map(i => i.location);
             
-            map.set(item.id_barang, { ...item, allLocations: locations });
+            const locDetails = processedInventory.value
+                .filter(i => i.name === item.name)
+                .map(i => ({
+                    inv_id: i.id,
+                    qty: i.currentStock,
+                    locationStr: i.location
+                }));
+            
+            map.set(item.name, { 
+                ...item, 
+                currentStock: totalStockByName.value[item.name],
+                allLocations: locations,
+                allLocationsDetail: locDetails 
+            });
         }
     });
     return Array.from(map.values());
@@ -76,7 +101,7 @@ const criticalStock = computed(() => uniqueBarangs.value.filter(item => item.sta
 const lowStock = computed(() => uniqueBarangs.value.filter(item => item.status === 'low').length);
 
 const filteredInventory = computed(() => {
-    return processedInventory.value.filter(item => {
+    return uniqueBarangs.value.filter(item => {
         const matchSearch = item.name.toLowerCase().includes(searchQuery.value.toLowerCase()) || 
                             item.id.toLowerCase().includes(searchQuery.value.toLowerCase());
         const matchCategory = categoryFilter.value === '' || item.category === categoryFilter.value;
@@ -479,7 +504,17 @@ const deleteLocation = (id) => {
                                             <div class="text-slate-400 text-[10px] mt-0.5">Total {{ item.category }}:
                                                 <b>{{ item.totalStock }}</b> unit</div>
                                         </td>
-                                        <td class="px-6 py-4 text-slate-600 text-sm font-medium">{{ item.location }}</td>
+                                        <td class="px-6 py-4">
+                                            <select v-if="item.allLocationsDetail && item.allLocationsDetail.length > 1" class="text-slate-700 text-sm font-medium border-slate-200 rounded-lg p-1.5 focus:ring-blue-500 bg-slate-50 w-full max-w-[300px]">
+                                                <option v-for="(loc, lIdx) in item.allLocationsDetail" :key="lIdx" :value="loc.inv_id">
+                                                    {{ loc.locationStr }} ({{ loc.qty }} {{ item.unit }})
+                                                </option>
+                                            </select>
+                                            <span v-else-if="item.allLocationsDetail && item.allLocationsDetail.length === 1" class="text-slate-600 text-sm font-medium">
+                                                {{ item.allLocationsDetail[0].locationStr }} 
+                                            </span>
+                                            <span v-else class="text-slate-400 text-sm italic">Unassigned</span>
+                                        </td>
                                         <td class="px-6 py-4">
                                             <span v-if="item.status === 'normal'" class="inline-flex items-center px-2 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-md text-xs font-bold">Normal</span>
                                             <span v-if="item.status === 'low'" class="inline-flex items-center px-2 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-md text-xs font-bold">Low Stock</span>
