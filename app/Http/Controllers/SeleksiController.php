@@ -241,12 +241,13 @@ class SeleksiController extends Controller
         $selection = Seleksi::with('supplier')
             ->where('id_seleksi', $id)
             ->where('id_user', $user->id)
-            ->where('status_seleksi', 'Lolos')
+            ->whereIn('status_seleksi', ['Lolos', 'Tidak Lolos'])
             ->firstOrFail();
 
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.seleksi_penetapan', compact('selection'));
         
-        return $pdf->download('Surat_Penetapan_Lolos_Seleksi_' . $selection->supplier->nama_perusahaan . '.pdf');
+        $statusStr = str_replace(' ', '_', $selection->status_seleksi);
+        return $pdf->download('Surat_Penetapan_' . $statusStr . '_Seleksi_' . $selection->supplier->nama_perusahaan . '.pdf');
     }
 
     // =========================================================

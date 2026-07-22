@@ -166,7 +166,7 @@ const getStatusBadgeClass = (status) => {
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                                     <a
-                                        v-if="app.status?.toLowerCase() === 'lolos'"
+                                        v-if="app.status?.toLowerCase() !== 'menunggu validasi'"
                                         :href="route('supplier.selection.download', app.id_seleksi)"
                                         class="inline-flex items-center px-4 py-1.5 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-lg text-xs font-bold hover:bg-indigo-100 transition shadow-sm"
                                     >

@@ -26,4 +26,10 @@ class ReturnBarang extends Model
     {
         return $this->hasMany(ReturnDetail::class, 'id_return', 'id_return');
     }
+
+    // Relasi ke Inbound
+    public function inbound()
+    {
+        return $this->belongsTo(Inbound::class, 'id_inbound', 'id_inbound');
+    }
 }

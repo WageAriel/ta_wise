@@ -15,11 +15,13 @@ class InventoryController extends Controller
 {
     public function index()
     {
-        $inventoriesRaw = Inventory::with(['barang', 'subtype', 'location.layout'])->get();
+        $inventoriesRaw = Inventory::with(['barang', 'subtype', 'location.layout.gudang'])->get();
 
         $inventories = $inventoriesRaw->map(function($inv) {
             $category = $inv->barang->nama_barang ?? 'Unknown';
             $name = $inv->subtype ? $inv->subtype->subtype_name : $category;
+            
+            $gudangName = $inv->location && $inv->location->layout && $inv->location->layout->gudang ? $inv->location->layout->gudang->nama_gudang . ' > ' : '';
 
             return [
                 'id' => 'INV-' . str_pad($inv->id_inventory, 3, '0', STR_PAD_LEFT),
@@ -32,7 +34,7 @@ class InventoryController extends Controller
                 'unit' => $inv->barang->satuan ?? 'unit',
                 'minStock' => $inv->barang->min_stock ?? 0,
                 'maxStock' => $inv->barang->max_stock ?? 0,
-                'location' => ($inv->location && $inv->location->layout) ? $inv->location->layout->nama_layout 
+                'location' => ($inv->location && $inv->location->layout) ? $gudangName . $inv->location->layout->nama_layout 
                                 . ' - ' . $inv->location->kode_location : 'Unassigned',
             ];
         });

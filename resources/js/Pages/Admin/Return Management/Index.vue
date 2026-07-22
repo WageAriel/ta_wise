@@ -148,14 +148,30 @@ const deleteReturn = async (id) => {
 
 const submitReturn = async () => {
     // Custom validation to allow submit attempt but fail with SweetAlert
-    const hasInvalidQty = returnForm.value.items.some(item => item.qty > item.max_qty);
+    const hasInvalidQty = returnForm.value.items.some(item => item.qty > item.max_qty || item.qty < 0);
     if (hasInvalidQty) {
-        Swal.fire("Gagal", "Jumlah barang tidak boleh melebihi batas stok Inbound!", "error");
+        Swal.fire("Gagal", "Jumlah barang tidak valid atau melebihi batas stok Inbound!", "error");
+        return;
+    }
+
+    const itemsToSubmit = returnForm.value.items.filter(item => item.qty > 0);
+
+    if (itemsToSubmit.length === 0) {
+        Swal.fire("Error", "Pilih minimal 1 barang untuk di-return", "error");
+        return;
+    }
+
+    const hasIncompleteData = itemsToSubmit.some(item => !item.kondisi || !item.alasan);
+    if (hasIncompleteData) {
+        Swal.fire("Error", "Mohon lengkapi kondisi dan alasan untuk barang yang direturn", "error");
         return;
     }
 
     try {
-        await axios.post(route('admin.return-management.store'), returnForm.value);
+        await axios.post(route('admin.return-management.store'), {
+            id_inbound: returnForm.value.id_inbound,
+            items: itemsToSubmit
+        });
         showAddModal.value = false;
         returnForm.value = { id_inbound: "", items: [] };
         Swal.fire("Berhasil", "Data berhasil disimpan!", "success");
@@ -273,6 +289,7 @@ const submitReturn = async () => {
                         <tr class="bg-gray-50/50 border-b border-gray-100">
                             <th class="py-5 px-6 text-xs font-bold text-gray-400 uppercase text-center w-16">No</th>
                             <th class="py-5 px-6 text-xs font-bold text-gray-400 uppercase">ID Return</th>
+                            <th class="py-5 px-6 text-xs font-bold text-gray-400 uppercase">ID Purchase Order</th>
                             <th class="py-5 px-6 text-xs font-bold text-gray-400 uppercase">ID Inbound</th>
                             <th class="py-5 px-6 text-xs font-bold text-gray-400 uppercase text-center">Tanggal Return</th>
                             <th class="py-5 px-6 text-xs font-bold text-gray-400 uppercase text-center">Jumlah Item</th>
@@ -287,6 +304,7 @@ const submitReturn = async () => {
                             <td class="py-4 px-6">
                                 <span class="text-xs font-black text-gray-900 leading-none">RET-{{ item.id_return }}</span>
                             </td>
+                            <td class="py-4 px-6 text-xs font-bold text-gray-600">{{ item.id_po }}</td>
                             <td class="py-4 px-6 text-xs font-bold text-gray-600">{{ item.id_inbound }}</td>
                             <td class="py-4 px-6 text-center text-xs font-bold text-gray-500">{{ item.tanggal_return }}</td>
                             <td class="py-4 px-6 text-center">
@@ -409,10 +427,9 @@ const submitReturn = async () => {
                                                     <input 
                                                         type="number" 
                                                         v-model="item.qty"
-                                                        min="1"
+                                                        min="0"
                                                         class="w-20 text-center py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all font-medium text-xs"
                                                         :class="item.qty > item.max_qty ? 'border-rose-300 text-rose-600 focus:border-rose-500 focus:ring-rose-500/20' : ''"
-                                                        required
                                                     />
                                                     <p v-if="item.qty > item.max_qty" class="text-xs font-medium text-rose-500">Maks: {{ item.max_qty }}</p>
                                                     <p v-else class="text-xs font-medium text-gray-400">Batas: {{ item.max_qty }}</p>
@@ -422,7 +439,6 @@ const submitReturn = async () => {
                                                 <select 
                                                     v-model="item.kondisi"
                                                     class="w-full bg-gray-50 border border-gray-200 text-gray-700 text-xs rounded-lg py-2 px-3 focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all font-medium"
-                                                    required
                                                 >
                                                     <option v-for="c in conditions" :key="c.value" :value="c.value">{{ c.label }}</option>
                                                 </select>
@@ -433,7 +449,6 @@ const submitReturn = async () => {
                                                     type="text"
                                                     placeholder="Contoh: Barang penyok, label lepas..."
                                                     class="w-full bg-gray-50 border border-gray-200 text-xs rounded-lg py-2 px-4 focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all font-medium placeholder:text-gray-300"
-                                                    required
                                                 />
                                             </td>
                                         </tr>

@@ -189,9 +189,11 @@ onMounted(async () => {
 
 const submitInventory = async () => {
     try {
+        const itemsToSubmit = inventoryForm.value.items.filter(item => item.qty > 0 && !!item.id_location);
+        
         await axios.post(route('admin.inbound.inventory.store'), {
             id_inbound: inventoryForm.value.id_inbound,
-            items: inventoryForm.value.items
+            items: itemsToSubmit
         });
         Swal.fire("Berhasil", "Inventory berhasil ditambahkan", "success");
         showInventoryModal.value = false;
@@ -208,22 +210,33 @@ const isInventoryFormValid = computed(() => {
     if (!inventoryForm.value.id_inbound || inventoryForm.value.items.length === 0) return false;
     
     const locationUsage = {};
-    return inventoryForm.value.items.every(item => {
-        const hasLocation = !!item.id_location;
-        const validQty = item.qty > 0 && item.qty <= item.max_qty;
+    let hasAtLeastOneValid = false;
+
+    for (const item of inventoryForm.value.items) {
+        const qty = Number(item.qty) || 0;
         
-        if (hasLocation && validQty) {
+        if (qty < 0 || qty > item.max_qty) {
+            return false;
+        }
+
+        if (qty > 0) {
+            if (!item.id_location) {
+                return false;
+            }
+
             if (!locationUsage[item.id_location]) locationUsage[item.id_location] = 0;
-            locationUsage[item.id_location] += Number(item.qty);
+            locationUsage[item.id_location] += qty;
             
             const loc = getSelectedLocation(item.id_location);
             if (locationUsage[item.id_location] > loc.remaining_capacity) {
                 return false;
             }
+
+            hasAtLeastOneValid = true;
         }
-        
-        return hasLocation && validQty;
-    });
+    }
+    
+    return hasAtLeastOneValid;
 });
 
 const allLocations = computed(() => {
@@ -454,10 +467,9 @@ const availableLocations = computed(() => {
                                                         type="number" 
                                                         v-model="item.qty"
                                                         :max="item.max_qty"
-                                                        min="1"
+                                                        min="0"
                                                         class="w-20 text-center py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-xs"
                                                         :class="item.qty > item.max_qty ? 'border-rose-300 text-rose-600 focus:border-rose-500 focus:ring-rose-500/20' : ''"
-                                                        required
                                                     />
                                                     <p v-if="item.qty > item.max_qty" class="text-xs font-medium text-rose-500">Maks: {{ item.max_qty }}</p>
                                                     <p v-else class="text-xs font-medium text-gray-400">Batas: {{ item.max_qty }}</p>
@@ -467,7 +479,6 @@ const availableLocations = computed(() => {
                                                 <select 
                                                     v-model="item.id_location"
                                                     class="w-full bg-gray-50 border border-gray-200 text-gray-700 text-xs rounded-lg py-2 px-3 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium"
-                                                    required
                                                 >
                                                     <option value="" disabled>-- Pilih Lokasi --</option>
                                                     <option v-for="loc in allLocations" :key="loc.id_location" :value="loc.id_location" :disabled="loc.remaining_capacity === 0">
