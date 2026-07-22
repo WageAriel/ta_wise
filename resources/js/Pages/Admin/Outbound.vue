@@ -797,6 +797,7 @@ const deleteOutbound = (id) => {
                             <thead class="bg-gray-50 border-b border-gray-200 text-gray-600">
                                 <tr>
                                     <th class="px-4 py-3 font-bold w-10 text-center">No</th>
+                                    <th class="px-4 py-3 font-bold w-20 text-center">ID</th>
                                     <th class="px-4 py-3 font-bold">Nama Penerima</th>
                                     <th class="px-4 py-3 font-bold">Kota/Telepon</th>
                                     <th class="px-4 py-3 font-bold text-center w-28">Aksi</th>
@@ -805,6 +806,11 @@ const deleteOutbound = (id) => {
                             <tbody class="divide-y divide-gray-100">
                                 <tr v-for="(rec, idx) in recipients" :key="rec.id_recipient" class="hover:bg-gray-50">
                                     <td class="px-4 py-3 text-center text-gray-500">{{ idx + 1 }}</td>
+                                    <td class="px-4 py-3 text-center">
+                                        <span class="inline-flex items-center rounded-md bg-indigo-50 px-2 py-0.5 font-mono text-xs font-bold text-indigo-700 ring-1 ring-inset ring-indigo-200">
+                                            #{{ rec.id_recipient }}
+                                        </span>
+                                    </td>
                                     <td class="px-4 py-3 font-semibold text-gray-800">
                                         {{ rec.nama_penerima }}
                                         <div class="text-xs font-normal text-gray-500 truncate max-w-[200px]">{{ rec.alamat_tujuan }}</div>
@@ -818,7 +824,7 @@ const deleteOutbound = (id) => {
                                     </td>
                                 </tr>
                                 <tr v-if="recipients.length === 0">
-                                    <td colspan="4" class="px-4 py-6 text-center text-gray-500">Belum ada data penerima</td>
+                                    <td colspan="5" class="px-4 py-6 text-center text-gray-500">Belum ada data penerima</td>
                                 </tr>
                             </tbody>
                         </table>

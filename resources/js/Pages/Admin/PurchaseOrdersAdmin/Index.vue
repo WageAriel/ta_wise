@@ -13,6 +13,7 @@ const props = defineProps({
   itemsCatalog: { type: Array, default: () => [] },
   itemTypes: { type: Array, default: () => [] },
   uomOptions: { type: Array, default: () => [] },
+  poSummary: { type: Object, default: () => ({ order_request: 0, waiting_list: 0, order_list: 0 }) },
 });
 
 const segments = [
@@ -105,6 +106,7 @@ const applyItemTypeSelection = (item) => {
 const selectedType = (item) => findItemTypeById(item.item_type_id || item.id_item_type || item.itemType?.id_item_type);
 
 const supplierDisplay = (supplier) => supplier.nama_perusahaan || '';
+
 
 // ── Supplier search & filter ──
 const supplierSearch = ref('');
@@ -603,6 +605,64 @@ const confirmArrival = () => {
           </button>
         </div>
 
+        <!-- ── Summary Cards ── -->
+        <div class="mt-6 grid gap-4 sm:grid-cols-3">
+          <!-- Order Request Card -->
+          <button
+            class="group relative overflow-hidden rounded-2xl p-5 text-left shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 focus:outline-none"
+            :class="segment === 'order-request' ? 'bg-blue-600 ring-2 ring-blue-400 ring-offset-2' : 'bg-white border border-slate-100 hover:border-blue-200'"
+            @click="changeSegment('order-request')"
+          >
+            <div class="flex items-start justify-between">
+              <div>
+                <p class="text-xs font-semibold uppercase tracking-wider" :class="segment === 'order-request' ? 'text-blue-100' : 'text-slate-500'">Order Request</p>
+                <p class="mt-2 text-4xl font-bold tabular-nums" :class="segment === 'order-request' ? 'text-white' : 'text-slate-800'">{{ poSummary.order_request }}</p>
+                <p class="mt-1 text-xs" :class="segment === 'order-request' ? 'text-blue-200' : 'text-slate-400'">PO menunggu diproses</p>
+              </div>
+              <span class="flex h-10 w-10 items-center justify-center rounded-xl text-xl" :class="segment === 'order-request' ? 'bg-blue-500' : 'bg-blue-50'">
+              </span>
+            </div>
+            <div class="absolute bottom-0 right-0 h-20 w-20 translate-x-4 translate-y-4 rounded-full opacity-10" :class="segment === 'order-request' ? 'bg-white' : 'bg-blue-400'"></div>
+          </button>
+
+          <!-- Waiting List Card -->
+          <button
+            class="group relative overflow-hidden rounded-2xl p-5 text-left shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 focus:outline-none"
+            :class="segment === 'waiting-list' ? 'bg-amber-500 ring-2 ring-amber-400 ring-offset-2' : 'bg-white border border-slate-100 hover:border-amber-200'"
+            @click="changeSegment('waiting-list')"
+          >
+            <div class="flex items-start justify-between">
+              <div>
+                <p class="text-xs font-semibold uppercase tracking-wider" :class="segment === 'waiting-list' ? 'text-amber-100' : 'text-slate-500'">Waiting List</p>
+                <p class="mt-2 text-4xl font-bold tabular-nums" :class="segment === 'waiting-list' ? 'text-white' : 'text-slate-800'">{{ poSummary.waiting_list }}</p>
+                <p class="mt-1 text-xs" :class="segment === 'waiting-list' ? 'text-amber-100' : 'text-slate-400'">Negosiasi & verifikasi dokumen</p>
+              </div>
+              <span class="flex h-10 w-10 items-center justify-center rounded-xl text-xl" :class="segment === 'waiting-list' ? 'bg-amber-400' : 'bg-amber-50'">
+              </span>
+            </div>
+            <div class="absolute bottom-0 right-0 h-20 w-20 translate-x-4 translate-y-4 rounded-full opacity-10" :class="segment === 'waiting-list' ? 'bg-white' : 'bg-amber-400'"></div>
+          </button>
+
+          <!-- Order List Card -->
+          <button
+            class="group relative overflow-hidden rounded-2xl p-5 text-left shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 focus:outline-none"
+            :class="segment === 'order-list' ? 'bg-emerald-600 ring-2 ring-emerald-400 ring-offset-2' : 'bg-white border border-slate-100 hover:border-emerald-200'"
+            @click="changeSegment('order-list')"
+          >
+            <div class="flex items-start justify-between">
+              <div>
+                <p class="text-xs font-semibold uppercase tracking-wider" :class="segment === 'order-list' ? 'text-emerald-100' : 'text-slate-500'">Order List Aktif</p>
+                <p class="mt-2 text-4xl font-bold tabular-nums" :class="segment === 'order-list' ? 'text-white' : 'text-slate-800'">{{ poSummary.order_list }}</p>
+                <p class="mt-1 text-xs" :class="segment === 'order-list' ? 'text-emerald-100' : 'text-slate-400'">PO disetujui & dalam pengiriman</p>
+              </div>
+              <span class="flex h-10 w-10 items-center justify-center rounded-xl text-xl" :class="segment === 'order-list' ? 'bg-emerald-500' : 'bg-emerald-50'">
+              </span>
+            </div>
+            <div class="absolute bottom-0 right-0 h-20 w-20 translate-x-4 translate-y-4 rounded-full opacity-10" :class="segment === 'order-list' ? 'bg-white' : 'bg-emerald-400'"></div>
+          </button>
+        </div>
+        <!-- ── / Summary Cards ── -->
+
         <div class="mt-6 rounded-2xl bg-white p-5 shadow-sm border border-slate-100">
           <div class="grid gap-4 md:grid-cols-3">
             <div class="col-span-1 md:col-span-2">
@@ -689,6 +749,7 @@ const confirmArrival = () => {
           <table class="w-full text-sm">
             <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
               <tr>
+                <th class="px-4 py-3 text-left">ID PO</th>
                 <th class="px-4 py-3 text-left">Supplier</th>
                 <th class="px-4 py-3 text-left">Nama Barang</th>
                 <th class="px-4 py-3 text-left">Total Quantity</th>
@@ -705,6 +766,16 @@ const confirmArrival = () => {
                 :key="po.id"
                 class="border-t border-slate-100 hover:bg-slate-50"
               >
+                <td class="px-4 py-3">
+                  <span
+                    v-if="po.status === 'draft' || po.status === 'inquiry'"
+                    class="text-slate-400 font-mono text-xs"
+                  >-</span>
+                  <span
+                    v-else
+                    class="inline-flex items-center rounded-md bg-blue-50 px-2 py-0.5 font-mono text-xs font-semibold text-blue-700 ring-1 ring-inset ring-blue-200"
+                  >#{{ po.id }}</span>
+                </td>
                 <td class="px-4 py-3">
                   {{ po.supplier?.nama_perusahaan || '-' }}
                 </td>
@@ -798,7 +869,7 @@ const confirmArrival = () => {
                 </td>
               </tr>
               <tr v-if="!pagination.data.length">
-                <td colspan="8" class="px-4 py-8 text-center text-slate-400">
+                <td colspan="9" class="px-4 py-8 text-center text-slate-400">
                   Tidak ada data pada segmen ini.
                 </td>
               </tr>

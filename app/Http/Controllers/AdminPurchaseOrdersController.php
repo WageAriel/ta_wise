@@ -109,6 +109,24 @@ class AdminPurchaseOrdersController extends Controller
         $itemsCatalog = Barang::orderBy('nama_barang')->get(['id_barang', 'nama_barang', 'satuan']);
         $itemTypes = POItemType::with(['subtypes', 'uomConfig'])->orderBy('sort_order')->get();
 
+        $poSummary = [
+            'order_request' => PurchaseOrder::whereIn('status', [
+                PurchaseOrder::STATUS_DRAFT,
+                PurchaseOrder::STATUS_INQUIRY,
+                PurchaseOrder::STATUS_SUBMITTED,
+                PurchaseOrder::STATUS_RFQ,
+            ])->count(),
+            'waiting_list' => PurchaseOrder::whereIn('status', [
+                PurchaseOrder::STATUS_VERIFICATION,
+                PurchaseOrder::STATUS_REQUEST,
+                PurchaseOrder::STATUS_COMPLETENESS,
+            ])->count(),
+            'order_list' => PurchaseOrder::whereIn('status', [
+                PurchaseOrder::STATUS_APPROVED,
+                PurchaseOrder::STATUS_SHIPMENT,
+            ])->count(),
+        ];
+
         return Inertia::render('Admin/PurchaseOrdersAdmin/Index', [
             'purchaseOrders' => $purchaseOrders,
             'segment' => $segment,
@@ -124,6 +142,7 @@ class AdminPurchaseOrdersController extends Controller
             'itemsCatalog' => $itemsCatalog,
             'itemTypes' => $itemTypes,
             'uomOptions' => $settings->uom_options ?: PurchaseOrderSetting::defaultUomOptions(),
+            'poSummary' => $poSummary,
         ]);
     }
 
